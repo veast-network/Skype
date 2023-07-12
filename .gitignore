@@ -1,0 +1,18 @@
+# Eclipse
+*.class
+.classpath
+.project
+.settings
+.metadata
+
+# Cynthia
+RCDATA
+Skype/bin
+Skype/target
+Skype/config.db
+Skype-core/bin
+Skype-core/target
+Skype-server/bin
+Skype-server/target
+Skype-server/config*.db
+Skype/src/main/resources/images2
