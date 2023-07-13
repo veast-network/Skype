@@ -9,7 +9,8 @@ import javax.swing.ImageIcon;
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
-import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
+import codes.elisa32.Skype.v1_0_R1.pgp.PGPUtilities;
+import codes.elisa32.Skype.v1_0_R1.pgp.PGPUtilities.DecryptionResult;
 
 import com.google.gson.Gson;
 
@@ -20,6 +21,10 @@ public class Message implements Comparable<Message> {
 	public volatile UUID sender;
 
 	public volatile String message;
+
+	private volatile transient String decryptedMessage = null;
+
+	private volatile transient boolean decryptionSuccessful, signatureVerified = false;
 
 	public volatile long timestamp;
 
@@ -83,8 +88,53 @@ public class Message implements Comparable<Message> {
 		return message;
 	}
 
+	public String getDecryptedMessage() {
+		if (decryptedMessage != null) {
+			return decryptedMessage;
+		}
+		Contact sender = MainForm.get().getLoggedInUser();
+		if (!MainForm.get().getLoggedInUser().getUniqueId().equals(this.sender)) {
+			for (Conversation conversation : MainForm.get().getConversations()) {
+				if (conversation.getUniqueId().equals(this.sender)) {
+					if (conversation instanceof Contact) {
+						sender = (Contact) conversation;
+					}
+				}
+			}
+		}
+		if (message.startsWith("-----BEGIN PGP MESSAGE-----")) {
+			DecryptionResult result = PGPUtilities.decryptAndVerify(message,
+					sender);
+			decryptionSuccessful = result.isSuccessful();
+			signatureVerified = result.isSignatureVerified();
+			decryptedMessage = result.getMessage();
+			return decryptedMessage;
+		}
+		return message;
+	}
+
+	public boolean isDecryptionSuccessful() {
+		return decryptionSuccessful;
+	}
+
+	public void setDecryptionSuccessful(boolean decryptionSuccessful) {
+		this.decryptionSuccessful = decryptionSuccessful;
+	}
+
+	public boolean isSignatureVerified() {
+		return signatureVerified;
+	}
+
+	public void setSignatureVerified(boolean signatureVerified) {
+		this.signatureVerified = signatureVerified;
+	}
+
 	public void setMessage(String message) {
 		this.message = message;
+	}
+	
+	public void setDecryptedMessage(String decryptedMessage) {
+		this.decryptedMessage = decryptedMessage;
 	}
 
 	public long getTimestamp() {

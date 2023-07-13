@@ -12,6 +12,8 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -28,6 +30,8 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.Socket;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,7 +58,9 @@ import javax.swing.JLayeredPane;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
@@ -71,17 +77,22 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.lang3.text.WordUtils;
+import org.bouncycastle.openpgp.PGPException;
+import org.pgpainless.PGPainless;
 
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptContactRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutDeclineContactRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutEnteringListeningMode;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupContacts;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupConversationHistory;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupMessageHistory;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupOnlineStatus;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRefreshToken;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRemoveMessage;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendContactRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendMessage;
@@ -98,6 +109,7 @@ import codes.elisa32.Skype.v1_0_R1.data.types.MessageType;
 import codes.elisa32.Skype.v1_0_R1.data.types.Status;
 import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
 import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
+import codes.elisa32.Skype.v1_0_R1.pgp.PGPUtilities;
 import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
 import codes.elisa32.Skype.v1_0_R1.uicommon.CopyOfJButtonRounded;
 import codes.elisa32.Skype.v1_0_R1.uicommon.JContactsConversationGroup;
@@ -112,6 +124,8 @@ public class MainForm extends JFrame {
 	private JFrame frame = this;
 
 	private static MainForm instance;
+
+	private Timer timer1, timer2, timer3;
 
 	private WindowAdapter windowAdapter = new WindowAdapter() {
 		@Override
@@ -417,6 +431,27 @@ public class MainForm extends JFrame {
 			 */
 			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
+			MouseAdapter mouseAdapter = new MouseAdapter() {
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					if (loggedInUser.getPubKey().isPresent()) {
+						String pubKey;
+						try {
+							pubKey = PGPainless.asciiArmor(loggedInUser
+									.getPubKey().get());
+							JOptionPane.showMessageDialog(frame, pubKey);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+
+			};
+
+			iconLabel.addMouseListener(mouseAdapter);
+
 			iconLabelPanel.setBounds(15, 19, 40, 50);
 			iconLabelPanel.setOpaque(false);
 			iconLabelPanel.add(iconLabel);
@@ -497,6 +532,27 @@ public class MainForm extends JFrame {
 			 */
 			displayNameLabel.setCursor(Cursor
 					.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+			MouseAdapter mouseAdapter = new MouseAdapter() {
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					if (loggedInUser.getPubKey().isPresent()) {
+						String pubKey;
+						try {
+							pubKey = PGPainless.asciiArmor(loggedInUser
+									.getPubKey().get());
+							JOptionPane.showMessageDialog(frame, pubKey);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+
+			};
+
+			displayNameLabel.addMouseListener(mouseAdapter);
 
 			displayNameLabelPanel.setOpaque(false);
 			displayNameLabelPanel.add(displayNameLabel);
@@ -998,6 +1054,9 @@ public class MainForm extends JFrame {
 					MouseAdapter conversationMouseAdapter = new MouseAdapter() {
 						@Override
 						public void mousePressed(MouseEvent evt) {
+							if (evt.getButton() != MouseEvent.BUTTON1) {
+								return;
+							}
 							selectConversation(conversation);
 						}
 					};
@@ -1007,6 +1066,174 @@ public class MainForm extends JFrame {
 
 					conversationPanel
 							.addMouseListener(conversationMouseAdapter);
+
+					JPopupMenu popUp = new JPopupMenu();
+					{
+						JMenuItem menuItem = new JMenuItem(
+								"Clear chat for both participants");
+						menuItem.addActionListener(new ActionListener() {
+
+							@Override
+							public void actionPerformed(ActionEvent arg0) {
+								DialogForm form = new DialogForm(
+										null,
+										"Skype™ - Clear chat?",
+										"Clear chat?",
+										"Are you sure you want to clear this chat?",
+										"Remove", new Runnable() {
+
+											@Override
+											public void run() {
+												Optional<SocketHandlerContext> ctx = Skype
+														.getPlugin()
+														.createHandle();
+												if (ctx.isPresent()) {
+													Optional<PacketPlayInReply> reply = ctx
+															.get()
+															.getOutboundHandler()
+															.dispatch(
+																	ctx.get(),
+																	new PacketPlayOutLogin(
+																			authCode));
+													if (!reply.isPresent()
+															|| reply.get()
+																	.getStatusCode() != 200) {
+														return;
+													}
+													for (Message message : conversation
+															.getMessages()
+															.toArray(
+																	new Message[0])
+															.clone()) {
+														if (message.isDeleted()) {
+															continue;
+														}
+														if (message
+																.getMessageType() != null) {
+															continue;
+														}
+														UUID authCode = UUID
+																.fromString(reply
+																		.get()
+																		.getText());
+														PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																authCode,
+																conversation
+																		.getUniqueId(),
+																message.getUniqueId(),
+																message.getTimestamp());
+														Optional<PacketPlayInReply> replyPacket2 = ctx
+																.get()
+																.getOutboundHandler()
+																.dispatch(
+																		ctx.get(),
+																		removeMessage);
+														if (!replyPacket2
+																.isPresent()) {
+															return;
+														}
+														if (replyPacket2
+																.get()
+																.getStatusCode() != 200) {
+															return;
+														}
+													}
+												}
+											}
+										});
+
+								form.show();
+
+							}
+						});
+						popUp.add(menuItem);
+					}
+					popUp.add(new JSeparator());
+					{
+						JMenuItem menuItem = new JMenuItem(
+								"Remove from Contacts");
+						menuItem.addActionListener(new ActionListener() {
+
+							@Override
+							public void actionPerformed(ActionEvent arg0) {
+								if (conversation == null) {
+									return;
+								}
+								if (!(conversation instanceof Contact)) {
+									return;
+								}
+								DialogForm form = new DialogForm(null,
+										"Skype™ - Remove contact?",
+										"Remove contact?", "Remove "
+												+ selectedConversation
+														.getDisplayName()
+												+ " from Contacts?", "Remove",
+										new Runnable() {
+
+											@Override
+											public void run() {
+												Optional<SocketHandlerContext> ctx = Skype
+														.getPlugin()
+														.createHandle();
+												if (ctx.isPresent()) {
+													Optional<PacketPlayInReply> reply = ctx
+															.get()
+															.getOutboundHandler()
+															.dispatch(
+																	ctx.get(),
+																	new PacketPlayOutLogin(
+																			authCode));
+													if (!reply.isPresent()
+															|| reply.get()
+																	.getStatusCode() != 200) {
+														return;
+													}
+													for (Message message : conversation
+															.getMessages()
+															.toArray(
+																	new Message[0])
+															.clone()) {
+														if (message.isDeleted()) {
+															continue;
+														}
+														UUID authCode = UUID
+																.fromString(reply
+																		.get()
+																		.getText());
+														PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																authCode,
+																conversation
+																		.getUniqueId(),
+																message.getUniqueId(),
+																message.getTimestamp());
+														Optional<PacketPlayInReply> replyPacket2 = ctx
+																.get()
+																.getOutboundHandler()
+																.dispatch(
+																		ctx.get(),
+																		removeMessage);
+														if (!replyPacket2
+																.isPresent()) {
+															return;
+														}
+														if (replyPacket2
+																.get()
+																.getStatusCode() != 200) {
+															return;
+														}
+													}
+												}
+											}
+										});
+
+								form.show();
+							}
+
+						});
+						popUp.add(menuItem);
+					}
+
+					conversationPanel.setComponentPopupMenu(popUp);
 
 					if (selectedConversation != null
 							&& selectedConversation.equals(conversation)) {
@@ -1044,21 +1271,8 @@ public class MainForm extends JFrame {
 					 * Add profile icon with status icon in conversation panel
 					 */
 					{
-						JPanel iconLabelPanel;
-						if (conversation instanceof Contact) {
-							Contact contact = (Contact) conversation;
-							iconLabelPanel = ImageIO.getConversationIconPanel(
-									conversation.getImageIcon(),
-									contact.getOnlineStatus());
-						} else if (conversation.isGroupChat()) {
-							iconLabelPanel = ImageIO
-									.getConversationIconPanel(conversation
-											.getImageIcon());
-						} else {
-							iconLabelPanel = ImageIO.getConversationIconPanel(
-									conversation.getImageIcon(),
-									Status.NOT_A_CONTACT);
-						}
+						JPanel iconLabelPanel = conversation
+								.getOnlineStatusPanel();
 
 						iconLabelPanel.setBounds(14, 0, 40, 50);
 
@@ -1082,6 +1296,7 @@ public class MainForm extends JFrame {
 								+ conversation.getNotificationCount());
 						notificationCountLabel
 								.addMouseListener(conversationMouseAdapter);
+						notificationCountLabel.setComponentPopupMenu(popUp);
 						notificationCountLabel.setFont(font);
 						notificationCountLabel.setForeground(new Color(255,
 								125, 0));
@@ -1138,6 +1353,7 @@ public class MainForm extends JFrame {
 										conversation.getDisplayName()));
 						conversationNameLabel
 								.addMouseListener(conversationMouseAdapter);
+						conversationNameLabel.setComponentPopupMenu(popUp);
 						conversationNameLabel.setFont(font);
 						conversationNameLabel.setToolTipText(conversation
 								.getDisplayName());
@@ -1199,6 +1415,7 @@ public class MainForm extends JFrame {
 											contact.getMood()));
 							contactMoodLabel
 									.addMouseListener(conversationMouseAdapter);
+							contactMoodLabel.setComponentPopupMenu(popUp);
 							contactMoodLabel.setFont(font);
 							contactMoodLabel.setToolTipText(contact.getMood());
 							contactMoodLabel.setForeground(new Color(158, 166,
@@ -1274,7 +1491,7 @@ public class MainForm extends JFrame {
 						TimeUnit.MILLISECONDS);
 				if (diffInDays > 30) {
 					group = "Older than a month";
-				} else if (diffInDays > 7) {
+				} else if (diffInDays >= 7) {
 					group = "Older than a week";
 				}
 				groups.get(group).add(conversation);
@@ -1442,6 +1659,9 @@ public class MainForm extends JFrame {
 					MouseAdapter conversationMouseAdapter = new MouseAdapter() {
 						@Override
 						public void mousePressed(MouseEvent evt) {
+							if (evt.getButton() != MouseEvent.BUTTON1) {
+								return;
+							}
 							selectConversation(conversation);
 						}
 					};
@@ -1451,6 +1671,174 @@ public class MainForm extends JFrame {
 
 					conversationPanel
 							.addMouseListener(conversationMouseAdapter);
+
+					JPopupMenu popUp = new JPopupMenu();
+					{
+						JMenuItem menuItem = new JMenuItem(
+								"Clear chat for both participants");
+						menuItem.addActionListener(new ActionListener() {
+
+							@Override
+							public void actionPerformed(ActionEvent arg0) {
+								DialogForm form = new DialogForm(
+										null,
+										"Skype™ - Clear chat?",
+										"Clear chat?",
+										"Are you sure you want to clear this chat?",
+										"Remove", new Runnable() {
+
+											@Override
+											public void run() {
+												Optional<SocketHandlerContext> ctx = Skype
+														.getPlugin()
+														.createHandle();
+												if (ctx.isPresent()) {
+													Optional<PacketPlayInReply> reply = ctx
+															.get()
+															.getOutboundHandler()
+															.dispatch(
+																	ctx.get(),
+																	new PacketPlayOutLogin(
+																			authCode));
+													if (!reply.isPresent()
+															|| reply.get()
+																	.getStatusCode() != 200) {
+														return;
+													}
+													for (Message message : conversation
+															.getMessages()
+															.toArray(
+																	new Message[0])
+															.clone()) {
+														if (message.isDeleted()) {
+															continue;
+														}
+														if (message
+																.getMessageType() != null) {
+															continue;
+														}
+														UUID authCode = UUID
+																.fromString(reply
+																		.get()
+																		.getText());
+														PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																authCode,
+																conversation
+																		.getUniqueId(),
+																message.getUniqueId(),
+																message.getTimestamp());
+														Optional<PacketPlayInReply> replyPacket2 = ctx
+																.get()
+																.getOutboundHandler()
+																.dispatch(
+																		ctx.get(),
+																		removeMessage);
+														if (!replyPacket2
+																.isPresent()) {
+															return;
+														}
+														if (replyPacket2
+																.get()
+																.getStatusCode() != 200) {
+															return;
+														}
+													}
+												}
+											}
+										});
+
+								form.show();
+
+							}
+						});
+						popUp.add(menuItem);
+					}
+					popUp.add(new JSeparator());
+					{
+						JMenuItem menuItem = new JMenuItem(
+								"Remove from Contacts");
+						menuItem.addActionListener(new ActionListener() {
+
+							@Override
+							public void actionPerformed(ActionEvent arg0) {
+								if (conversation == null) {
+									return;
+								}
+								if (!(conversation instanceof Contact)) {
+									return;
+								}
+								DialogForm form = new DialogForm(null,
+										"Skype™ - Remove contact?",
+										"Remove contact?", "Remove "
+												+ selectedConversation
+														.getDisplayName()
+												+ " from Contacts?", "Remove",
+										new Runnable() {
+
+											@Override
+											public void run() {
+												Optional<SocketHandlerContext> ctx = Skype
+														.getPlugin()
+														.createHandle();
+												if (ctx.isPresent()) {
+													Optional<PacketPlayInReply> reply = ctx
+															.get()
+															.getOutboundHandler()
+															.dispatch(
+																	ctx.get(),
+																	new PacketPlayOutLogin(
+																			authCode));
+													if (!reply.isPresent()
+															|| reply.get()
+																	.getStatusCode() != 200) {
+														return;
+													}
+													for (Message message : conversation
+															.getMessages()
+															.toArray(
+																	new Message[0])
+															.clone()) {
+														if (message.isDeleted()) {
+															continue;
+														}
+														UUID authCode = UUID
+																.fromString(reply
+																		.get()
+																		.getText());
+														PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																authCode,
+																conversation
+																		.getUniqueId(),
+																message.getUniqueId(),
+																message.getTimestamp());
+														Optional<PacketPlayInReply> replyPacket2 = ctx
+																.get()
+																.getOutboundHandler()
+																.dispatch(
+																		ctx.get(),
+																		removeMessage);
+														if (!replyPacket2
+																.isPresent()) {
+															return;
+														}
+														if (replyPacket2
+																.get()
+																.getStatusCode() != 200) {
+															return;
+														}
+													}
+												}
+											}
+										});
+
+								form.show();
+							}
+
+						});
+						popUp.add(menuItem);
+					}
+
+					conversationPanel.setComponentPopupMenu(popUp);
 
 					if (selectedConversation != null
 							&& selectedConversation.equals(conversation)) {
@@ -1488,21 +1876,8 @@ public class MainForm extends JFrame {
 					 * Add profile icon with status icon in conversation panel
 					 */
 					{
-						JPanel iconLabelPanel;
-						if (conversation instanceof Contact) {
-							Contact contact = (Contact) conversation;
-							iconLabelPanel = ImageIO.getConversationIconPanel(
-									conversation.getImageIcon(),
-									contact.getOnlineStatus());
-						} else if (conversation.isGroupChat()) {
-							iconLabelPanel = ImageIO
-									.getConversationIconPanel(conversation
-											.getImageIcon());
-						} else {
-							iconLabelPanel = ImageIO.getConversationIconPanel(
-									conversation.getImageIcon(),
-									Status.NOT_A_CONTACT);
-						}
+						JPanel iconLabelPanel = conversation
+								.getOnlineStatusPanel();
 
 						iconLabelPanel.setBounds(14, 0, 40, 50);
 
@@ -1526,6 +1901,7 @@ public class MainForm extends JFrame {
 								+ conversation.getNotificationCount());
 						notificationCountLabel
 								.addMouseListener(conversationMouseAdapter);
+						notificationCountLabel.setComponentPopupMenu(popUp);
 						notificationCountLabel.setFont(font);
 						notificationCountLabel.setForeground(new Color(255,
 								125, 0));
@@ -1582,6 +1958,7 @@ public class MainForm extends JFrame {
 										conversation.getDisplayName()));
 						conversationNameLabel
 								.addMouseListener(conversationMouseAdapter);
+						conversationNameLabel.setComponentPopupMenu(popUp);
 						conversationNameLabel.setFont(font);
 						conversationNameLabel.setToolTipText(conversation
 								.getDisplayName());
@@ -1643,6 +2020,7 @@ public class MainForm extends JFrame {
 											contact.getMood()));
 							contactMoodLabel
 									.addMouseListener(conversationMouseAdapter);
+							contactMoodLabel.setComponentPopupMenu(popUp);
 							contactMoodLabel.setFont(font);
 							contactMoodLabel.setToolTipText(contact.getMood());
 							contactMoodLabel.setForeground(new Color(158, 166,
@@ -1724,6 +2102,30 @@ public class MainForm extends JFrame {
 			 * Reserved for future use
 			 */
 			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+			MouseAdapter mouseAdapter = new MouseAdapter() {
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					if (selectedConversation instanceof Contact) {
+						Contact contact = (Contact) selectedConversation;
+						if (contact.getPubKey().isPresent()) {
+							String pubKey;
+							try {
+								pubKey = PGPainless.asciiArmor(contact
+										.getPubKey().get());
+								JOptionPane.showMessageDialog(frame, pubKey);
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
+					}
+				}
+
+			};
+
+			iconLabel.addMouseListener(mouseAdapter);
 
 			iconLabelPanel.setBounds(10, 10, 60, 60);
 			iconLabelPanel.setOpaque(false);
@@ -1847,6 +2249,30 @@ public class MainForm extends JFrame {
 			 */
 			displayNameLabel.setCursor(Cursor
 					.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+			MouseAdapter mouseAdapter = new MouseAdapter() {
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					if (selectedConversation instanceof Contact) {
+						Contact contact = (Contact) selectedConversation;
+						if (contact.getPubKey().isPresent()) {
+							String pubKey;
+							try {
+								pubKey = PGPainless.asciiArmor(contact
+										.getPubKey().get());
+								JOptionPane.showMessageDialog(frame, pubKey);
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
+					}
+				}
+
+			};
+
+			displayNameLabel.addMouseListener(mouseAdapter);
 
 			displayNameLabelPanel.setOpaque(false);
 			displayNameLabelPanel.add(displayNameLabel);
@@ -2793,8 +3219,166 @@ public class MainForm extends JFrame {
 								+ (panelWidth - 351) + "px'>%1s</body></html>";
 
 						JLabel label = new JLabel(String.format(html,
-								message.getMessage()));
+								message.getDecryptedMessage()));
+
+						JPopupMenu popUp = new JPopupMenu();
+						{
+							JMenuItem menuItem = new JMenuItem("Copy Selection");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						}
+						{
+							JMenuItem menuItem = new JMenuItem("Copy Message");
+							menuItem.addActionListener(new ActionListener() {
+
+								@Override
+								public void actionPerformed(ActionEvent arg0) {
+									StringSelection selection = new StringSelection(
+											message.getDecryptedMessage());
+									Clipboard clipboard = Toolkit
+											.getDefaultToolkit()
+											.getSystemClipboard();
+									clipboard.setContents(selection, selection);
+								}
+
+							});
+							popUp.add(menuItem);
+						}
+						{
+							JMenuItem menuItem = new JMenuItem("Select All");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						}
+						{
+							popUp.add(new JSeparator());
+						}
+						{
+							JMenuItem menuItem = new JMenuItem("Edit Message");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						}
+						{
+							JMenuItem menuItem = new JMenuItem("Remove Message");
+							if (message.isDeleted()) {
+								menuItem.setEnabled(false);
+							} else {
+								menuItem.addActionListener(new ActionListener() {
+
+									@Override
+									public void actionPerformed(ActionEvent arg0) {
+										DialogForm form = new DialogForm(
+												null,
+												"Skype™ - Remove message?",
+												"Remove message?",
+												"Are you sure you want to remove this message?",
+												"Remove", new Runnable() {
+
+													@Override
+													public void run() {
+														Optional<SocketHandlerContext> ctx = Skype
+																.getPlugin()
+																.createHandle();
+														if (ctx.isPresent()) {
+															Optional<PacketPlayInReply> reply = ctx
+																	.get()
+																	.getOutboundHandler()
+																	.dispatch(
+																			ctx.get(),
+																			new PacketPlayOutLogin(
+																					authCode));
+															if (!reply
+																	.isPresent()
+																	|| reply.get()
+																			.getStatusCode() != 200) {
+																return;
+															}
+															UUID authCode = UUID
+																	.fromString(reply
+																			.get()
+																			.getText());
+															PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																	authCode,
+																	selectedConversation
+																			.getUniqueId(),
+																	message.getUniqueId(),
+																	message.getTimestamp());
+															Optional<PacketPlayInReply> replyPacket2 = ctx
+																	.get()
+																	.getOutboundHandler()
+																	.dispatch(
+																			ctx.get(),
+																			removeMessage);
+															if (!replyPacket2
+																	.isPresent()) {
+																return;
+															}
+															if (replyPacket2
+																	.get()
+																	.getStatusCode() != 200) {
+																return;
+															}
+														}
+													}
+
+												});
+										form.show();
+									}
+								});
+							}
+							popUp.add(menuItem);
+						}
+						{
+							JMenuItem menuItem = new JMenuItem(
+									"Move Bookmark Here");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						}
+						label.setComponentPopupMenu(popUp);
+
+						MouseAdapter mouseAdapter = new MouseAdapter() {
+
+							@Override
+							public void mousePressed(MouseEvent evt) {
+								super.mousePressed(evt);
+								if (evt.getButton() != MouseEvent.BUTTON1) {
+									return;
+								}
+								String dialogMessage = message.getMessage();
+								if (!message.isSignatureVerified()) {
+									dialogMessage = "The data could not be verified"
+											+ '\r'
+											+ '\n'
+											+ "The signature does not match the one that is expected"
+											+ '\r'
+											+ '\n'
+											+ '\r'
+											+ '\n'
+											+ dialogMessage;
+								}
+								JOptionPane.showMessageDialog(frame,
+										dialogMessage);
+							}
+
+						};
+
+						if (!message.getDecryptedMessage().equals(
+								message.getMessage())) {
+							label.addMouseListener(mouseAdapter);
+							label.setCursor(Cursor
+									.getPredefinedCursor(Cursor.HAND_CURSOR));
+						}
+
+						if (message.isDecryptionSuccessful()
+								&& !message.isSignatureVerified()) {
+							label.setForeground(Color.red);
+						}
+
 						label.setFont(font);
+
+						if (message.isDeleted()) {
+							label.setFont(label.getFont().deriveFont(
+									Font.ITALIC));
+						}
 
 						int width = label.getPreferredSize().width;
 						int height = label.getPreferredSize().height;
@@ -2993,9 +3577,177 @@ public class MainForm extends JFrame {
 										BoxLayout.X_AXIS));
 								labelPanel.setOpaque(false);
 
-								JLabel label = new JLabel(message.getMessage());
+								JLabel label = new JLabel(
+										message.getDecryptedMessage());
+
+								JPopupMenu popUp = new JPopupMenu();
+								{
+									JMenuItem menuItem = new JMenuItem(
+											"Copy Selection");
+									menuItem.setEnabled(false);
+									popUp.add(menuItem);
+								}
+								{
+									JMenuItem menuItem = new JMenuItem(
+											"Copy Message");
+									menuItem.addActionListener(new ActionListener() {
+
+										@Override
+										public void actionPerformed(
+												ActionEvent arg0) {
+											StringSelection selection = new StringSelection(
+													message.getDecryptedMessage());
+											Clipboard clipboard = Toolkit
+													.getDefaultToolkit()
+													.getSystemClipboard();
+											clipboard.setContents(selection,
+													selection);
+										}
+
+									});
+									popUp.add(menuItem);
+								}
+								{
+									JMenuItem menuItem = new JMenuItem(
+											"Select All");
+									menuItem.setEnabled(false);
+									popUp.add(menuItem);
+								}
+								{
+									popUp.add(new JSeparator());
+								}
+								{
+									JMenuItem menuItem = new JMenuItem(
+											"Edit Message");
+									menuItem.setEnabled(false);
+									popUp.add(menuItem);
+								}
+								{
+									JMenuItem menuItem = new JMenuItem(
+											"Remove Message");
+									if (message.isDeleted()) {
+										menuItem.setEnabled(false);
+									} else {
+										menuItem.addActionListener(new ActionListener() {
+
+											@Override
+											public void actionPerformed(
+													ActionEvent arg0) {
+												DialogForm form = new DialogForm(
+														null,
+														"Skype™ - Remove message?",
+														"Remove message?",
+														"Are you sure you want to remove this message?",
+														"Remove",
+														new Runnable() {
+
+															@Override
+															public void run() {
+																Optional<SocketHandlerContext> ctx = Skype
+																		.getPlugin()
+																		.createHandle();
+																if (ctx.isPresent()) {
+																	Optional<PacketPlayInReply> reply = ctx
+																			.get()
+																			.getOutboundHandler()
+																			.dispatch(
+																					ctx.get(),
+																					new PacketPlayOutLogin(
+																							authCode));
+																	if (!reply
+																			.isPresent()
+																			|| reply.get()
+																					.getStatusCode() != 200) {
+																		return;
+																	}
+																	UUID authCode = UUID
+																			.fromString(reply
+																					.get()
+																					.getText());
+																	PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																			authCode,
+																			selectedConversation
+																					.getUniqueId(),
+																			message.getUniqueId(),
+																			message.getTimestamp());
+																	Optional<PacketPlayInReply> replyPacket2 = ctx
+																			.get()
+																			.getOutboundHandler()
+																			.dispatch(
+																					ctx.get(),
+																					removeMessage);
+																	if (!replyPacket2
+																			.isPresent()) {
+																		return;
+																	}
+																	if (replyPacket2
+																			.get()
+																			.getStatusCode() != 200) {
+																		return;
+																	}
+																}
+															}
+
+														});
+												form.show();
+											}
+										});
+									}
+									popUp.add(menuItem);
+								}
+								{
+									JMenuItem menuItem = new JMenuItem(
+											"Move Bookmark Here");
+									menuItem.setEnabled(false);
+									popUp.add(menuItem);
+								}
+								label.setComponentPopupMenu(popUp);
+
+								MouseAdapter mouseAdapter = new MouseAdapter() {
+
+									@Override
+									public void mousePressed(MouseEvent evt) {
+										super.mousePressed(evt);
+										if (evt.getButton() != MouseEvent.BUTTON1) {
+											return;
+										}
+										String dialogMessage = message
+												.getMessage();
+										if (!message.isSignatureVerified()) {
+											dialogMessage = "The data could not be verified"
+													+ '\r'
+													+ '\n'
+													+ "The signature does not match the one that is expected"
+													+ '\r'
+													+ '\n'
+													+ '\r'
+													+ '\n'
+													+ dialogMessage;
+										}
+										JOptionPane.showMessageDialog(frame,
+												dialogMessage);
+									}
+
+								};
+
+								if (!message.getDecryptedMessage().equals(
+										message.getMessage())) {
+									label.addMouseListener(mouseAdapter);
+									label.setCursor(Cursor
+											.getPredefinedCursor(Cursor.HAND_CURSOR));
+								}
+
+								if (message.isDecryptionSuccessful()
+										&& !message.isSignatureVerified()) {
+									label.setForeground(Color.red);
+								}
+
 								label.setFont(font.deriveFont(
 										Font.TRUETYPE_FONT, 12));
+								if (message.isDeleted()) {
+									label.setFont(label.getFont().deriveFont(
+											Font.ITALIC));
+								}
 								labelPanel.add(label);
 
 								panel.add(labelPanel);
@@ -3026,7 +3778,7 @@ public class MainForm extends JFrame {
 							if (message.getSender().equals(
 									loggedInUser.getUniqueId())
 									|| message.isDeleted()) {
-							} else {
+							} else if (!(selectedConversation instanceof Contact)) {
 								panel.add(Box.createRigidArea(new Dimension(0,
 										8)));
 
@@ -3268,9 +4020,173 @@ public class MainForm extends JFrame {
 									+ "px'>%1s</body></html>";
 
 							JLabel label = new JLabel(String.format(html,
-									message.getMessage()));
+									message.getDecryptedMessage()));
+
+							JPopupMenu popUp = new JPopupMenu();
+							{
+								JMenuItem menuItem = new JMenuItem(
+										"Copy Selection");
+								menuItem.setEnabled(false);
+								popUp.add(menuItem);
+							}
+							{
+								JMenuItem menuItem = new JMenuItem(
+										"Copy Message");
+								menuItem.addActionListener(new ActionListener() {
+
+									@Override
+									public void actionPerformed(ActionEvent arg0) {
+										StringSelection selection = new StringSelection(
+												message.getDecryptedMessage());
+										Clipboard clipboard = Toolkit
+												.getDefaultToolkit()
+												.getSystemClipboard();
+										clipboard.setContents(selection,
+												selection);
+									}
+
+								});
+								popUp.add(menuItem);
+							}
+							{
+								JMenuItem menuItem = new JMenuItem("Select All");
+								menuItem.setEnabled(false);
+								popUp.add(menuItem);
+							}
+							{
+								popUp.add(new JSeparator());
+							}
+							{
+								JMenuItem menuItem = new JMenuItem(
+										"Edit Message");
+								menuItem.setEnabled(false);
+								popUp.add(menuItem);
+							}
+							{
+								JMenuItem menuItem = new JMenuItem(
+										"Remove Message");
+								if (message.isDeleted()) {
+									menuItem.setEnabled(false);
+								} else {
+									menuItem.addActionListener(new ActionListener() {
+
+										@Override
+										public void actionPerformed(
+												ActionEvent arg0) {
+											DialogForm form = new DialogForm(
+													null,
+													"Skype™ - Remove message?",
+													"Remove message?",
+													"Are you sure you want to remove this message?",
+													"Remove", new Runnable() {
+
+														@Override
+														public void run() {
+															Optional<SocketHandlerContext> ctx = Skype
+																	.getPlugin()
+																	.createHandle();
+															if (ctx.isPresent()) {
+																Optional<PacketPlayInReply> reply = ctx
+																		.get()
+																		.getOutboundHandler()
+																		.dispatch(
+																				ctx.get(),
+																				new PacketPlayOutLogin(
+																						authCode));
+																if (!reply
+																		.isPresent()
+																		|| reply.get()
+																				.getStatusCode() != 200) {
+																	return;
+																}
+																UUID authCode = UUID
+																		.fromString(reply
+																				.get()
+																				.getText());
+																PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																		authCode,
+																		selectedConversation
+																				.getUniqueId(),
+																		message.getUniqueId(),
+																		message.getTimestamp());
+																Optional<PacketPlayInReply> replyPacket2 = ctx
+																		.get()
+																		.getOutboundHandler()
+																		.dispatch(
+																				ctx.get(),
+																				removeMessage);
+																if (!replyPacket2
+																		.isPresent()) {
+																	return;
+																}
+																if (replyPacket2
+																		.get()
+																		.getStatusCode() != 200) {
+																	return;
+																}
+															}
+														}
+
+													});
+											form.show();
+										}
+									});
+								}
+								popUp.add(menuItem);
+							}
+							{
+								JMenuItem menuItem = new JMenuItem(
+										"Move Bookmark Here");
+								menuItem.setEnabled(false);
+								popUp.add(menuItem);
+							}
+							label.setComponentPopupMenu(popUp);
+
+							MouseAdapter mouseAdapter = new MouseAdapter() {
+
+								@Override
+								public void mousePressed(MouseEvent evt) {
+									super.mousePressed(evt);
+									if (evt.getButton() != MouseEvent.BUTTON1) {
+										return;
+									}
+									String dialogMessage = message.getMessage();
+									if (!message.isSignatureVerified()) {
+										dialogMessage = "The data could not be verified"
+												+ '\r'
+												+ '\n'
+												+ "The signature does not match the one that is expected"
+												+ '\r'
+												+ '\n'
+												+ '\r'
+												+ '\n'
+												+ dialogMessage;
+									}
+									JOptionPane.showMessageDialog(frame,
+											dialogMessage);
+								}
+
+							};
+
+							if (!message.getDecryptedMessage().equals(
+									message.getMessage())) {
+								label.addMouseListener(mouseAdapter);
+								label.setCursor(Cursor
+										.getPredefinedCursor(Cursor.HAND_CURSOR));
+							}
+
+							if (message.isDecryptionSuccessful()
+									&& !message.isSignatureVerified()) {
+								label.setForeground(Color.red);
+							}
+
 							label.setBorder(BorderFactory.createEmptyBorder());
 							label.setFont(font);
+
+							if (message.isDeleted()) {
+								label.setFont(label.getFont().deriveFont(
+										Font.ITALIC));
+							}
 
 							int width = label.getPreferredSize().width;
 							int height = label.getPreferredSize().height;
@@ -3350,8 +4266,172 @@ public class MainForm extends JFrame {
 									+ "px'>%1s</body></html>";
 
 							JLabel label = new JLabel(String.format(html,
-									message.getMessage()));
+									message.getDecryptedMessage()));
+
+							JPopupMenu popUp = new JPopupMenu();
+							{
+								JMenuItem menuItem = new JMenuItem(
+										"Copy Selection");
+								menuItem.setEnabled(false);
+								popUp.add(menuItem);
+							}
+							{
+								JMenuItem menuItem = new JMenuItem(
+										"Copy Message");
+								menuItem.addActionListener(new ActionListener() {
+
+									@Override
+									public void actionPerformed(ActionEvent arg0) {
+										StringSelection selection = new StringSelection(
+												message.getDecryptedMessage());
+										Clipboard clipboard = Toolkit
+												.getDefaultToolkit()
+												.getSystemClipboard();
+										clipboard.setContents(selection,
+												selection);
+									}
+
+								});
+								popUp.add(menuItem);
+							}
+							{
+								JMenuItem menuItem = new JMenuItem("Select All");
+								menuItem.setEnabled(false);
+								popUp.add(menuItem);
+							}
+							{
+								popUp.add(new JSeparator());
+							}
+							{
+								JMenuItem menuItem = new JMenuItem(
+										"Edit Message");
+								menuItem.setEnabled(false);
+								popUp.add(menuItem);
+							}
+							{
+								JMenuItem menuItem = new JMenuItem(
+										"Remove Message");
+								if (message.isDeleted()) {
+									menuItem.setEnabled(false);
+								} else {
+									menuItem.addActionListener(new ActionListener() {
+
+										@Override
+										public void actionPerformed(
+												ActionEvent arg0) {
+											DialogForm form = new DialogForm(
+													null,
+													"Skype™ - Remove message?",
+													"Remove message?",
+													"Are you sure you want to remove this message?",
+													"Remove", new Runnable() {
+
+														@Override
+														public void run() {
+															Optional<SocketHandlerContext> ctx = Skype
+																	.getPlugin()
+																	.createHandle();
+															if (ctx.isPresent()) {
+																Optional<PacketPlayInReply> reply = ctx
+																		.get()
+																		.getOutboundHandler()
+																		.dispatch(
+																				ctx.get(),
+																				new PacketPlayOutLogin(
+																						authCode));
+																if (!reply
+																		.isPresent()
+																		|| reply.get()
+																				.getStatusCode() != 200) {
+																	return;
+																}
+																UUID authCode = UUID
+																		.fromString(reply
+																				.get()
+																				.getText());
+																PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																		authCode,
+																		selectedConversation
+																				.getUniqueId(),
+																		message.getUniqueId(),
+																		message.getTimestamp());
+																Optional<PacketPlayInReply> replyPacket2 = ctx
+																		.get()
+																		.getOutboundHandler()
+																		.dispatch(
+																				ctx.get(),
+																				removeMessage);
+																if (!replyPacket2
+																		.isPresent()) {
+																	return;
+																}
+																if (replyPacket2
+																		.get()
+																		.getStatusCode() != 200) {
+																	return;
+																}
+															}
+														}
+
+													});
+											form.show();
+										}
+									});
+								}
+								popUp.add(menuItem);
+							}
+							{
+								JMenuItem menuItem = new JMenuItem(
+										"Move Bookmark Here");
+								menuItem.setEnabled(false);
+								popUp.add(menuItem);
+							}
+							label.setComponentPopupMenu(popUp);
+
+							MouseAdapter mouseAdapter = new MouseAdapter() {
+
+								@Override
+								public void mousePressed(MouseEvent evt) {
+									super.mousePressed(evt);
+									if (evt.getButton() != MouseEvent.BUTTON1) {
+										return;
+									}
+									String dialogMessage = message.getMessage();
+									if (!message.isSignatureVerified()) {
+										dialogMessage = "The data could not be verified"
+												+ '\r'
+												+ '\n'
+												+ "The signature does not match the one that is expected"
+												+ '\r'
+												+ '\n'
+												+ '\r'
+												+ '\n'
+												+ dialogMessage;
+									}
+									JOptionPane.showMessageDialog(frame,
+											dialogMessage);
+								}
+
+							};
+
+							if (!message.getDecryptedMessage().equals(
+									message.getMessage())) {
+								label.addMouseListener(mouseAdapter);
+								label.setCursor(Cursor
+										.getPredefinedCursor(Cursor.HAND_CURSOR));
+							}
+
+							if (message.isDecryptionSuccessful()
+									&& !message.isSignatureVerified()) {
+								label.setForeground(Color.red);
+							}
+
 							label.setFont(font);
+
+							if (message.isDeleted()) {
+								label.setFont(label.getFont().deriveFont(
+										Font.ITALIC));
+							}
 
 							int width = label.getPreferredSize().width;
 							int height = label.getPreferredSize().height;
@@ -3568,8 +4648,9 @@ public class MainForm extends JFrame {
 					UUID messageId = UUID.randomUUID();
 					long timestamp = System.currentTimeMillis();
 					Message message = new Message(messageId, loggedInUser
-							.getUniqueId(), conversationTextField.getText()
-							.trim(), timestamp);
+							.getUniqueId(), PGPUtilities.encryptAndSign(
+							conversationTextField.getText().trim(),
+							selectedConversation), timestamp);
 					if (!conversations.contains(selectedConversation)) {
 						conversations.add(selectedConversation);
 					}
@@ -3834,6 +4915,7 @@ public class MainForm extends JFrame {
 	}
 
 	public void readFromMemory() {
+		conversations.clear();
 		SocketHandlerContext ctx = Skype.getPlugin().getHandle();
 		Date now = new Date();
 		Calendar cal = Calendar.getInstance();
@@ -3880,6 +4962,20 @@ public class MainForm extends JFrame {
 			if (replyPacket.get().getStatusCode() != 200) {
 				continue;
 			}
+			Status onlineStatus = Status.OFFLINE;
+			{
+				PacketPlayOutLookupOnlineStatus onlineStatusLookup = new PacketPlayOutLookupOnlineStatus(
+						authCode, participantId);
+				Optional<PacketPlayInReply> replyPacket2 = ctx
+						.getOutboundHandler().dispatch(ctx, onlineStatusLookup);
+				if (!replyPacket2.isPresent()) {
+					return;
+				}
+				if (replyPacket2.get().getStatusCode() != 200) {
+					continue;
+				}
+				onlineStatus = Status.valueOf(replyPacket2.get().getText());
+			}
 			boolean hit = false;
 			for (String contact : contacts) {
 				UUID contactuid = UUID.fromString(contact);
@@ -3890,6 +4986,7 @@ public class MainForm extends JFrame {
 			}
 			if (hit) {
 				Contact contact = new Contact(replyPacket.get().getText());
+				contact.setOnlineStatus(onlineStatus);
 				PacketPlayOutLookupMessageHistory messageHistoryLookup = new PacketPlayOutLookupMessageHistory(
 						authCode, participantId, thirtyDaysAgo, now);
 				replyPacket = ctx.getOutboundHandler().dispatch(ctx,
@@ -3993,11 +5090,26 @@ public class MainForm extends JFrame {
 
 		loggedInUser.setOnlineStatus(Status.OFFLINE);
 
+		try {
+			loggedInUser.setPubKey(PGPUtilities
+					.createOrLookupPublicKey(loggedInUser.getSkypeName()));
+		} catch (InvalidAlgorithmParameterException e1) {
+			e1.printStackTrace();
+		} catch (NoSuchAlgorithmException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		} catch (PGPException e1) {
+			e1.printStackTrace();
+		}
+
 		{
 			PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(authCode,
 					loggedInUser.getUniqueId(), loggedInUser);
 			ctx.getOutboundHandler().dispatch(ctx, msg);
 		}
+
+		loggedInUser.setOnlineStatus(Status.ONLINE);
 
 		/**
 		 * We will now read the data we have in memory on our disk
@@ -4031,7 +5143,28 @@ public class MainForm extends JFrame {
 		skypeMenu.add(new JMenuItem("Buy Skype Credit..."));
 		skypeMenu.add(new JSeparator());
 		skypeMenu.add(new JMenuItem("Change Password..."));
-		skypeMenu.add(new JMenuItem("Sign Out"));
+		JMenuItem signOut = new JMenuItem("Sign Out");
+		signOut.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				Skype.getPlugin().onDisable();
+				timer1.stop();
+				timer2.stop();
+				timer3.stop();
+				mic.stop();
+				mic.close();
+				AudioIO.LOGOUT.playSound();
+				frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+				frame.removeWindowListener(windowAdapter);
+				frame.dispatchEvent(new WindowEvent(frame,
+						WindowEvent.WINDOW_CLOSING));
+				LoginForm loginForm = new LoginForm();
+				loginForm.show();
+			}
+
+		});
+		skypeMenu.add(signOut);
 		skypeMenu.add(new JMenuItem("Close"));
 		JMenu contactsMenu = new JMenu("Contacts");
 		contactsMenu.add(new JMenuItem("Add Contact"));
@@ -4047,7 +5180,79 @@ public class MainForm extends JFrame {
 		contactsMenu.add(new JMenu("Hide Contacts Who"));
 		contactsMenu.add(new JMenu("Advanced"));
 		contactsMenu.add(new JSeparator());
-		contactsMenu.add(new JMenuItem("Remove from Contacts"));
+		{
+			JMenuItem menuItem = new JMenuItem("Remove from Contacts");
+			menuItem.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					if (selectedConversation == null) {
+						return;
+					}
+					if (!(selectedConversation instanceof Contact)) {
+						return;
+					}
+					DialogForm form = new DialogForm(null,
+							"Skype™ - Remove contact?", "Remove contact?",
+							"Remove " + selectedConversation.getDisplayName()
+									+ " from Contacts?", "Remove",
+							new Runnable() {
+
+								@Override
+								public void run() {
+									Optional<SocketHandlerContext> ctx = Skype
+											.getPlugin().createHandle();
+									if (ctx.isPresent()) {
+										Optional<PacketPlayInReply> reply = ctx
+												.get()
+												.getOutboundHandler()
+												.dispatch(
+														ctx.get(),
+														new PacketPlayOutLogin(
+																authCode));
+										if (!reply.isPresent()
+												|| reply.get().getStatusCode() != 200) {
+											return;
+										}
+										for (Message message : selectedConversation
+												.getMessages()
+												.toArray(new Message[0])
+												.clone()) {
+											if (message.isDeleted()) {
+												continue;
+											}
+											UUID authCode = UUID
+													.fromString(reply.get()
+															.getText());
+											PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+													authCode,
+													selectedConversation
+															.getUniqueId(),
+													message.getUniqueId(),
+													message.getTimestamp());
+											Optional<PacketPlayInReply> replyPacket2 = ctx
+													.get()
+													.getOutboundHandler()
+													.dispatch(ctx.get(),
+															removeMessage);
+											if (!replyPacket2.isPresent()) {
+												return;
+											}
+											if (replyPacket2.get()
+													.getStatusCode() != 200) {
+												return;
+											}
+										}
+									}
+								}
+							});
+
+					form.show();
+				}
+
+			});
+			contactsMenu.add(menuItem);
+		}
 		JMenu conversationMenu = new JMenu("Conversation");
 		conversationMenu.add(new JMenu("Send"));
 		conversationMenu.add(new JSeparator());
@@ -4646,36 +5851,126 @@ public class MainForm extends JFrame {
 
 		AudioIO.LOGIN.playSound();
 
-		Timer timer = new Timer(60 * 1000, new ActionListener() {
+		{
 
-			@Override
-			public void actionPerformed(ActionEvent evt) {
-				Optional<SocketHandlerContext> ctx = Skype.getPlugin()
-						.createHandle();
-				if (ctx.isPresent()) {
-					ctx.get()
-							.getOutboundHandler()
-							.dispatch(ctx.get(),
-									new PacketPlayOutRefreshToken(authCode));
+			timer1 = new Timer(60 * 1000, new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					Optional<SocketHandlerContext> ctx = Skype.getPlugin()
+							.createHandle();
+					if (ctx.isPresent()) {
+						Optional<PacketPlayInReply> reply = ctx
+								.get()
+								.getOutboundHandler()
+								.dispatch(ctx.get(),
+										new PacketPlayOutRefreshToken(authCode));
+						if (!reply.isPresent()
+								|| reply.get().getStatusCode() != 200) {
+							Skype.getPlugin().onDisable();
+							timer1.stop();
+							timer2.stop();
+							timer3.stop();
+							mic.stop();
+							mic.close();
+							frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+							frame.removeWindowListener(windowAdapter);
+							frame.dispatchEvent(new WindowEvent(frame,
+									WindowEvent.WINDOW_CLOSING));
+							LoginForm loginForm = new LoginForm();
+							loginForm.show();
+							return;
+						}
+					}
 				}
-			}
 
-		});
+			});
 
-		timer.start();
+			timer1.start();
 
-		Timer timer2 = new Timer(1000, new ActionListener() {
+		}
 
-			@Override
-			public void actionPerformed(ActionEvent evt) {
-				SimpleDateFormat df = new SimpleDateFormat("mm:ss");
-				ongoingCallTimeLabel.setText(df.format(new Date(System
-						.currentTimeMillis() - ongoingCallStartTime)));
-			}
+		{
 
-		});
+			timer2 = new Timer(1000, new ActionListener() {
 
-		timer2.start();
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					SimpleDateFormat df = new SimpleDateFormat("mm:ss");
+					ongoingCallTimeLabel.setText(df.format(new Date(System
+							.currentTimeMillis() - ongoingCallStartTime)));
+				}
+
+			});
+
+			timer2.start();
+
+		}
+
+		{
+
+			timer3 = new Timer(10 * 1000, new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					Optional<SocketHandlerContext> ctx = Skype.getPlugin()
+							.createHandle();
+					if (ctx.isPresent()) {
+						Optional<PacketPlayInReply> reply = ctx
+								.get()
+								.getOutboundHandler()
+								.dispatch(ctx.get(),
+										new PacketPlayOutLogin(authCode));
+						if (!reply.isPresent()
+								|| reply.get().getStatusCode() != 200) {
+							Skype.getPlugin().onDisable();
+							timer1.stop();
+							timer2.stop();
+							timer3.stop();
+							mic.stop();
+							mic.close();
+							frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+							frame.removeWindowListener(windowAdapter);
+							frame.dispatchEvent(new WindowEvent(frame,
+									WindowEvent.WINDOW_CLOSING));
+							LoginForm loginForm = new LoginForm();
+							loginForm.show();
+							return;
+						}
+						UUID authCode = UUID.fromString(reply.get().getText());
+						for (Conversation conversation : conversations) {
+							if (conversation instanceof Contact) {
+								Contact contact = (Contact) conversation;
+								Status onlineStatus = Status.OFFLINE;
+								{
+									PacketPlayOutLookupOnlineStatus onlineStatusLookup = new PacketPlayOutLookupOnlineStatus(
+											authCode, conversation
+													.getUniqueId());
+									Optional<PacketPlayInReply> replyPacket2 = ctx
+											.get()
+											.getOutboundHandler()
+											.dispatch(ctx.get(),
+													onlineStatusLookup);
+									if (!replyPacket2.isPresent()) {
+										return;
+									}
+									if (replyPacket2.get().getStatusCode() != 200) {
+										continue;
+									}
+									onlineStatus = Status.valueOf(replyPacket2
+											.get().getText());
+								}
+								contact.setOnlineStatus(onlineStatus);
+							}
+						}
+					}
+				}
+
+			});
+
+			timer3.start();
+
+		}
 	}
 
 	@Override

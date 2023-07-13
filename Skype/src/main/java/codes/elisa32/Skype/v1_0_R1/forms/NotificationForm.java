@@ -18,10 +18,10 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollBar;
 
 import codes.elisa32.Skype.v1_0_R1.Utils;
 import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
+import codes.elisa32.Skype.v1_0_R1.awt.AWTUtilities;
 import codes.elisa32.Skype.v1_0_R1.data.types.Contact;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
 import codes.elisa32.Skype.v1_0_R1.data.types.Message;
@@ -29,13 +29,13 @@ import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
 import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
 
 public class NotificationForm extends JDialog {
-	
+
 	private Conversation conversation;
 
 	public NotificationForm(Conversation conversation, Message message,
 			boolean playSound) {
 		this.conversation = conversation;
-		
+
 		setTitle("Notification");
 
 		setUndecorated(true);
@@ -77,9 +77,8 @@ public class NotificationForm extends JDialog {
 		final JDialog dialog = this;
 
 		try {
-			com.sun.awt.AWTUtilities.setWindowOpacity(this, 0.0f);
+			AWTUtilities.setWindowOpacity(this, 0.0f);
 		} catch (Exception e) {
-			e.printStackTrace();
 		}
 
 		Thread thread = new Thread(new Runnable() {
@@ -95,10 +94,10 @@ public class NotificationForm extends JDialog {
 					e1.printStackTrace();
 				}
 				for (int i = 0; i < 10; i++) {
-					com.sun.awt.AWTUtilities.setWindowOpacity(dialog, 0.1f * i);
 					try {
+						AWTUtilities.setWindowOpacity(dialog, 0.1f * i);
 						Thread.sleep(10);
-					} catch (InterruptedException e) {
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}
@@ -112,7 +111,12 @@ public class NotificationForm extends JDialog {
 			public void mousePressed(MouseEvent evt) {
 				if (MainForm.get() != null) {
 					MainForm.get().rightPanelPage = "Conversation";
-					MainForm.get().setSelectedConversation(conversation);
+					for (Conversation obj : MainForm.get().getConversations()) {
+						if (obj.getUniqueId()
+								.equals(conversation.getUniqueId())) {
+							MainForm.get().setSelectedConversation(obj);
+						}
+					}
 					MainForm.get().refreshWindow(true);
 					MainForm.get().show();
 					MainForm.get().setExtendedState(JFrame.NORMAL);
@@ -175,17 +179,15 @@ public class NotificationForm extends JDialog {
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 					@Override
 					public void mouseEntered(MouseEvent e) {
-						iconLabel
-								.setIcon(ImageIO
-										.getResourceAsImageIcon("/1335031438.png"));
+						iconLabel.setIcon(ImageIO
+								.getResourceAsImageIcon("/1335031438.png"));
 						iconLabelPanel.validate();
 					}
 
 					@Override
 					public void mouseExited(MouseEvent e) {
-						iconLabel
-								.setIcon(ImageIO
-										.getResourceAsImageIcon("/1465928249.png"));
+						iconLabel.setIcon(ImageIO
+								.getResourceAsImageIcon("/1465928249.png"));
 						iconLabelPanel.validate();
 					}
 
@@ -286,7 +288,7 @@ public class NotificationForm extends JDialog {
 				FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(
 						FontIO.SEGOE_UI.deriveFont(11.0f));
 				String msg = message == null ? "Любишь мокреньких мамаш? И..."
-						: message.getMessage();
+						: message.getDecryptedMessage();
 				JLabel label = new JLabel(Utils.concatStringEllipses(fm, 174,
 						"\"" + msg + "\""));
 				if (label.getText().endsWith("...")) {
@@ -319,10 +321,12 @@ public class NotificationForm extends JDialog {
 			}
 		}
 	}
-	
+
 	@Override
 	public void show() {
-		if (MainForm.get().getSelectedConversation() != null && MainForm.get().getSelectedConversation().getUniqueId().equals(conversation.getUniqueId())) {
+		if (MainForm.get().getSelectedConversation() != null
+				&& MainForm.get().getSelectedConversation().getUniqueId()
+						.equals(conversation.getUniqueId())) {
 			if (MainForm.get().rightPanelPage.equals("Conversation")) {
 				if (MainForm.get().getExtendedState() != JFrame.ICONIFIED) {
 					return;

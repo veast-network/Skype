@@ -8,10 +8,10 @@ import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,6 +19,8 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
+
+import org.bouncycastle.util.io.Streams;
 
 import codes.elisa32.Skype.v1_0_R1.data.types.Status;
 
@@ -54,8 +56,9 @@ public class ImageIO {
 			try {
 				InputStream resourceUrl = ImageIO.class.getResource(
 						"/images/" + resource).openStream();
-				ImageIcon imageIcon = new ImageIcon(
-						javax.imageio.ImageIO.read(resourceUrl));
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				Streams.pipeAll(resourceUrl, baos);
+				ImageIcon imageIcon = new ImageIcon(baos.toByteArray());
 				images.put(resource, imageIcon);
 				return imageIcon;
 			} catch (IOException e) {
@@ -65,12 +68,13 @@ public class ImageIO {
 		}
 	}
 
-	public static JPanel getConversationIconPanel(ImageIcon imageIcon) {
+	public static Map.Entry<JPanel, JLabel> getConversationIconPanel(
+			ImageIcon imageIcon) {
 		return getConversationIconPanel(imageIcon, null);
 	}
 
-	public static JPanel getConversationIconPanel(ImageIcon imageIcon,
-			Status status) {
+	public static Map.Entry<JPanel, JLabel> getConversationIconPanel(
+			ImageIcon imageIcon, Status status) {
 		JPanel panel = new JPanel();
 		panel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
 		panel.setOpaque(false);
@@ -79,6 +83,8 @@ public class ImageIO {
 		layeredPane.setBounds(0, 0, 40, 50);
 		layeredPane.setPreferredSize(new Dimension(40, 50));
 		layeredPane.setOpaque(false);
+
+		JLabel onlineStatusIconLabel = null;
 
 		/**
 		 * Add profile icon floating in top left panel
@@ -104,25 +110,26 @@ public class ImageIO {
 		/**
 		 * Add status icon floating in top left panel
 		 */
-		if (status != null) {
-			JPanel iconLabelPanel = new JPanel();
-
-			JLabel iconLabel = new JLabel(ImageIO.getCircularStatusIcon(status,
-					Color.white));
-
-			iconLabelPanel.setBounds(27, 27, 14, 24);
-			iconLabelPanel.setOpaque(false);
-			iconLabelPanel.add(iconLabel);
-
-			/**
-			 * Panel added to pane with z-index 1
-			 */
-			layeredPane.add(iconLabelPanel, new Integer(1), 0);
+		if (status == null) {
+			status = Status.NOT_A_CONTACT;
 		}
+		JPanel iconLabelPanel = new JPanel();
+
+		onlineStatusIconLabel = new JLabel(ImageIO.getCircularStatusIcon(
+				status, Color.white));
+
+		iconLabelPanel.setBounds(27, 27, 14, 24);
+		iconLabelPanel.setOpaque(false);
+		iconLabelPanel.add(onlineStatusIconLabel);
+
+		/**
+		 * Panel added to pane with z-index 1
+		 */
+		layeredPane.add(iconLabelPanel, new Integer(1), 0);
 
 		panel.add(layeredPane);
 
-		return panel;
+		return new AbstractMap.SimpleEntry(panel, onlineStatusIconLabel);
 	}
 
 	public static ImageIcon getCircularStatusIcon(Status status,

@@ -7,11 +7,13 @@ import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInAcceptContactRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupOnlineStatus;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.data.types.Contact;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
+import codes.elisa32.Skype.v1_0_R1.data.types.Status;
 import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
 import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
 
@@ -64,6 +66,19 @@ public class AcceptContactRequestCmd extends CommandExecutor {
 							contact.getMessages().addAll(
 									conversation.getMessages());
 							contact.setLastModified(new Date());
+							Status onlineStatus = Status.OFFLINE;
+							{
+								PacketPlayOutLookupOnlineStatus onlineStatusLookup = new PacketPlayOutLookupOnlineStatus(
+										authCode, conversation.getUniqueId());
+								replyPacket = ctx2
+										.get()
+										.getOutboundHandler()
+										.dispatch(ctx2.get(),
+												onlineStatusLookup);
+								onlineStatus = Status.valueOf(replyPacket.get()
+										.getText());
+							}
+							contact.setOnlineStatus(onlineStatus);
 							MainForm.get().getConversations().add(contact);
 							if (searchingUser) {
 								MainForm.get()

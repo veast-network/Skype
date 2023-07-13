@@ -9,13 +9,16 @@ public class PacketPlayOutRemoveMessage extends Packet {
 	private UUID conversationId;
 
 	private UUID messageId;
+	
+	private long timestamp;
 
 	public PacketPlayOutRemoveMessage(UUID authCode, UUID conversationId,
-			UUID messageId) {
+			UUID messageId, long timestamp) {
 		super(PacketType.REMOVE_MESSAGE_OUT);
 		this.setAuthCode(authCode);
 		this.setConversationId(conversationId);
 		this.setMessageId(messageId);
+		this.setTimestamp(timestamp);
 	}
 
 	public UUID getAuthCode() {
@@ -40,6 +43,14 @@ public class PacketPlayOutRemoveMessage extends Packet {
 
 	public void setMessageId(UUID messageId) {
 		this.messageId = messageId;
+	}
+
+	public long getTimestamp() {
+		return timestamp;
+	}
+
+	public void setTimestamp(long timestamp) {
+		this.timestamp = timestamp;
 	}
 
 }

@@ -15,4 +15,4 @@ Skype-core/target
 Skype-server/bin
 Skype-server/target
 Skype-server/config*.db
-Skype/src/main/resources/images2
+images2

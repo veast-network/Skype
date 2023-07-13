@@ -6,11 +6,14 @@ public class PacketPlayInRemoveMessage extends Packet  {
 	
 	private UUID conversationId;
 	
+	private UUID participantId;
+	
 	private UUID messageId;
 
-	public PacketPlayInRemoveMessage(UUID conversationId, UUID messageId) {
+	public PacketPlayInRemoveMessage(UUID conversationId, UUID participantId, UUID messageId) {
 		super(PacketType.REMOVE_MESSAGE_IN);
 		this.setConversationId(conversationId);
+		this.setParticipantId(participantId);
 		this.setMessageId(messageId);
 	}
 
@@ -20,6 +23,14 @@ public class PacketPlayInRemoveMessage extends Packet  {
 
 	public void setConversationId(UUID conversationId) {
 		this.conversationId = conversationId;
+	}
+	
+	public UUID getParticipantId() {
+		return participantId;
+	}
+
+	public void setParticipantId(UUID participantId) {
+		this.participantId = participantId;
 	}
 
 	public UUID getMessageId() {

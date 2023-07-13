@@ -3,9 +3,12 @@ package codes.elisa32.Skype.v1_0_R1.data.types;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
@@ -35,8 +38,28 @@ public class Conversation {
 
 	public volatile transient List<Message> messages = new ArrayList<>();
 
-	public Conversation() {
+	private volatile transient JPanel onlineStatusPanel;
 
+	private volatile transient JLabel onlineStatusLabel;
+
+	public Conversation() {
+		if (this instanceof Contact) {
+			Contact contact = (Contact) this;
+			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
+					this.getImageIcon(), contact.getOnlineStatus());
+			onlineStatusPanel = entry.getKey();
+			onlineStatusLabel = entry.getValue();
+		} else if (this.isGroupChat()) {
+			Map.Entry<JPanel, JLabel> entry = ImageIO
+					.getConversationIconPanel(this.getImageIcon());
+			onlineStatusPanel = entry.getKey();
+			onlineStatusLabel = entry.getValue();
+		} else {
+			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
+					this.getImageIcon(), Status.NOT_A_CONTACT);
+			onlineStatusPanel = entry.getKey();
+			onlineStatusLabel = entry.getValue();
+		}
 	}
 
 	public Conversation(String json) {
@@ -45,6 +68,23 @@ public class Conversation {
 		this.uuid = clazz.uuid;
 		this.name = clazz.name;
 		this.groupChat = clazz.groupChat;
+		if (this instanceof Contact) {
+			Contact contact = (Contact) this;
+			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
+					this.getImageIcon(), contact.getOnlineStatus());
+			onlineStatusPanel = entry.getKey();
+			onlineStatusLabel = entry.getValue();
+		} else if (this.isGroupChat()) {
+			Map.Entry<JPanel, JLabel> entry = ImageIO
+					.getConversationIconPanel(this.getImageIcon());
+			onlineStatusPanel = entry.getKey();
+			onlineStatusLabel = entry.getValue();
+		} else {
+			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
+					this.getImageIcon(), Status.NOT_A_CONTACT);
+			onlineStatusPanel = entry.getKey();
+			onlineStatusLabel = entry.getValue();
+		}
 	}
 
 	@Override
@@ -149,8 +189,7 @@ public class Conversation {
 			if (groupChat) {
 				return imageIcon;
 			} else {
-				return ImageIO
-						.getResourceAsImageIcon("/1595064335.png");
+				return ImageIO.getResourceAsImageIcon("/1595064335.png");
 			}
 		} else {
 			return imageIcon;
@@ -164,6 +203,22 @@ public class Conversation {
 	@Override
 	public int hashCode() {
 		return uuid.hashCode();
+	}
+
+	public JPanel getOnlineStatusPanel() {
+		return onlineStatusPanel;
+	}
+
+	public void setOnlineStatusPanel(JPanel onlineStatusPanel) {
+		this.onlineStatusPanel = onlineStatusPanel;
+	}
+
+	public JLabel getOnlineStatusLabel() {
+		return onlineStatusLabel;
+	}
+
+	public void setOnlineStatusLabel(JLabel onlineStatusLabel) {
+		this.onlineStatusLabel = onlineStatusLabel;
 	}
 
 }

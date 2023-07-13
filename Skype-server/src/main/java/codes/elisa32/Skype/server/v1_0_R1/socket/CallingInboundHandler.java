@@ -42,6 +42,11 @@ public class CallingInboundHandler implements Runnable {
 				if (len == -1) {
 					break;
 				}
+				try {
+					socket.setSoTimeout(8000);
+				} catch (SocketException e1) {
+					e1.printStackTrace();
+				}
 				for (UUID callParticipant : call.getParticipants()
 						.toArray(new UUID[0]).clone()) {
 					if (callParticipant.equals(loggedInUser)) {
@@ -88,6 +93,39 @@ public class CallingInboundHandler implements Runnable {
 			socket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+		for (UUID callParticipant : call.getParticipants().toArray(new UUID[0])
+				.clone()) {
+			if (callParticipant.equals(loggedInUser)) {
+				continue;
+			}
+			for (Connection con : Skype
+					.getPlugin()
+					.getUserManager()
+					.getDataStreamConnectionsInCall(callParticipant,
+							call.getCallId()).toArray(new Connection[0])
+					.clone()) {
+				if (!con.getCallId().isPresent()) {
+					continue;
+				}
+				if (!con.getParticipantId().isPresent()) {
+					continue;
+				}
+				UUID receivingCallId = con.getCallId().get();
+				UUID receivingCallDataStreamParticipantId = con
+						.getParticipantId().get();
+				if (receivingCallId.equals(call.getCallId())) {
+					if (receivingCallDataStreamParticipantId
+							.equals(this.loggedInUser)) {
+						try {
+							con.getSocketHandlerContext().getSocket().close();
+							call.removeParticipant(callParticipant);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
 		}
 		call.removeParticipant(loggedInUser);
 		Skype.getPlugin().getConnectionMap().remove(con.getAuthCode(), con);

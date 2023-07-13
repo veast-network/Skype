@@ -38,15 +38,22 @@ public class LoginCmd extends CommandExecutor {
 			}
 			skypeName = con.getSkypeName();
 		}
+		
+		if (packet.getProtocolVersion() != PacketPlayOutLogin.PROTOCOL_VERSION) {
+			PacketPlayInReply replyPacket = new PacketPlayInReply(
+					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
+							+ " failed");
+			return replyPacket;
+		}
 
 		UUID authCode = UUID.randomUUID();
 
 		/**
-		 * We want to set the auth code to expire after 10 minutes
+		 * We want to set the auth code to expire after 5 minutes
 		 * 
-		 * If they refresh the token before 10 minutes it does not expire
+		 * If they refresh the token before 5 minutes it does not expire
 		 */
-		long expiryTime = System.currentTimeMillis() + (10 * (60 * 1000L));
+		long expiryTime = System.currentTimeMillis() + (5 * (60 * 1000L));
 
 		/**
 		 * Store the connection in memory for reference

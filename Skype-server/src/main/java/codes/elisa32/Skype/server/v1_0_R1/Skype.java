@@ -24,10 +24,11 @@ import codes.elisa32.Skype.server.v1_0_R1.command.LoginCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupContactsCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupConversationHistoryCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupMessageHistoryCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.LookupOnlineStatusCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupUserCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.RefreshTokenCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.RegisterCmd;
-import codes.elisa32.Skype.server.v1_0_R1.command.RemoveContactCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.RemoveMessageCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendContactRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendMessageCmd;
@@ -112,8 +113,10 @@ public class Skype {
 		CommandMap.register(PacketType.ENTERING_LISTEN_MODE,
 				new EnteringListeningModeCmd());
 		CommandMap.register(PacketType.LOOKUP_USER, new LookupUserCmd());
+		CommandMap.register(PacketType.LOOKUP_ONLINE_STATUS, new LookupOnlineStatusCmd());
 		CommandMap.register(PacketType.USER_SEARCH, new UserSearchCmd());
 		CommandMap.register(PacketType.MESSAGE_OUT, new SendMessageCmd());
+		CommandMap.register(PacketType.REMOVE_MESSAGE_OUT, new RemoveMessageCmd());
 		CommandMap.register(PacketType.LOOKUP_CONVERSATION_HISTORY,
 				new LookupConversationHistoryCmd());
 		CommandMap.register(PacketType.LOOKUP_MESSAGE_HISTORY,
@@ -124,8 +127,6 @@ public class Skype {
 				new AcceptContactRequestCmd());
 		CommandMap.register(PacketType.DECLINE_CONTACT_REQUEST,
 				new DeclineContactRequestCmd());
-		CommandMap.register(PacketType.REMOVE_CONTACT_OUT,
-				new RemoveContactCmd());
 		CommandMap.register(PacketType.SEND_CONTACT_REQUEST,
 				new SendContactRequestCmd());
 		CommandMap.register(PacketType.SEND_CALL_REQUEST,

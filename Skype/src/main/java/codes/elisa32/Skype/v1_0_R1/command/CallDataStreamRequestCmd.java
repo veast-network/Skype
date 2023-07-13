@@ -11,6 +11,7 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
+import javax.swing.JFrame;
 
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
@@ -97,9 +98,11 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 						}
 						MainForm.get().rightPanelPage = "OngoingCall";
 						MainForm.get().ongoingCall = true;
-						MainForm.get().ongoingCallStartTime = System.currentTimeMillis();
+						MainForm.get().ongoingCallStartTime = System
+								.currentTimeMillis();
 						MainForm.get().refreshWindow();
-						while (true) {
+						JFrame mainForm = MainForm.get();
+						while (mainForm.isVisible()) {
 							try {
 								byte[] b = new byte[1024];
 								int len = socket.getInputStream().read(b, 0,
@@ -122,7 +125,7 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 								speaker.write(data, 0, bytesRead);
 								ais.close();
 								bais.close();
-								socket.setSoTimeout(2000);
+								socket.setSoTimeout(8000);
 							} catch (Exception e) {
 								e.printStackTrace();
 								break;

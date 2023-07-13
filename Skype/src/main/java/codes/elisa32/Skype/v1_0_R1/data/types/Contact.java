@@ -1,16 +1,31 @@
 package codes.elisa32.Skype.v1_0_R1.data.types;
 
+import java.nio.file.Files;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.TimeZone;
 
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.pgpainless.PGPainless;
+
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
+import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
 
 import com.google.gson.Gson;
 
 public class Contact extends Conversation {
 
 	public volatile boolean favorite = false;
+
+	/*
+	 * Public key
+	 */
+	public volatile String pubKey;
 
 	/*
 	 * Show profile
@@ -55,6 +70,7 @@ public class Contact extends Conversation {
 		/**
 		 * Contact
 		 */
+		this.pubKey = clazz.pubKey;
 		this.favorite = clazz.favorite;
 		this.skypeName = clazz.skypeName;
 		this.mood = clazz.mood;
@@ -79,6 +95,23 @@ public class Contact extends Conversation {
 	public String exportAsJson() {
 		Gson gson = GsonBuilder.create();
 		return gson.toJson(this);
+	}
+
+	public Optional<PGPPublicKeyRing> getPubKey() {
+		try {
+			if (pubKey != null) {
+				PGPPublicKeyRing pubKey = PGPainless.readKeyRing()
+						.publicKeyRing(this.pubKey);
+				return Optional.of(pubKey);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return Optional.empty();
+	}
+	
+	public void setPubKey(String pubKey) {
+		this.pubKey = pubKey;
 	}
 
 	public boolean isFavorite() {
@@ -111,6 +144,12 @@ public class Contact extends Conversation {
 
 	public void setOnlineStatus(Status onlineStatus) {
 		this.onlineStatus = onlineStatus;
+		JLabel iconLabel = getOnlineStatusLabel();
+		Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
+				this.getImageIcon(), onlineStatus);
+		iconLabel.setIcon(entry.getValue().getIcon());
+		iconLabel.validate();
+		iconLabel.repaint();
 	}
 
 	public String getMobilePhone() {

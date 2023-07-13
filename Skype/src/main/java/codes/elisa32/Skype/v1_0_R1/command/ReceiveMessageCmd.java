@@ -67,34 +67,36 @@ public class ReceiveMessageCmd extends CommandExecutor {
 			Conversation conversation = MainForm.get()
 					.getSelectedConversation();
 			if (conversation != null) {
-				conversation.getMessages().add(message);
-				conversation.setNotificationCount(conversation
-						.getNotificationCount() + 1);
-				conversation.setLastModified(new Date());
-				if (message.getMessageType() != null) {
-					if (message.getMessageType() == MessageType.SEND_FRIEND_REQUEST) {
-						if (!message.getSender().equals(
-								loggedInUser.getUniqueId())) {
-							conversation.setHasIncomingFriendRequest(true,
-									message);
-						} else {
-							conversation.setHasOutgoingFriendRequest(true);
+				if (conversation.getUniqueId().equals(conversationId)) {
+					conversation.getMessages().add(message);
+					conversation.setNotificationCount(conversation
+							.getNotificationCount() + 1);
+					conversation.setLastModified(new Date());
+					if (message.getMessageType() != null) {
+						if (message.getMessageType() == MessageType.SEND_FRIEND_REQUEST) {
+							if (!message.getSender().equals(
+									loggedInUser.getUniqueId())) {
+								conversation.setHasIncomingFriendRequest(true,
+										message);
+							} else {
+								conversation.setHasOutgoingFriendRequest(true);
+							}
+						}
+						if (message.getMessageType() == MessageType.DECLINE_FRIEND_REQUEST
+								|| message.getMessageType() == MessageType.ACCEPT_FRIEND_REQUEST) {
+							if (message.getSender().equals(
+									loggedInUser.getUniqueId())) {
+								conversation.setHasIncomingFriendRequest(false,
+										null);
+							} else {
+								conversation.setHasOutgoingFriendRequest(false);
+							}
 						}
 					}
-					if (message.getMessageType() == MessageType.DECLINE_FRIEND_REQUEST
-							|| message.getMessageType() == MessageType.ACCEPT_FRIEND_REQUEST) {
-						if (message.getSender().equals(
-								loggedInUser.getUniqueId())) {
-							conversation.setHasIncomingFriendRequest(false,
-									null);
-						} else {
-							conversation.setHasOutgoingFriendRequest(false);
-						}
-					}
+					_conversation = conversation;
+					MainForm.get().getConversations().add(conversation);
+					hit = true;
 				}
-				_conversation = conversation;
-				MainForm.get().getConversations().add(conversation);
-				hit = true;
 			}
 		}
 		if (hit == false) {
@@ -138,7 +140,8 @@ public class ReceiveMessageCmd extends CommandExecutor {
 			_conversation = conversation;
 			MainForm.get().getConversations().add(conversation);
 		}
-		NotificationForm notif = new NotificationForm(_conversation, message, true);
+		NotificationForm notif = new NotificationForm(_conversation, message,
+				true);
 		notif.show();
 		MainForm.get().refreshWindow();
 		return PacketPlayInReply.empty();

@@ -21,7 +21,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollBar;
 
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
@@ -31,6 +30,7 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
+import codes.elisa32.Skype.v1_0_R1.awt.AWTUtilities;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
 import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
 import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
@@ -163,9 +163,8 @@ public class IncomingCallForm extends JDialog {
 		authCode = UUID.fromString(reply.get().getText());
 
 		try {
-			com.sun.awt.AWTUtilities.setWindowOpacity(this, 0.0f);
+			AWTUtilities.setWindowOpacity(this, 0.0f);
 		} catch (Exception e) {
-			e.printStackTrace();
 		}
 
 		thread = new Thread(new Runnable() {
@@ -204,11 +203,10 @@ public class IncomingCallForm extends JDialog {
 					e1.printStackTrace();
 				}
 				for (int i = 0; i < 10; i++) {
-					com.sun.awt.AWTUtilities.setWindowOpacity(dialog, 0.1f * i);
 					try {
+						AWTUtilities.setWindowOpacity(dialog, 0.1f * i);
 						Thread.sleep(10);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
+					} catch (Exception e) {
 					}
 				}
 			}
@@ -245,8 +243,8 @@ public class IncomingCallForm extends JDialog {
 				JPanel iconLabelPanel = new JPanel();
 				iconLabelPanel
 						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
-				ImageIcon imageIcon = ImageIO.getScaledImageIcon(ImageIO
-						.getResourceAsImageIcon("/2121871768.png"),
+				ImageIcon imageIcon = ImageIO.getScaledImageIcon(
+						ImageIO.getResourceAsImageIcon("/2121871768.png"),
 						new Dimension(66, 66));
 				JLabel iconLabel = new JLabel(imageIcon);
 
@@ -335,9 +333,8 @@ public class IncomingCallForm extends JDialog {
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 					@Override
 					public void mouseEntered(MouseEvent e) {
-						iconLabel
-								.setIcon(ImageIO
-										.getResourceAsImageIcon("/1105733532.png"));
+						iconLabel.setIcon(ImageIO
+								.getResourceAsImageIcon("/1105733532.png"));
 						iconLabelPanel.validate();
 					}
 
@@ -391,17 +388,15 @@ public class IncomingCallForm extends JDialog {
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 					@Override
 					public void mouseEntered(MouseEvent e) {
-						iconLabel
-								.setIcon(ImageIO
-										.getResourceAsImageIcon("/744760571.png"));
+						iconLabel.setIcon(ImageIO
+								.getResourceAsImageIcon("/744760571.png"));
 						iconLabelPanel.validate();
 					}
 
 					@Override
 					public void mouseExited(MouseEvent e) {
-						iconLabel
-								.setIcon(ImageIO
-										.getResourceAsImageIcon("/533554849.png"));
+						iconLabel.setIcon(ImageIO
+								.getResourceAsImageIcon("/533554849.png"));
 						iconLabelPanel.validate();
 					}
 
@@ -439,9 +434,8 @@ public class IncomingCallForm extends JDialog {
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 					@Override
 					public void mouseEntered(MouseEvent e) {
-						iconLabel
-								.setIcon(ImageIO
-										.getResourceAsImageIcon("/585560858.png"));
+						iconLabel.setIcon(ImageIO
+								.getResourceAsImageIcon("/585560858.png"));
 						iconLabelPanel.validate();
 					}
 

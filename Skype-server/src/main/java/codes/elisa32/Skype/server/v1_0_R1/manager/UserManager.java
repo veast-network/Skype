@@ -149,7 +149,7 @@ public class UserManager {
 	public List<Connection> getDataStreamConnectionsInCall(UUID participantId,
 			UUID callId) {
 		List<Connection> cons = new ArrayList<>();
-		for (Connection con : Skype.getPlugin().getConnectionMap().values()) {
+		for (Connection con : Skype.getPlugin().getConnectionMap().values().toArray(new Connection[0])) {
 			if (con.getExpiryTime() < System.currentTimeMillis()) {
 				continue;
 			}
@@ -172,7 +172,7 @@ public class UserManager {
 
 	public List<Connection> getListeningConnections(UUID participantId) {
 		List<Connection> cons = new ArrayList<>();
-		for (Connection con : Skype.getPlugin().getConnectionMap().values()) {
+		for (Connection con : Skype.getPlugin().getConnectionMap().values().toArray(new Connection[0])) {
 			if (con.getExpiryTime() < System.currentTimeMillis()) {
 				continue;
 			}

@@ -90,5 +90,10 @@
 			<artifactId>sqlite-jdbc</artifactId>
 			<version>3.34.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.pgpainless</groupId>
+			<artifactId>pgpainless-core</artifactId>
+			<version>1.5.6</version>
+		</dependency>
     </dependencies>
 </project>

@@ -1,14 +1,9 @@
 package codes.elisa32.Skype.v1_0_R1.command;
 
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.Optional;
 
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.TargetDataLine;
-import javax.swing.JOptionPane;
+import javax.swing.JFrame;
 
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
@@ -18,7 +13,6 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
-import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
 import codes.elisa32.Skype.v1_0_R1.forms.IncomingCallForm;
 import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
@@ -79,7 +73,8 @@ public class CallRequestCmd extends CommandExecutor {
 							MainForm.get().mic.start();
 							MainForm.get().callOutgoingAudioSocket = ctx2.get()
 									.getSocket();
-							while (true) {
+							JFrame mainForm = MainForm.get();
+							while (mainForm.isVisible()) {
 								try {
 									int count = MainForm.get().mic.read(
 											tmpBuff, 0, tmpBuff.length);

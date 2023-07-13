@@ -44,11 +44,6 @@ public class AcceptContactRequestCmd extends CommandExecutor {
 		Skype.getPlugin().getUserManager()
 				.addContact(participantId, conversationId);
 
-		Skype.getPlugin()
-				.getConversationManager()
-				.addMessage(participantId, conversationId, messageId, null,
-						timestamp);
-
 		{
 			PacketPlayInAcceptContactRequest acceptContactRequestPacket = new PacketPlayInAcceptContactRequest(
 					participantId, conversationId);
@@ -86,23 +81,6 @@ public class AcceptContactRequestCmd extends CommandExecutor {
 				} catch (IllegalArgumentException e) {
 					e.printStackTrace();
 				}
-			}
-		}
-
-		PacketPlayInRemoveMessage removeMessagePacket = new PacketPlayInRemoveMessage(
-				conversationId, messageId);
-
-		for (Connection listeningParticipant : Skype.getPlugin()
-				.getUserManager().getListeningConnections(participantId)) {
-			try {
-				listeningParticipant
-						.getSocketHandlerContext()
-						.getOutboundHandler()
-						.dispatchAsync(
-								listeningParticipant.getSocketHandlerContext(),
-								removeMessagePacket, null);
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
 			}
 		}
 

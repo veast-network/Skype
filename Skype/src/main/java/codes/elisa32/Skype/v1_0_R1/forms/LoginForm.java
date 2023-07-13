@@ -51,9 +51,9 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketType;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
-import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
 import codes.elisa32.Skype.v1_0_R1.data.types.Contact;
 import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
+import codes.elisa32.Skype.v1_0_R1.pgp.PGPUtilities;
 import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
 import codes.elisa32.Skype.v1_0_R1.uicommon.JButtonRounded;
 
@@ -91,6 +91,8 @@ public class LoginForm extends JFrame {
 	JPanel loginPanel = new JPanel();
 	JPanel loginFooterPanel = new JPanel();
 
+	JPanel connectionSetupPanel = new JPanel();
+
 	JLabel signInWithAnotherAccountLabel = new JLabel(
 			"\u2190 Sign in with a different account");
 	JPanel signInWithAnotherAccountLabelPanel = new JPanel();
@@ -116,6 +118,12 @@ public class LoginForm extends JFrame {
 			"your Skype Name and password, then try again.");
 	JPanel loginDetailsMismatchPanel = new JPanel();
 
+	JLabel connectionDetailsMismatchLabel = new JLabel(
+			"\u24D8 Sorry, we could not connect to this server. Please check");
+	JLabel connectionDetailsMismatchLabel2 = new JLabel(
+			"your Host Name and connection, then try again.");
+	JPanel connectionDetailsMismatchPanel = new JPanel();
+
 	JButtonRounded skypeNameButton = new JButtonRounded("Skype Name", 35);
 	JPanel skypeNameButtonPanel = new JPanel();
 
@@ -128,6 +136,9 @@ public class LoginForm extends JFrame {
 			"Learn more about Skype account");
 	JPanel learnMoreAboutSkypeAccountLabelPanel = new JPanel();
 
+	JTextField hostNameField = new JTextField("Host Name");
+	JPanel hostNamePanel = new JPanel();
+
 	JTextField skypeNameField = new JTextField("Skype Name");
 	JPanel skypeNamePanel = new JPanel();
 
@@ -137,8 +148,14 @@ public class LoginForm extends JFrame {
 	JLabel cantAccessAccountLabel = new JLabel("Can't access your account?");
 	JPanel cantAccessAccountLabelPanel = new JPanel();
 
+	JLabel cantAccessAccountLabel2 = new JLabel("Can't access your account?");
+	JPanel cantAccessAccountLabelPanel2 = new JPanel();
+
 	JButtonRounded signInButton = new JButtonRounded("Sign in", 35);
 	JPanel signInButtonPanel = new JPanel();
+
+	JButtonRounded connectButton = new JButtonRounded("Connect", 35);
+	JPanel connectButtonPanel = new JPanel();
 
 	JFrame frame = this;
 
@@ -165,8 +182,7 @@ public class LoginForm extends JFrame {
 	public LoginForm() {
 		super("Skype");
 
-		skypeLogoImageIcon = ImageIO
-				.getResourceAsImageIcon("/561453571.png");
+		skypeLogoImageIcon = ImageIO.getResourceAsImageIcon("/561453571.png");
 
 		underLineFontAttributes.put(TextAttribute.UNDERLINE,
 				TextAttribute.UNDERLINE_ON);
@@ -178,6 +194,10 @@ public class LoginForm extends JFrame {
 
 		loginPanel.setBackground(new Color(0, 175, 240));
 		loginPanel.setLayout(new BoxLayout(loginPanel, BoxLayout.Y_AXIS));
+
+		connectionSetupPanel.setBackground(new Color(0, 175, 240));
+		connectionSetupPanel.setLayout(new BoxLayout(connectionSetupPanel,
+				BoxLayout.Y_AXIS));
 
 		closeMenuItem.addActionListener(new ActionListener() {
 
@@ -222,6 +242,8 @@ public class LoginForm extends JFrame {
 
 		loginPanel.add(Box.createRigidArea(new Dimension(10, 40)));
 
+		connectionSetupPanel.add(Box.createRigidArea(new Dimension(10, 40)));
+
 		{
 			JLabel skypeLogoIconLabel = new JLabel(skypeLogoImageIcon);
 			JPanel skypeLogoPanel = new JPanel();
@@ -242,7 +264,18 @@ public class LoginForm extends JFrame {
 			loginPanel.add(skypeLogoPanel);
 		}
 
+		{
+			JLabel skypeLogoIconLabel = new JLabel(skypeLogoImageIcon);
+			JPanel skypeLogoPanel = new JPanel();
+			skypeLogoPanel.setLayout(new BoxLayout(skypeLogoPanel,
+					BoxLayout.X_AXIS));
+			skypeLogoPanel.add(skypeLogoIconLabel);
+			connectionSetupPanel.add(skypeLogoPanel);
+		}
+
 		loginPanel.add(Box.createRigidArea(new Dimension(10, 33)));
+
+		connectionSetupPanel.add(Box.createRigidArea(new Dimension(10, 33)));
 
 		signInLabelPanel.setLayout(new BoxLayout(signInLabelPanel,
 				BoxLayout.X_AXIS));
@@ -338,6 +371,34 @@ public class LoginForm extends JFrame {
 		loginDetailsMismatchPanel.add(loginDetailsMismatchLabelPanel2);
 		loginDetailsMismatchPanel.add(Box
 				.createRigidArea(new Dimension(10, 20)));
+
+		connectionDetailsMismatchLabel.setFont(textFieldFont);
+		connectionDetailsMismatchLabel.setForeground(Color.white);
+		JPanel connectionDetailsMismatchLabelPanel = new JPanel();
+		connectionDetailsMismatchLabelPanel.setLayout(new BoxLayout(
+				connectionDetailsMismatchLabelPanel, BoxLayout.X_AXIS));
+		connectionDetailsMismatchLabelPanel
+				.setBackground(new Color(0, 175, 240));
+		connectionDetailsMismatchLabelPanel.add(connectionDetailsMismatchLabel);
+
+		connectionDetailsMismatchLabel2.setFont(textFieldFont);
+		connectionDetailsMismatchLabel2.setForeground(Color.white);
+		JPanel connectionDetailsMismatchLabelPanel2 = new JPanel();
+		connectionDetailsMismatchLabelPanel2.setLayout(new BoxLayout(
+				connectionDetailsMismatchLabelPanel2, BoxLayout.X_AXIS));
+		connectionDetailsMismatchLabelPanel2.setBackground(new Color(0, 175,
+				240));
+		connectionDetailsMismatchLabelPanel2
+				.add(connectionDetailsMismatchLabel2);
+
+		connectionDetailsMismatchPanel.setLayout(new BoxLayout(
+				connectionDetailsMismatchPanel, BoxLayout.Y_AXIS));
+		connectionDetailsMismatchPanel.setBackground(new Color(0, 175, 240));
+		connectionDetailsMismatchPanel.add(connectionDetailsMismatchLabelPanel);
+		connectionDetailsMismatchPanel
+				.add(connectionDetailsMismatchLabelPanel2);
+		connectionDetailsMismatchPanel.add(Box.createRigidArea(new Dimension(
+				10, 20)));
 
 		skypeNameField.setFont(textFieldFont);
 
@@ -441,6 +502,84 @@ public class LoginForm extends JFrame {
 		loginPanel.add(skypeNamePanel);
 		loginPanel.add(Box.createRigidArea(new Dimension(10, 20)));
 
+		hostNameField.setFont(textFieldFont);
+
+		// Placeholder
+		hostNameField.addFocusListener(new FocusListener() {
+
+			@Override
+			public void focusGained(FocusEvent arg0) {
+				if (hostNameField.getText().equals("Host Name")) {
+					hostNameField.setText("");
+				}
+				hostNameField.selectAll();
+				if (whiteBackgroundTextFieldOnFocus) {
+					hostNameField.setForeground(Color.black);
+					hostNameField.setBackground(Color.white);
+					hostNamePanel.setBackground(Color.white);
+				} else {
+					hostNameField.setForeground(Color.black);
+					hostNameField.setBackground(new Color(204, 239, 252));
+					hostNamePanel.setBackground(new Color(204, 239, 252));
+				}
+			}
+
+			@Override
+			public void focusLost(FocusEvent arg0) {
+				if (hostNameField.getText().equals("")) {
+					hostNameField.setText("Host Name");
+				}
+				hostNameField.setForeground(new Color(0, 175, 240));
+				hostNameField.setBackground(new Color(204, 239, 252));
+				hostNamePanel.setBackground(new Color(204, 239, 252));
+			}
+
+		});
+
+		// Listen for input
+		hostNameField.addKeyListener(new KeyListener() {
+
+			@Override
+			public void keyPressed(KeyEvent arg0) {
+			}
+
+			@Override
+			public void keyReleased(KeyEvent arg0) {
+			}
+
+			@Override
+			public void keyTyped(KeyEvent arg0) {
+				if (hostNameField.getText().length() > 0
+						&& !hostNameField.getText().equals("Host Name")) {
+					connectButton.setForeground(Color.white);
+					connectButton.setEnabled(true);
+					connectButton.repaint();
+					return;
+				}
+				connectButton.setForeground(new Color(40, 155, 200));
+				connectButton.setEnabled(false);
+				connectButton.repaint();
+			}
+
+		});
+
+		hostNamePanel.setLayout(new BoxLayout(hostNamePanel, BoxLayout.X_AXIS));
+		hostNamePanel.setBackground(new Color(204, 239, 252));
+		hostNamePanel.add(Box.createRigidArea(new Dimension(8, 10)));
+		hostNamePanel.setPreferredSize(new Dimension(312, 35));
+
+		hostNameField.setMinimumSize(new Dimension(304, 35));
+		hostNameField.setMaximumSize(new Dimension(304, 35));
+		hostNameField.setForeground(new Color(0, 175, 240));
+		hostNameField.setBackground(new Color(204, 239, 252));
+		hostNameField.setBorder(BorderFactory.createEmptyBorder());
+		hostNameField.getKeymap().removeKeyStrokeBinding(enterKeyStroke);
+		hostNameField.addActionListener(textFieldEnterKeyActionListener);
+
+		hostNamePanel.add(hostNameField);
+
+		connectionSetupPanel.add(hostNamePanel);
+
 		passwordField.setFont(textFieldFont);
 
 		// Placeholder
@@ -527,6 +666,8 @@ public class LoginForm extends JFrame {
 
 		loginPanel.add(Box.createRigidArea(new Dimension(10, 20)));
 
+		connectionSetupPanel.add(Box.createRigidArea(new Dimension(10, 20)));
+
 		MouseAdapter signInButtonMouseAdapter = new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent evt) {
@@ -564,7 +705,40 @@ public class LoginForm extends JFrame {
 
 		loginPanel.add(signInButtonPanel);
 
+		MouseAdapter connectButtonMouseAdapter = new MouseAdapter() {
+			@Override
+			public void mousePressed(MouseEvent evt) {
+				if (hostNameField.getText().length() == 0) {
+					return;
+				}
+				if (hostNameField.getText().equals("Host Name")) {
+					return;
+				}
+				Skype.getPlugin().setHostname(hostNameField.getText());
+				navigateHomePage();
+			}
+		};
+
+		connectButtonPanel.setLayout(new BoxLayout(connectButtonPanel,
+				BoxLayout.X_AXIS));
+		connectButtonPanel.setBackground(new Color(0, 175, 240));
+		connectButtonPanel.addMouseListener(connectButtonMouseAdapter);
+
+		connectButton.setFont(textFieldFont);
+		connectButton.setBackground(new Color(12, 125, 175));
+		connectButton.setForeground(new Color(40, 155, 200));
+		connectButton.setMinimumSize(new Dimension(312, 35));
+		connectButton.setMaximumSize(new Dimension(312, 35));
+		connectButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		connectButton.addMouseListener(connectButtonMouseAdapter);
+
+		connectButtonPanel.add(connectButton);
+
+		connectionSetupPanel.add(connectButtonPanel);
+
 		loginPanel.add(Box.createRigidArea(new Dimension(10, 29)));
+
+		connectionSetupPanel.add(Box.createRigidArea(new Dimension(10, 29)));
 
 		cantAccessAccountLabelPanel.setLayout(new BoxLayout(
 				cantAccessAccountLabelPanel, BoxLayout.X_AXIS));
@@ -591,6 +765,25 @@ public class LoginForm extends JFrame {
 		cantAccessAccountLabelPanel.add(cantAccessAccountLabel);
 
 		loginPanel.add(cantAccessAccountLabelPanel);
+
+		cantAccessAccountLabelPanel2.setLayout(new BoxLayout(
+				cantAccessAccountLabelPanel2, BoxLayout.X_AXIS));
+		cantAccessAccountLabelPanel2.setBackground(new Color(0, 175, 240));
+
+		cantAccessAccountLabel2
+				.addMouseListener(cantAccessAccountLabelMouseAdapter);
+		cantAccessAccountLabelPanel2
+				.addMouseListener(cantAccessAccountLabelMouseAdapter);
+
+		cantAccessAccountLabel2.setFont(textFieldFont
+				.deriveFont(underLineFontAttributes));
+		cantAccessAccountLabel2.setForeground(Color.white);
+		cantAccessAccountLabel2.setCursor(Cursor
+				.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+		cantAccessAccountLabelPanel2.add(cantAccessAccountLabel2);
+
+		connectionSetupPanel.add(cantAccessAccountLabelPanel2);
 
 		createAccountLabel.setForeground(Color.white);
 		createAccountLabel.setFont(textFieldFont);
@@ -823,6 +1016,7 @@ public class LoginForm extends JFrame {
 	private void navigateHomePage() {
 		remove(homePagePanel);
 		remove(loginPanel);
+		remove(connectionSetupPanel);
 		remove(homePageFooterPanel);
 		remove(loginFooterPanel);
 		ImageIcon loadingGifImageIcon = ImageIO
@@ -834,14 +1028,57 @@ public class LoginForm extends JFrame {
 		new Timer().schedule(new TimerTask() {
 			@Override
 			public void run() {
+				Optional<SocketHandlerContext> handle = Skype.getPlugin()
+						.createHandle();
 				remove(loadingGifIconLabel);
 				add(homePagePanel);
 				add(homePageFooterPanel, BorderLayout.SOUTH);
 				validate();
 				repaint();
 				skypeNameField.grabFocus();
+				if (handle.isPresent()) {
+					Skype.getPlugin().setHandle(handle.get());
+				} else {
+					new Timer().schedule(new TimerTask() {
+						@Override
+						public void run() {
+							navigateConnectionSetup();
+						}
+					}, simulatePageLoadingDelay ? pageLoadingDelayInMs : 1L);
+				}
 			}
 		}, simulatePageLoadingDelay ? pageLoadingDelayInMs : 1L);
+	}
+
+	private void navigateConnectionSetup() {
+		remove(homePagePanel);
+		remove(loginPanel);
+		remove(homePageFooterPanel);
+		remove(loginFooterPanel);
+		connectionSetupPanel.remove(connectionDetailsMismatchPanel);
+		ImageIcon loadingGifImageIcon = ImageIO
+				.getResourceAsImageIcon("/998288425.gif");
+		JLabel loadingGifIconLabel = new JLabel(loadingGifImageIcon);
+		add(loadingGifIconLabel);
+		validate();
+		repaint();
+		new Thread(() -> {
+			new Timer().schedule(new TimerTask() {
+				@Override
+				public void run() {
+					connectionSetupPanel.remove(2);
+					connectionSetupPanel.add(
+							Box.createRigidArea(new Dimension(10, 15)), 2);
+					connectionSetupPanel.add(connectionDetailsMismatchPanel, 3);
+					remove(loadingGifIconLabel);
+					add(connectionSetupPanel);
+					add(loginFooterPanel, BorderLayout.SOUTH);
+					validate();
+					repaint();
+					hostNameField.grabFocus();
+				}
+			}, simulatePageLoadingDelay ? pageLoadingDelayInMs : 1L);
+		}).start();
 	}
 
 	private void navigateSignIn() {
@@ -851,6 +1088,7 @@ public class LoginForm extends JFrame {
 	private void navigateSignIn(String skypeName, String password) {
 		remove(homePagePanel);
 		remove(loginPanel);
+		remove(connectionSetupPanel);
 		remove(homePageFooterPanel);
 		remove(loginFooterPanel);
 		loginPanel.remove(loginDetailsMismatchPanel);
@@ -860,70 +1098,74 @@ public class LoginForm extends JFrame {
 		add(loadingGifIconLabel);
 		validate();
 		repaint();
-		new Timer().schedule(new TimerTask() {
-			@Override
-			public void run() {
-				if (skypeName != null && password != null) {
-					try {
-						SocketHandlerContext ctx = Skype.getPlugin()
-								.getHandle();
-						UUID participantId = Skype.getPlugin().getUniqueId(
-								skypeName);
-						UUID authCode = null;
-						Optional<PacketPlayInReply> replyPacket = ctx
-								.getOutboundHandler().dispatch(
-										ctx,
-										new PacketPlayOutLogin(skypeName,
-												password));
-						if (replyPacket.isPresent()) {
-							if (replyPacket.get().getStatusCode() == 200) {
-								authCode = UUID.fromString(replyPacket.get()
-										.getText());
-								ctx.getOutboundHandler()
-										.dispatch(
-												ctx,
-												new PacketPlayOutRefreshToken(
-														authCode));
-								replyPacket = ctx
-										.getOutboundHandler()
-										.dispatch(
-												ctx,
-												new PacketPlayOutLookupUser(
-														authCode, participantId));
-								if (replyPacket.isPresent()) {
-									if (replyPacket.get().getStatusCode() == 200) {
-										Contact loggedInUser = new Contact(
-												replyPacket.get().getText());
-										frame.removeWindowListener(windowAdapter);
-										frame.dispose();
-										MainForm form = new MainForm(authCode,
-												loggedInUser);
-										form.show();
-										return;
+		new Thread(() -> {
+			new Timer().schedule(new TimerTask() {
+				@Override
+				public void run() {
+					if (skypeName != null && password != null) {
+						try {
+							SocketHandlerContext ctx = Skype.getPlugin()
+									.getHandle();
+							UUID participantId = Skype.getPlugin().getUniqueId(
+									skypeName);
+							UUID authCode = null;
+							Optional<PacketPlayInReply> replyPacket = ctx
+									.getOutboundHandler().dispatch(
+											ctx,
+											new PacketPlayOutLogin(skypeName,
+													password));
+							if (replyPacket.isPresent()) {
+								if (replyPacket.get().getStatusCode() == 200) {
+									authCode = UUID.fromString(replyPacket
+											.get().getText());
+									ctx.getOutboundHandler().dispatch(
+											ctx,
+											new PacketPlayOutRefreshToken(
+													authCode));
+									replyPacket = ctx
+											.getOutboundHandler()
+											.dispatch(
+													ctx,
+													new PacketPlayOutLookupUser(
+															authCode,
+															participantId));
+									if (replyPacket.isPresent()) {
+										if (replyPacket.get().getStatusCode() == 200) {
+											Contact loggedInUser = new Contact(
+													replyPacket.get().getText());
+											PGPUtilities
+													.createOrLookupPublicKey(skypeName);
+											frame.removeWindowListener(windowAdapter);
+											frame.dispose();
+											MainForm form = new MainForm(
+													authCode, loggedInUser);
+											form.show();
+											return;
+										}
 									}
 								}
 							}
+						} catch (Exception e) {
+							e.printStackTrace();
 						}
-					} catch (Exception e) {
-						e.printStackTrace();
+						loginPanel.remove(2);
+						loginPanel.add(
+								Box.createRigidArea(new Dimension(10, 15)), 2);
+						loginPanel.add(loginDetailsMismatchPanel, 3);
+					} else {
+						loginPanel.remove(2);
+						loginPanel.add(
+								Box.createRigidArea(new Dimension(10, 33)), 2);
 					}
-					loginPanel.remove(2);
-					loginPanel.add(Box.createRigidArea(new Dimension(10, 15)),
-							2);
-					loginPanel.add(loginDetailsMismatchPanel, 3);
-				} else {
-					loginPanel.remove(2);
-					loginPanel.add(Box.createRigidArea(new Dimension(10, 33)),
-							2);
+					remove(loadingGifIconLabel);
+					add(loginPanel);
+					add(loginFooterPanel, BorderLayout.SOUTH);
+					validate();
+					repaint();
+					skypeNameField.grabFocus();
 				}
-				remove(loadingGifIconLabel);
-				add(loginPanel);
-				add(loginFooterPanel, BorderLayout.SOUTH);
-				validate();
-				repaint();
-				skypeNameField.grabFocus();
-			}
-		}, simulatePageLoadingDelay ? pageLoadingDelayInMs : 1L);
+			}, simulatePageLoadingDelay ? pageLoadingDelayInMs : 1L);
+		}).start();
 	}
 
 	@Override

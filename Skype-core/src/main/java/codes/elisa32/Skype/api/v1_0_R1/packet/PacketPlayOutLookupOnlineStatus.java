@@ -2,14 +2,14 @@ package codes.elisa32.Skype.api.v1_0_R1.packet;
 
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 
-public class PacketPlayOutRemoveContact extends Packet {
+public class PacketPlayOutLookupOnlineStatus extends Packet {
 
 	private UUID authCode;
 
 	private UUID conversationId;
 
-	public PacketPlayOutRemoveContact(UUID authCode, UUID conversationId) {
-		super(PacketType.REMOVE_CONTACT_OUT);
+	public PacketPlayOutLookupOnlineStatus(UUID authCode, UUID conversationId) {
+		super(PacketType.LOOKUP_ONLINE_STATUS);
 		this.setAuthCode(authCode);
 		this.setConversationId(conversationId);
 	}
