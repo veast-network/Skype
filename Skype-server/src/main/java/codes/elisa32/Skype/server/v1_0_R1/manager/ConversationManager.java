@@ -1,5 +1,6 @@
 package codes.elisa32.Skype.server.v1_0_R1.manager;
 
+import java.io.File;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -30,7 +31,7 @@ public class ConversationManager {
 	}
 
 	public ConfigurationSection getConfig(UUID conversationId,
-			UUID participantId, Date timestamp) {
+			UUID participantId, Date timestamp, boolean failIfNotExisting) {
 		SimpleDateFormat format = new SimpleDateFormat("yyyy_MM");
 		String key = "config_" + conversationId.toString() + "_"
 				+ participantId.toString() + "_" + format.format(timestamp)
@@ -38,6 +39,12 @@ public class ConversationManager {
 		if (messageHistoryConfig.containsKey(key)) {
 			return messageHistoryConfig.get(key);
 		} else {
+			File file = new File(key);
+			if (!file.exists()) {
+				if (failIfNotExisting) {
+					return null;
+				}
+			}
 			ConfigurationSection section = null;
 			try {
 				section = new FileConfiguration(key).getConfigurationSection();
@@ -311,8 +318,11 @@ public class ConversationManager {
 			Date localDate = Date.from(start.atStartOfDay(
 					ZoneId.systemDefault()).toInstant());
 			ConfigurationSection section = this.getConfig(conversationId,
-					participantId, localDate).getConfigurationSection(
-					"messages");
+					participantId, localDate, true);
+			if (section == null) {
+				continue;
+			}
+			section = section.getConfigurationSection("messages");
 			for (String key : section.getKeys(false)) {
 				try {
 					String payload = section.getString(key + ".payload");
@@ -349,7 +359,11 @@ public class ConversationManager {
 		try {
 			Date date = new Date(timestamp);
 			ConfigurationSection section = this.getConfig(conversationId,
-					participantId, date).getConfigurationSection("messages");
+					participantId, date, true);
+			if (section == null) {
+				return Optional.empty();
+			}
+			section = section.getConfigurationSection("messages");
 			section = section.getConfigurationSection(messageId.toString());
 			String payload;
 			if ((payload = section.getString("payload")) == null) {
@@ -366,7 +380,7 @@ public class ConversationManager {
 		try {
 			Date date = new Date(timestamp);
 			ConfigurationSection section = this.getConfig(conversationId,
-					participantId, date).getConfigurationSection("messages");
+					participantId, date, false).getConfigurationSection("messages");
 			section = section.getConfigurationSection(messageId.toString());
 			if (payload == null) {
 				section.replace("payload", null);

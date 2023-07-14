@@ -41,7 +41,7 @@ public class RemoveMessageCmd extends CommandExecutor {
 							if (MainForm.get().getSelectedConversation()
 									.getUniqueId()
 									.equals(conversation.getUniqueId())) {
-								MainForm.get().refreshWindow(true);
+								MainForm.get().refreshWindow(MainForm.get().SCROLL_TO_BOTTOM);
 							}
 						}
 						break;
@@ -67,7 +67,7 @@ public class RemoveMessageCmd extends CommandExecutor {
 						MainForm.get().setSelectedConversation(null);
 						MainForm.get().rightPanelPage = "AccountHome";
 					} else {
-						MainForm.get().refreshWindow(true);
+						MainForm.get().refreshWindow(MainForm.get().SCROLL_TO_BOTTOM);
 						return PacketPlayInReply.empty();
 					}
 				}

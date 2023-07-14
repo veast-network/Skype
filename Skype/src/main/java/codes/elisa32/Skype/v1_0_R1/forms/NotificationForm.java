@@ -32,9 +32,19 @@ public class NotificationForm extends JDialog {
 
 	private Conversation conversation;
 
+	private static NotificationForm instance;
+
 	public NotificationForm(Conversation conversation, Message message,
 			boolean playSound) {
 		this.conversation = conversation;
+
+		if (instance != null) {
+			try {
+				instance.dispose();
+			} catch (Exception e) {
+			}
+		}
+		instance = this;
 
 		setTitle("Notification");
 
@@ -117,7 +127,8 @@ public class NotificationForm extends JDialog {
 							MainForm.get().setSelectedConversation(obj);
 						}
 					}
-					MainForm.get().refreshWindow(true);
+					MainForm.get().refreshWindow(
+							MainForm.get().SCROLL_TO_BOTTOM);
 					MainForm.get().show();
 					MainForm.get().setExtendedState(JFrame.NORMAL);
 				}

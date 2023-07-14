@@ -25,7 +25,7 @@ public class RefreshTokenCmd extends CommandExecutor {
 			return replyPacket;
 		}
 		long now = System.currentTimeMillis();
-		con.setExpiryTime(now + (10 * (60 * 1000L)));
+		con.setExpiryTime(now + (30 * (60 * 1000L)));
 		PacketPlayInReply replyPacket = new PacketPlayInReply(
 				PacketPlayInReply.OK, packet.getType().name() + " success");
 		return replyPacket;

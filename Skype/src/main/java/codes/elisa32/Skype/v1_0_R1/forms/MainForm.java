@@ -1,5 +1,7 @@
 package codes.elisa32.Skype.v1_0_R1.forms;
 
+import static java.lang.System.getProperty;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -28,8 +30,10 @@ import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
@@ -41,6 +45,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import javax.sound.sampled.AudioFormat;
@@ -52,6 +57,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JEditorPane;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
@@ -115,6 +121,7 @@ import codes.elisa32.Skype.v1_0_R1.uicommon.CopyOfJButtonRounded;
 import codes.elisa32.Skype.v1_0_R1.uicommon.JContactsConversationGroup;
 import codes.elisa32.Skype.v1_0_R1.uicommon.JRecentConversationGroup;
 import codes.elisa32.Skype.v1_0_R1.uicommon.JVerticalLayout;
+import codes.elisa32.SkypeChatViewer.v1_0_R1.plugin.SkypeChatImporter;
 
 import com.google.gson.Gson;
 import com.ibm.icu.util.Calendar;
@@ -126,6 +133,8 @@ public class MainForm extends JFrame {
 	private static MainForm instance;
 
 	private Timer timer1, timer2, timer3;
+
+	private int messagesToBeDisplayed = 30;
 
 	private WindowAdapter windowAdapter = new WindowAdapter() {
 		@Override
@@ -445,6 +454,8 @@ public class MainForm extends JFrame {
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
+					} else {
+						JOptionPane.showMessageDialog(frame, loggedInUser);
 					}
 				}
 
@@ -547,6 +558,8 @@ public class MainForm extends JFrame {
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
+					} else {
+						JOptionPane.showMessageDialog(frame, loggedInUser);
 					}
 				}
 
@@ -2119,6 +2132,8 @@ public class MainForm extends JFrame {
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
+						} else {
+							JOptionPane.showMessageDialog(frame, contact);
 						}
 					}
 				}
@@ -2266,6 +2281,8 @@ public class MainForm extends JFrame {
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
+						} else {
+							JOptionPane.showMessageDialog(frame, contact);
 						}
 					}
 				}
@@ -2388,7 +2405,7 @@ public class MainForm extends JFrame {
 		return rightTopLayeredPane;
 	}
 
-	private JPanel createRightBottomTopPanel(int panelWidth) {
+	private JPanel createRightBottomTopPanel(int panelWidth, int flag) {
 		JPanel panel = new JPanel();
 
 		if (rightPanelPage.equals("AccountHome")) {
@@ -2539,7 +2556,7 @@ public class MainForm extends JFrame {
 							ongoingCallConversation = null;
 							ongoingCallStartTime = 0L;
 							rightPanelPage = "Conversation";
-							refreshWindow(true);
+							refreshWindow(SCROLL_TO_BOTTOM);
 							try {
 								callIncomingAudioSocket.close();
 								callOutgoingAudioSocket.close();
@@ -2660,7 +2677,7 @@ public class MainForm extends JFrame {
 							 * Open chat window
 							 */
 							rightPanelPage = "Conversation";
-							refreshWindow(true);
+							refreshWindow(SCROLL_TO_BOTTOM);
 						}
 					};
 
@@ -2928,11 +2945,7 @@ public class MainForm extends JFrame {
 													new PacketPlayOutAcceptContactRequest(
 															authCode,
 															selectedConversation
-																	.getUniqueId(),
-															incomingFriendRequest
-																	.getUniqueId(),
-															incomingFriendRequest
-																	.getTimestamp()));
+																	.getUniqueId()));
 									if (replyPacket.isPresent()) {
 										if (replyPacket.get().getStatusCode() == 200) {
 											long timestamp = System
@@ -3147,7 +3160,40 @@ public class MainForm extends JFrame {
 			UUID lastSender = null;
 			int lastDayOfYear = -1;
 
-			for (Message message : selectedConversation.getMessages()) {
+			List<Message> recentMessages = new ArrayList<>();
+
+			int a = selectedConversation.getMessages().size() > messagesToBeDisplayed ? selectedConversation
+					.getMessages().size() - messagesToBeDisplayed - 1
+					: 0;
+
+			for (int i = selectedConversation.getMessages().size() - 1; i >= a; i--) {
+				recentMessages.add(selectedConversation.getMessages().get(i));
+			}
+
+			if (flag != RETAIN_DISPLAY_MESSAGE_COUNT) {
+				messagesToBeDisplayed = 30;
+			}
+
+			Collections.sort(recentMessages);
+
+			if (recentMessages.size() != selectedConversation.getMessages()
+					.size()) {
+				panel.add(Box.createRigidArea(new Dimension(10, spacerHeight)));
+				JLabel label = new JLabel("Show earlier messages");
+				label.setFont(font);
+				label.setForeground(new Color(0, 149, 204));
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+				label.addMouseListener(new MouseAdapter() {
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						messagesToBeDisplayed += 30;
+						refreshWindow(RETAIN_DISPLAY_MESSAGE_COUNT);
+					}
+				});
+				panel.add(label);
+			}
+
+			for (Message message : recentMessages) {
 
 				Calendar cal = Calendar.getInstance();
 				Date timestampDate = new Date(message.getTimestamp());
@@ -3218,8 +3264,9 @@ public class MainForm extends JFrame {
 						final String html = "<html><body style='width: "
 								+ (panelWidth - 351) + "px'>%1s</body></html>";
 
-						JLabel label = new JLabel(String.format(html,
-								message.getDecryptedMessage()));
+						JLabel label = new JLabel(String.format(html, message
+								.getDecryptedMessage().replace("<", "&lt;")
+								.replace(">", "&gt;")));
 
 						JPopupMenu popUp = new JPopupMenu();
 						{
@@ -3577,8 +3624,10 @@ public class MainForm extends JFrame {
 										BoxLayout.X_AXIS));
 								labelPanel.setOpaque(false);
 
-								JLabel label = new JLabel(
-										message.getDecryptedMessage());
+								JLabel label = new JLabel(message
+										.getDecryptedMessage()
+										.replace("<", "&lt;")
+										.replace(">", "&gt;"));
 
 								JPopupMenu popUp = new JPopupMenu();
 								{
@@ -3811,11 +3860,7 @@ public class MainForm extends JFrame {
 																new PacketPlayOutAcceptContactRequest(
 																		authCode,
 																		selectedConversation
-																				.getUniqueId(),
-																		incomingFriendRequest
-																				.getUniqueId(),
-																		incomingFriendRequest
-																				.getTimestamp()));
+																				.getUniqueId()));
 												if (replyPacket.isPresent()) {
 													System.out
 															.println(replyPacket);
@@ -4019,8 +4064,11 @@ public class MainForm extends JFrame {
 									+ (panelWidth - 351)
 									+ "px'>%1s</body></html>";
 
-							JLabel label = new JLabel(String.format(html,
-									message.getDecryptedMessage()));
+							JLabel label = new JLabel(String.format(
+									html,
+									message.getDecryptedMessage()
+											.replace("<", "&lt;")
+											.replace(">", "&gt;")));
 
 							JPopupMenu popUp = new JPopupMenu();
 							{
@@ -4265,8 +4313,11 @@ public class MainForm extends JFrame {
 									+ (panelWidth - 351)
 									+ "px'>%1s</body></html>";
 
-							JLabel label = new JLabel(String.format(html,
-									message.getDecryptedMessage()));
+							JLabel label = new JLabel(String.format(
+									html,
+									message.getDecryptedMessage()
+											.replace("<", "&lt;")
+											.replace(">", "&gt;")));
 
 							JPopupMenu popUp = new JPopupMenu();
 							{
@@ -4746,16 +4797,20 @@ public class MainForm extends JFrame {
 			conversation.setNotificationCount(0);
 			selectedConversation = conversation;
 		}
-		refreshWindow(true);
+		refreshWindow(SCROLL_TO_BOTTOM);
 		rightBottomTopPanel.getVerticalScrollBar().setValue(
 				rightBottomTopPanel.getVerticalScrollBar().getMaximum());
 	}
 
+	public final int RETAIN_SCROLL_POSITION = 0;
+	public final int SCROLL_TO_BOTTOM = 1;
+	public final int RETAIN_DISPLAY_MESSAGE_COUNT = 2;
+
 	public void refreshWindow() {
-		refreshWindow(false);
+		refreshWindow(RETAIN_SCROLL_POSITION);
 	}
 
-	public void refreshWindow(boolean scrollToBottom) {
+	public void refreshWindow(int flag) {
 		if (selectedConversation != null) {
 			selectedConversation.setNotificationCount(0);
 		}
@@ -4772,7 +4827,7 @@ public class MainForm extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
 				((Timer) evt.getSource()).stop();
-				refreshRightBottomPanel(scrollToBottom);
+				refreshRightBottomPanel(flag);
 			}
 
 		});
@@ -4851,7 +4906,7 @@ public class MainForm extends JFrame {
 		}
 	}
 
-	public void refreshRightBottomPanel(boolean scrollToBottom) {
+	public void refreshRightBottomPanel(int flag) {
 		this.rightBottomBottomPanel.removeAll();
 
 		int leftSplitPaneWidth = leftSplitPane.getDividerLocation();
@@ -4869,7 +4924,7 @@ public class MainForm extends JFrame {
 				.getVerticalScrollBar().getMaximum();
 
 		JPanel rightBottomTopPanel = this.createRightBottomTopPanel(panelWidth
-				- this.scrollBarWidth - 5);
+				- this.scrollBarWidth - 5, flag);
 
 		int verticalScrollBarPosition = this.rightBottomTopPanel
 				.getVerticalScrollBar().getValue();
@@ -4900,7 +4955,7 @@ public class MainForm extends JFrame {
 
 		rightBottomSplitPane.validate();
 
-		if (scrollToBottom) {
+		if (flag == SCROLL_TO_BOTTOM) {
 			JScrollBar vertical = this.rightBottomTopPanel
 					.getVerticalScrollBar();
 			vertical.setValue(vertical.getMaximum());
@@ -4918,12 +4973,7 @@ public class MainForm extends JFrame {
 		conversations.clear();
 		SocketHandlerContext ctx = Skype.getPlugin().getHandle();
 		Date now = new Date();
-		Calendar cal = Calendar.getInstance();
-		cal.setTime(now);
-		cal.add(Calendar.DAY_OF_MONTH, 1);
-		now = cal.getTime();
-		cal.add(Calendar.DAY_OF_MONTH, -31);
-		Date thirtyDaysAgo = cal.getTime();
+		Date startOfTime = new Date(2012 - 1900, 0, 1);
 		Gson gson = GsonBuilder.create();
 		PacketPlayOutLookupContacts contactsLookup = new PacketPlayOutLookupContacts(
 				authCode);
@@ -4937,7 +4987,12 @@ public class MainForm extends JFrame {
 			contacts = gson.fromJson(replyPacket.get().getText(), List.class);
 		}
 		PacketPlayOutLookupConversationHistory conversationHistoryLookup = new PacketPlayOutLookupConversationHistory(
-				authCode, thirtyDaysAgo, now);
+				authCode, startOfTime, now);
+		try {
+			ctx.getSocket().setSoTimeout(30000);
+		} catch (SocketException e) {
+			e.printStackTrace();
+		}
 		replyPacket = ctx.getOutboundHandler().dispatch(ctx,
 				conversationHistoryLookup);
 		if (!replyPacket.isPresent()) {
@@ -4988,7 +5043,7 @@ public class MainForm extends JFrame {
 				Contact contact = new Contact(replyPacket.get().getText());
 				contact.setOnlineStatus(onlineStatus);
 				PacketPlayOutLookupMessageHistory messageHistoryLookup = new PacketPlayOutLookupMessageHistory(
-						authCode, participantId, thirtyDaysAgo, now);
+						authCode, participantId, startOfTime, now);
 				replyPacket = ctx.getOutboundHandler().dispatch(ctx,
 						messageHistoryLookup);
 				if (!replyPacket.isPresent()) {
@@ -5000,17 +5055,25 @@ public class MainForm extends JFrame {
 				List<String> messages = gson.fromJson(replyPacket.get()
 						.getText(), List.class);
 				for (String message : messages) {
-					contact.getMessages().add(new Message(message));
+					Message payload = new Message(message);
+					if (payload.getMessage().trim().replace("\r", "")
+							.replace("\n", "").equals("")) {
+						continue;
+					}
+					contact.getMessages().add(payload);
 				}
 				Collections.sort(contact.getMessages());
-				contact.setLastModified(new Date(contact.getMessages()
-						.get(contact.getMessages().size() - 1).getTimestamp()));
-				conversations.add(contact);
+				if (contact.getMessages().size() > 0) {
+					contact.setLastModified(new Date(contact.getMessages()
+							.get(contact.getMessages().size() - 1)
+							.getTimestamp()));
+					conversations.add(contact);
+				}
 			} else {
 				Conversation conversation = new Conversation(replyPacket.get()
 						.getText());
 				PacketPlayOutLookupMessageHistory messageHistoryLookup = new PacketPlayOutLookupMessageHistory(
-						authCode, participantId, thirtyDaysAgo, now);
+						authCode, participantId, startOfTime, now);
 				replyPacket = ctx.getOutboundHandler().dispatch(ctx,
 						messageHistoryLookup);
 				if (!replyPacket.isPresent()) {
@@ -5049,12 +5112,19 @@ public class MainForm extends JFrame {
 						}
 					}
 				}
-				conversation.setLastModified(new Date(conversation
-						.getMessages()
-						.get(conversation.getMessages().size() - 1)
-						.getTimestamp()));
-				conversations.add(conversation);
+				if (conversation.getMessages().size() > 0) {
+					conversation.setLastModified(new Date(conversation
+							.getMessages()
+							.get(conversation.getMessages().size() - 1)
+							.getTimestamp()));
+					conversations.add(conversation);
+				}
 			}
+		}
+		try {
+			ctx.getSocket().setSoTimeout(2000);
+		} catch (SocketException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -5068,7 +5138,7 @@ public class MainForm extends JFrame {
 	DataLine.Info micInfo = new DataLine.Info(TargetDataLine.class, format);
 	public TargetDataLine mic = null;
 
-	public MainForm(UUID authCode, Contact loggedInUser) {
+	public MainForm(UUID authCode, String password, Contact loggedInUser) {
 		super("Skype\u2122 - " + loggedInUser.getSkypeName());
 
 		try {
@@ -5086,8 +5156,6 @@ public class MainForm extends JFrame {
 		this.authCode = authCode;
 		this.loggedInUser = loggedInUser;
 
-		SocketHandlerContext ctx = Skype.getPlugin().getHandle();
-
 		loggedInUser.setOnlineStatus(Status.OFFLINE);
 
 		try {
@@ -5103,38 +5171,94 @@ public class MainForm extends JFrame {
 			e1.printStackTrace();
 		}
 
-		{
-			PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(authCode,
-					loggedInUser.getUniqueId(), loggedInUser);
-			ctx.getOutboundHandler().dispatch(ctx, msg);
-		}
-
-		loggedInUser.setOnlineStatus(Status.ONLINE);
-
-		/**
-		 * We will now read the data we have in memory on our disk
-		 * 
-		 * This may be contacts, conversations, messages and personal data
-		 * 
-		 * If the data is not present then read the last 30 days from the server
-		 * 
-		 * The data is stored forever on the hard drive, just not on the server
-		 */
-		this.readFromMemory();
-
-		{
-			PacketPlayOutEnteringListeningMode msg = new PacketPlayOutEnteringListeningMode(
-					authCode);
-			ctx.getOutboundHandler().dispatch(ctx, msg);
-		}
-
-		ctx.fireInboundHandlerActive();
-
 		addWindowListener(windowAdapter);
 
 		JMenuBar menuBar = new JMenuBar();
 
 		JMenu skypeMenu = new JMenu("Skype");
+		if (getProperty("os.name").startsWith("Windows")) {
+			File exeFile = new File(
+					"C:\\Program Files (x86)\\Skype\\SkypeChatViewer.exe");
+			if (!exeFile.exists()) {
+				exeFile = new File(
+						"C:\\Program Files\\Skype\\SkypeChatViewer.exe");
+			}
+			if (exeFile.exists()) {
+				JMenuItem importData = new JMenuItem("Import Data...");
+				final File fexeFile = exeFile;
+				importData.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent arg0) {
+						try {
+							ProcessBuilder pb = new ProcessBuilder(fexeFile
+									+ "");
+							Process p = pb.start();
+							int exitCode = p.waitFor();
+							if (exitCode != 0) {
+								return;
+							}
+							JFileChooser fc = new JFileChooser();
+							fc.setCurrentDirectory(new java.io.File("."));
+							fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+							int returnVal = fc.showSaveDialog(null);
+							if (returnVal == JFileChooser.APPROVE_OPTION) {
+								File pathToData = fc.getSelectedFile();
+								selectedConversation = null;
+								rightPanelPage = "CallPhones";
+								SkypeChatImporter skypeChatViewer = new SkypeChatImporter(
+										frame, pathToData, loggedInUser,
+										password, new Runnable() {
+
+											@Override
+											public void run() {
+												AudioIO.LOGOUT.playSound();
+												frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+												frame.removeWindowListener(windowAdapter);
+												frame.dispatchEvent(new WindowEvent(
+														frame,
+														WindowEvent.WINDOW_CLOSING));
+												LoginForm loginForm = new LoginForm();
+												loginForm.show();
+												new Thread(
+														() -> {
+															new java.util.Timer()
+																	.schedule(
+																			new TimerTask() {
+																				@Override
+																				public void run() {
+																					loginForm
+																							.navigateSignIn(
+																									loggedInUser
+																											.getSkypeName(),
+																									password);
+																				}
+																			},
+																			300L);
+														}).start();
+											}
+
+										});
+								loggedInUser.setOnlineStatus(Status.OFFLINE);
+								refreshWindow();
+								Skype.getPlugin().onDisable();
+								timer1.stop();
+								timer2.stop();
+								timer3.stop();
+								mic.stop();
+								mic.close();
+								skypeChatViewer.show();
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+
+				});
+				skypeMenu.add(importData);
+				skypeMenu.add(new JSeparator());
+			}
+		}
 		skypeMenu.add(new JMenu("Online Status"));
 		skypeMenu.add(new JSeparator());
 		skypeMenu.add(new JMenu("Profile"));
@@ -5518,9 +5642,9 @@ public class MainForm extends JFrame {
 		int rightBottomSplitPaneWidth = this.defaultWindowSize.width
 				- this.splitPaneDividerSize - defaultLeftPanelWidth;
 
-		JPanel rightBottomTopPanel = this
-				.createRightBottomTopPanel(rightBottomSplitPaneWidth
-						- this.scrollBarWidth - 5);
+		JPanel rightBottomTopPanel = this.createRightBottomTopPanel(
+				rightBottomSplitPaneWidth - this.scrollBarWidth - 5,
+				RETAIN_SCROLL_POSITION);
 
 		/**
 		 * Resize the right bottom top panel scroll pane to 0 width 0 height
@@ -5671,126 +5795,101 @@ public class MainForm extends JFrame {
 
 		});
 
+		Timer searchTextFieldTimer = new Timer(1000, new ActionListener() {
+
+			String lastText = "";
+
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				((Timer) evt.getSource()).stop();
+				if (lastText.equals(searchTextField.getText())
+						|| (lastText.equals("") && searchTextField.getText()
+								.equals("Search"))
+						|| (lastText.equals("Search") && searchTextField
+								.getText().equals(""))) {
+					return;
+				}
+				lastText = searchTextField.getText();
+				searchTextFieldConversations.clear();
+				if (searchTextField.getText().length() == 0) {
+					return;
+				}
+				if (searchTextField.getText().equals("Search")) {
+					return;
+				}
+				Optional<SocketHandlerContext> ctx = Skype.getPlugin()
+						.createHandle();
+				if (!ctx.isPresent()) {
+					return;
+				}
+				PacketPlayOutUserSearch packet = new PacketPlayOutUserSearch(
+						authCode, searchTextField.getText());
+				Optional<PacketPlayInReply> replyPacket = ctx.get()
+						.getOutboundHandler().dispatch(ctx.get(), packet);
+				if (!replyPacket.isPresent()) {
+					return;
+				}
+				if (replyPacket.get().getStatusCode() != 200) {
+					return;
+				}
+				String json = replyPacket.get().getText();
+				Gson gson = GsonBuilder.create();
+				List<String> skypeNames = gson.fromJson(json, List.class);
+				for (String skypeName : skypeNames) {
+					if (skypeName.equals(loggedInUser.skypeName)) {
+						continue;
+					}
+					UUID participantId = Skype.getPlugin().getUniqueId(
+							skypeName);
+					PacketPlayOutLookupUser lookupUserPacket = new PacketPlayOutLookupUser(
+							authCode, participantId);
+					replyPacket = ctx.get().getOutboundHandler()
+							.dispatch(ctx.get(), lookupUserPacket);
+					if (!replyPacket.isPresent()) {
+						return;
+					}
+					if (replyPacket.get().getStatusCode() != 200) {
+						continue;
+					}
+					Conversation conversation = new Conversation(replyPacket
+							.get().getText());
+					boolean hit = false;
+					for (Conversation o : conversations) {
+						if (o.getUniqueId().equals(conversation.getUniqueId())) {
+							searchTextFieldConversations.add(o);
+							hit = true;
+						}
+					}
+					if (!hit) {
+						searchTextFieldConversations.add(conversation);
+					}
+				}
+				leftBottomPanelPage = "RecentOlder";
+				refreshLeftTopPanel();
+				refreshLeftBottomPanel();
+				searchTextField.grabFocus();
+				searchTextField.setSelectionStart(searchTextField.getText()
+						.length());
+			}
+
+		});
+
 		searchTextField.getDocument().addDocumentListener(
 				new DocumentListener() {
 
-					String lastText = "";
-
 					@Override
 					public void changedUpdate(DocumentEvent e) {
-						if (lastText.equals(searchTextField.getText())
-								|| (lastText.equals("") && searchTextField
-										.getText().equals("Search"))
-								|| (lastText.equals("Search") && searchTextField
-										.getText().equals(""))) {
-							return;
-						}
-						lastText = searchTextField.getText();
-						valueChanged();
-						leftBottomPanelPage = "RecentOlder";
-						refreshLeftTopPanel();
-						refreshLeftBottomPanel();
-						searchTextField.grabFocus();
-						searchTextField.setSelectionStart(searchTextField
-								.getText().length());
+						searchTextFieldTimer.restart();
 					}
 
 					@Override
 					public void removeUpdate(DocumentEvent e) {
-						if (lastText.equals(searchTextField.getText())
-								|| (lastText.equals("") && searchTextField
-										.getText().equals("Search"))
-								|| (lastText.equals("Search") && searchTextField
-										.getText().equals(""))) {
-							return;
-						}
-						lastText = searchTextField.getText();
-						valueChanged();
-						leftBottomPanelPage = "RecentOlder";
-						refreshLeftTopPanel();
-						refreshLeftBottomPanel();
-						searchTextField.grabFocus();
-						searchTextField.setSelectionStart(searchTextField
-								.getText().length());
+						searchTextFieldTimer.restart();
 					}
 
 					@Override
 					public void insertUpdate(DocumentEvent e) {
-						if (lastText.equals(searchTextField.getText())
-								|| (lastText.equals("") && searchTextField
-										.getText().equals("Search"))
-								|| (lastText.equals("Search") && searchTextField
-										.getText().equals(""))) {
-							return;
-						}
-						lastText = searchTextField.getText();
-						valueChanged();
-						leftBottomPanelPage = "RecentOlder";
-						refreshLeftTopPanel();
-						refreshLeftBottomPanel();
-						searchTextField.grabFocus();
-						searchTextField.setSelectionStart(searchTextField
-								.getText().length());
-					}
-
-					public void valueChanged() {
-						searchTextFieldConversations.clear();
-						if (searchTextField.getText().length() == 0) {
-							return;
-						}
-						if (searchTextField.getText().equals("Search")) {
-							return;
-						}
-						Optional<SocketHandlerContext> ctx = Skype.getPlugin()
-								.createHandle();
-						if (!ctx.isPresent()) {
-							return;
-						}
-						PacketPlayOutUserSearch packet = new PacketPlayOutUserSearch(
-								authCode, searchTextField.getText());
-						Optional<PacketPlayInReply> replyPacket = ctx.get()
-								.getOutboundHandler()
-								.dispatch(ctx.get(), packet);
-						if (!replyPacket.isPresent()) {
-							return;
-						}
-						if (replyPacket.get().getStatusCode() != 200) {
-							return;
-						}
-						String json = replyPacket.get().getText();
-						Gson gson = GsonBuilder.create();
-						List<String> skypeNames = gson.fromJson(json,
-								List.class);
-						for (String skypeName : skypeNames) {
-							if (skypeName.equals(loggedInUser.skypeName)) {
-								continue;
-							}
-							UUID participantId = Skype.getPlugin().getUniqueId(
-									skypeName);
-							PacketPlayOutLookupUser lookupUserPacket = new PacketPlayOutLookupUser(
-									authCode, participantId);
-							replyPacket = ctx.get().getOutboundHandler()
-									.dispatch(ctx.get(), lookupUserPacket);
-							if (!replyPacket.isPresent()) {
-								return;
-							}
-							if (replyPacket.get().getStatusCode() != 200) {
-								continue;
-							}
-							Conversation conversation = new Conversation(
-									replyPacket.get().getText());
-							boolean hit = false;
-							for (Conversation o : conversations) {
-								if (o.getUniqueId().equals(
-										conversation.getUniqueId())) {
-									searchTextFieldConversations.add(o);
-									hit = true;
-								}
-							}
-							if (!hit) {
-								searchTextFieldConversations.add(conversation);
-							}
-						}
+						searchTextFieldTimer.restart();
 					}
 				});
 
@@ -5848,8 +5947,6 @@ public class MainForm extends JFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-		AudioIO.LOGIN.playSound();
 
 		{
 
@@ -5909,61 +6006,72 @@ public class MainForm extends JFrame {
 
 		{
 
-			timer3 = new Timer(10 * 1000, new ActionListener() {
+			timer3 = new Timer(20 * 1000, new ActionListener() {
 
 				@Override
 				public void actionPerformed(ActionEvent evt) {
-					Optional<SocketHandlerContext> ctx = Skype.getPlugin()
-							.createHandle();
-					if (ctx.isPresent()) {
-						Optional<PacketPlayInReply> reply = ctx
-								.get()
-								.getOutboundHandler()
-								.dispatch(ctx.get(),
-										new PacketPlayOutLogin(authCode));
-						if (!reply.isPresent()
-								|| reply.get().getStatusCode() != 200) {
-							Skype.getPlugin().onDisable();
-							timer1.stop();
-							timer2.stop();
-							timer3.stop();
-							mic.stop();
-							mic.close();
-							frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-							frame.removeWindowListener(windowAdapter);
-							frame.dispatchEvent(new WindowEvent(frame,
-									WindowEvent.WINDOW_CLOSING));
-							LoginForm loginForm = new LoginForm();
-							loginForm.show();
-							return;
-						}
-						UUID authCode = UUID.fromString(reply.get().getText());
-						for (Conversation conversation : conversations) {
-							if (conversation instanceof Contact) {
-								Contact contact = (Contact) conversation;
-								Status onlineStatus = Status.OFFLINE;
-								{
-									PacketPlayOutLookupOnlineStatus onlineStatusLookup = new PacketPlayOutLookupOnlineStatus(
-											authCode, conversation
-													.getUniqueId());
-									Optional<PacketPlayInReply> replyPacket2 = ctx
+					Thread thread = new Thread(
+							() -> {
+								Optional<SocketHandlerContext> ctx = Skype
+										.getPlugin().createHandle();
+								if (ctx.isPresent()) {
+									Optional<PacketPlayInReply> reply = ctx
 											.get()
 											.getOutboundHandler()
-											.dispatch(ctx.get(),
-													onlineStatusLookup);
-									if (!replyPacket2.isPresent()) {
+											.dispatch(
+													ctx.get(),
+													new PacketPlayOutLogin(
+															authCode));
+									if (!reply.isPresent()
+											|| reply.get().getStatusCode() != 200) {
+										Skype.getPlugin().onDisable();
+										timer1.stop();
+										timer2.stop();
+										timer3.stop();
+										mic.stop();
+										mic.close();
+										frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+										frame.removeWindowListener(windowAdapter);
+										frame.dispatchEvent(new WindowEvent(
+												frame,
+												WindowEvent.WINDOW_CLOSING));
+										LoginForm loginForm = new LoginForm();
+										loginForm.show();
 										return;
 									}
-									if (replyPacket2.get().getStatusCode() != 200) {
-										continue;
-									}
-									onlineStatus = Status.valueOf(replyPacket2
+									UUID authCode2 = UUID.fromString(reply
 											.get().getText());
+									for (Conversation conversation : conversations) {
+										if (conversation instanceof Contact) {
+											Contact contact = (Contact) conversation;
+											Status onlineStatus = Status.OFFLINE;
+											{
+												PacketPlayOutLookupOnlineStatus onlineStatusLookup = new PacketPlayOutLookupOnlineStatus(
+														authCode2, conversation
+																.getUniqueId());
+												Optional<PacketPlayInReply> replyPacket2 = ctx
+														.get()
+														.getOutboundHandler()
+														.dispatch(ctx.get(),
+																onlineStatusLookup);
+												if (!replyPacket2.isPresent()) {
+													return;
+												}
+												if (replyPacket2.get()
+														.getStatusCode() != 200) {
+													continue;
+												}
+												onlineStatus = Status
+														.valueOf(replyPacket2
+																.get()
+																.getText());
+											}
+											contact.setOnlineStatus(onlineStatus);
+										}
+									}
 								}
-								contact.setOnlineStatus(onlineStatus);
-							}
-						}
-					}
+							});
+					thread.start();
 				}
 
 			});
@@ -5973,41 +6081,73 @@ public class MainForm extends JFrame {
 		}
 	}
 
+	private boolean shown = false;
+
 	@Override
 	public void show() {
 		super.show();
 
-		/**
-		 * We need to refresh the top right and bottom right panels on resize
-		 *
-		 * We create and use a timer set for 100ms to refresh the panels
-		 * 
-		 * If the component is moved within those 100ms then the timer restarts
-		 * 
-		 * For best performance turn off "Show window contents while dragging"
-		 * 
-		 * You can do this by going to visual effects settings on Windows 7
-		 * 
-		 * This timer is just to improve performance for those who leave that on
-		 */
-		Timer timer = new Timer(100, new ActionListener() {
+		if (!shown) {
 
-			@Override
-			public void actionPerformed(ActionEvent evt) {
-				((Timer) evt.getSource()).stop();
-				refreshWindow();
-			}
+			/**
+			 * We need to refresh the top right and bottom right panels on
+			 * resize
+			 *
+			 * We create and use a timer set for 100ms to refresh the panels
+			 * 
+			 * If the component is moved within those 100ms then the timer
+			 * restarts
+			 * 
+			 * For best performance turn off
+			 * "Show window contents while dragging"
+			 * 
+			 * You can do this by going to visual effects settings on Windows 7
+			 * 
+			 * This timer is just to improve performance for those who leave
+			 * that on
+			 */
+			Timer timer = new Timer(100, new ActionListener() {
 
-		});
-
-		addComponentListener(new ComponentAdapter() {
-			@Override
-			public void componentResized(final ComponentEvent e) {
-				if (e.getComponent() instanceof JFrame) {
-					super.componentResized(e);
-					timer.restart();
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					((Timer) evt.getSource()).stop();
+					refreshWindow();
 				}
+
+			});
+
+			addComponentListener(new ComponentAdapter() {
+				@Override
+				public void componentResized(final ComponentEvent e) {
+					if (e.getComponent() instanceof JFrame) {
+						super.componentResized(e);
+						timer.restart();
+					}
+				}
+			});
+
+			SocketHandlerContext ctx = Skype.getPlugin().getHandle();
+
+			{
+				PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+						authCode, loggedInUser.getUniqueId(), loggedInUser);
+				ctx.getOutboundHandler().dispatch(ctx, msg);
 			}
-		});
+
+			loggedInUser.setOnlineStatus(Status.ONLINE);
+
+			{
+				PacketPlayOutEnteringListeningMode msg = new PacketPlayOutEnteringListeningMode(
+						authCode);
+				ctx.getOutboundHandler().dispatch(ctx, msg);
+			}
+
+			ctx.fireInboundHandlerActive();
+
+			AudioIO.LOGIN.playSound();
+
+			shown = true;
+
+		}
 	}
 }

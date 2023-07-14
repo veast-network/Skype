@@ -29,7 +29,7 @@ public class SocketHandlerContext {
 
 		try {
 			/**
-			 * If a read operation blocks for more then 2sec, throw err
+			 * If a read operation blocks for more then 2s, throw err
 			 */
 			socket.setSoTimeout(2000);
 		} catch (SocketException e) {

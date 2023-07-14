@@ -49,11 +49,11 @@ public class LoginCmd extends CommandExecutor {
 		UUID authCode = UUID.randomUUID();
 
 		/**
-		 * We want to set the auth code to expire after 5 minutes
+		 * We want to set the auth code to expire after 30 minutes
 		 * 
-		 * If they refresh the token before 5 minutes it does not expire
+		 * If they refresh the token before 30 minutes it does not expire
 		 */
-		long expiryTime = System.currentTimeMillis() + (5 * (60 * 1000L));
+		long expiryTime = System.currentTimeMillis() + (30 * (60 * 1000L));
 
 		/**
 		 * Store the connection in memory for reference

@@ -37,7 +37,7 @@ public class Conversation {
 	public volatile transient ImageIcon imageIcon;
 
 	public volatile transient List<Message> messages = new ArrayList<>();
-
+	
 	private volatile transient JPanel onlineStatusPanel;
 
 	private volatile transient JLabel onlineStatusLabel;

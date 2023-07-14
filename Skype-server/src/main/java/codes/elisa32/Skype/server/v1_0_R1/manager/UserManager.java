@@ -66,10 +66,6 @@ public class UserManager {
 	public boolean userExists(String skypeName) {
 		UUID participantId = getUniqueId(skypeName);
 		if (!config.contains("registry." + participantId.toString()
-				+ ".fullName")) {
-			return false;
-		}
-		if (!config.contains("registry." + participantId.toString()
 				+ ".password")) {
 			return false;
 		}
@@ -86,8 +82,6 @@ public class UserManager {
 				password.getBytes(StandardCharsets.UTF_8));
 		UUID participantId = getUniqueId(skypeName);
 		try {
-			config.set("registry." + participantId.toString() + ".fullName",
-					fullName);
 			config.set("registry." + participantId.toString() + ".password",
 					password);
 			config.set("registry." + participantId.toString() + ".skypeName",
@@ -106,8 +100,6 @@ public class UserManager {
 	public boolean removeUser(String skypeName) {
 		UUID participantId = getUniqueId(skypeName);
 		try {
-			config.set("registry." + participantId.toString() + ".fullName",
-					null);
 			config.set("registry." + participantId.toString() + ".password",
 					null);
 			config.set("registry." + participantId.toString() + ".skypeName",

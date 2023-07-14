@@ -18,6 +18,7 @@ import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.pgpainless.PGPainless;
 import org.pgpainless.algorithm.DocumentSignatureType;
+import org.pgpainless.algorithm.KeyFlag;
 import org.pgpainless.decryption_verification.ConsumerOptions;
 import org.pgpainless.decryption_verification.DecryptionStream;
 import org.pgpainless.decryption_verification.MessageMetadata;
@@ -26,6 +27,11 @@ import org.pgpainless.encryption_signing.EncryptionStream;
 import org.pgpainless.encryption_signing.ProducerOptions;
 import org.pgpainless.encryption_signing.SigningOptions;
 import org.pgpainless.exception.KeyException;
+import org.pgpainless.key.generation.KeySpec;
+import org.pgpainless.key.generation.type.ecc.EllipticCurve;
+import org.pgpainless.key.generation.type.ecc.ecdh.ECDH;
+import org.pgpainless.key.generation.type.ecc.ecdsa.ECDSA;
+import org.pgpainless.key.generation.type.rsa.RSA;
 import org.pgpainless.key.generation.type.rsa.RsaLength;
 import org.pgpainless.key.protection.SecretKeyRingProtector;
 
@@ -57,10 +63,22 @@ public class PGPUtilities {
 			NoSuchAlgorithmException, PGPException {
 		File privateKeyFile = getUserFile(skypeName + ".key");
 		if (!privateKeyFile.exists()) {
-			PGPSecretKeyRing privateKey = PGPainless.generateKeyRing()
-					.simpleRsaKeyRing(
-							skypeName + " <" + skypeName + "@hookipa.net>",
-							RsaLength._4096);
+			PGPSecretKeyRing privateKey = PGPainless
+					.buildKeyRing()
+					.setPrimaryKey(
+							KeySpec.getBuilder(RSA.withLength(RsaLength._4096),
+									KeyFlag.SIGN_DATA, KeyFlag.CERTIFY_OTHER))
+					.addSubkey(
+							KeySpec.getBuilder(
+									ECDSA.fromCurve(EllipticCurve._P256),
+									KeyFlag.SIGN_DATA))
+					.addSubkey(
+							KeySpec.getBuilder(
+									ECDH.fromCurve(EllipticCurve._P256),
+									KeyFlag.ENCRYPT_COMMS,
+									KeyFlag.ENCRYPT_STORAGE))
+					.addUserId(skypeName + " <" + skypeName + "@hookipa.net>")
+					.build();
 			String privateKeyArmoured = PGPainless.asciiArmor(privateKey);
 			FileOutputStream fos = new FileOutputStream(privateKeyFile);
 			fos.write(privateKeyArmoured.getBytes());
@@ -100,7 +118,8 @@ public class PGPUtilities {
 		return arg0;
 	}
 
-	public static DecryptionResult decryptAndVerify(String arg0, Conversation arg1) {
+	public static DecryptionResult decryptAndVerify(String arg0,
+			Conversation arg1) {
 		try {
 			PGPSecretKeyRing secretKey = createOrLookupPrivateKey(MainForm
 					.get().getLoggedInUser().getSkypeName());

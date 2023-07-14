@@ -113,10 +113,12 @@ public class Skype {
 		CommandMap.register(PacketType.ENTERING_LISTEN_MODE,
 				new EnteringListeningModeCmd());
 		CommandMap.register(PacketType.LOOKUP_USER, new LookupUserCmd());
-		CommandMap.register(PacketType.LOOKUP_ONLINE_STATUS, new LookupOnlineStatusCmd());
+		CommandMap.register(PacketType.LOOKUP_ONLINE_STATUS,
+				new LookupOnlineStatusCmd());
 		CommandMap.register(PacketType.USER_SEARCH, new UserSearchCmd());
 		CommandMap.register(PacketType.MESSAGE_OUT, new SendMessageCmd());
-		CommandMap.register(PacketType.REMOVE_MESSAGE_OUT, new RemoveMessageCmd());
+		CommandMap.register(PacketType.REMOVE_MESSAGE_OUT,
+				new RemoveMessageCmd());
 		CommandMap.register(PacketType.LOOKUP_CONVERSATION_HISTORY,
 				new LookupConversationHistoryCmd());
 		CommandMap.register(PacketType.LOOKUP_MESSAGE_HISTORY,

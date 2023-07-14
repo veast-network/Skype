@@ -7,17 +7,11 @@ public class PacketPlayOutAcceptContactRequest extends Packet {
 	private UUID authCode;
 	
 	private UUID conversationId;
-	
-	private UUID contactRequestMessageId;
-	
-	private long contactRequestTimestamp;
 
-	public PacketPlayOutAcceptContactRequest(UUID authCode, UUID conversationId, UUID contactRequestMessageId, long contactRequestTimestamp) {
+	public PacketPlayOutAcceptContactRequest(UUID authCode, UUID conversationId) {
 		super(PacketType.ACCEPT_CONTACT_REQUEST_OUT);
 		this.setAuthCode(authCode);
 		this.setConversationId(conversationId);
-		this.setContactRequestMessageId(contactRequestMessageId);
-		this.setContactRequestTimestamp(contactRequestTimestamp);
 	}
 
 	public UUID getAuthCode() {
@@ -34,22 +28,6 @@ public class PacketPlayOutAcceptContactRequest extends Packet {
 
 	public void setConversationId(UUID conversationId) {
 		this.conversationId = conversationId;
-	}
-
-	public UUID getContactRequestMessageId() {
-		return contactRequestMessageId;
-	}
-
-	public void setContactRequestMessageId(UUID contactRequestMessageId) {
-		this.contactRequestMessageId = contactRequestMessageId;
-	}
-
-	public long getContactRequestTimestamp() {
-		return contactRequestTimestamp;
-	}
-
-	public void setContactRequestTimestamp(long contactRequestTimestamp) {
-		this.contactRequestTimestamp = contactRequestTimestamp;
 	}
 
 }

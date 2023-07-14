@@ -141,7 +141,7 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 					MainForm.get().ongoingCallConversation = null;
 					MainForm.get().rightPanelPage = "Conversation";
 					MainForm.get().ongoingCallStartTime = 0L;
-					MainForm.get().refreshWindow(true);
+					MainForm.get().refreshWindow(MainForm.get().SCROLL_TO_BOTTOM);
 					try {
 						MainForm.get().callIncomingAudioSocket.close();
 						MainForm.get().callOutgoingAudioSocket.close();

@@ -1,20 +1,13 @@
 package codes.elisa32.Skype.v1_0_R1;
 
 import java.awt.Font;
-import java.util.Optional;
 
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.plaf.FontUIResource;
 
-import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
-import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
-import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
-import codes.elisa32.Skype.v1_0_R1.data.types.Status;
 import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
-import codes.elisa32.Skype.v1_0_R1.forms.DialogForm;
 import codes.elisa32.Skype.v1_0_R1.forms.LoginForm;
-import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
 
 public class AppDelegate {
 
@@ -164,8 +157,8 @@ public class AppDelegate {
 				new FontUIResource(FontIO.TAHOMA.deriveFont(Font.TRUETYPE_FONT,
 						11)));
 
+		
 		LoginForm loginForm = new LoginForm();
 		loginForm.show();
-
 	}
 }

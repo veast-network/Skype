@@ -37,10 +37,10 @@ public class RegisterCmd extends CommandExecutor {
 					"Password for user is required.");
 			return replyPacket;
 		}
-		if (skypeName.length() < 6 || skypeName.length() > 32) {
+		if (skypeName.length() < 3 || skypeName.length() > 40) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST,
-					"Skype name length is less then 6 or greater then 32.");
+					"Skype name length is less then 3 or greater then 40.");
 			return replyPacket;
 		}
 		if (password.length() < 6 || password.length() > 20) {
@@ -50,7 +50,9 @@ public class RegisterCmd extends CommandExecutor {
 			return replyPacket;
 		}
 		if (skypeName != null
-				&& !skypeName.chars().allMatch(Character::isLetterOrDigit)) {
+				&& !skypeName.replace(".", "").replace(":", "")
+						.replace("_", "").replace("-", "").replace(",", "")
+						.chars().allMatch(Character::isLetterOrDigit)) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST,
 					"Skype name does not contain only alpha-numeric characters.");
@@ -62,6 +64,12 @@ public class RegisterCmd extends CommandExecutor {
 					"User is already registered.");
 			return replyPacket;
 		}
+		if (packet.getProtocolVersion() != PacketPlayOutLogin.PROTOCOL_VERSION) {
+			PacketPlayInReply replyPacket = new PacketPlayInReply(
+					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
+							+ " failed");
+			return replyPacket;
+		}
 		if (!Skype.getPlugin().getUserManager()
 				.createUser(ctx, fullName, skypeName, password)) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
@@ -69,20 +77,15 @@ public class RegisterCmd extends CommandExecutor {
 							+ " failed");
 			return replyPacket;
 		}
-		if (packet.getProtocolVersion() != PacketPlayOutLogin.PROTOCOL_VERSION) {
-			PacketPlayInReply replyPacket = new PacketPlayInReply(
-					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
-							+ " failed");
-			return replyPacket;
-		}
+
 		UUID authCode = UUID.randomUUID();
 
 		/**
-		 * We want to set the auth code to expire after 10 minutes
+		 * We want to set the auth code to expire after 30 minutes
 		 * 
-		 * If they refresh the token before 10 minutes it does not expire
+		 * If they refresh the token before 30 minutes it does not expire
 		 */
-		long expiryTime = System.currentTimeMillis() + (10 * (60 * 1000L));
+		long expiryTime = System.currentTimeMillis() + (30 * (60 * 1000L));
 
 		/**
 		 * Store the connection in memory for reference

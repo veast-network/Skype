@@ -1085,7 +1085,7 @@ public class LoginForm extends JFrame {
 		navigateSignIn(null, null);
 	}
 
-	private void navigateSignIn(String skypeName, String password) {
+	public void navigateSignIn(String skypeName, String password) {
 		remove(homePagePanel);
 		remove(loginPanel);
 		remove(connectionSetupPanel);
@@ -1135,10 +1135,20 @@ public class LoginForm extends JFrame {
 													replyPacket.get().getText());
 											PGPUtilities
 													.createOrLookupPublicKey(skypeName);
+											MainForm form = new MainForm(
+													authCode, password, loggedInUser);
+											/**
+											 * We will now read the data we have in memory on our disk
+											 * 
+											 * This may be contacts, conversations, messages and personal data
+											 * 
+											 * If the data is not present then read the last 30 days from the server
+											 * 
+											 * The data is stored forever on the hard drive, just not on the server
+											 */
+											form.readFromMemory();
 											frame.removeWindowListener(windowAdapter);
 											frame.dispose();
-											MainForm form = new MainForm(
-													authCode, loggedInUser);
 											form.show();
 											return;
 										}

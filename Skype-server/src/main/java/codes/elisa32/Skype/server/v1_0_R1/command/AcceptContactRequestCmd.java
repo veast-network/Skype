@@ -28,8 +28,6 @@ public class AcceptContactRequestCmd extends CommandExecutor {
 		}
 		UUID participantId = con.getUniqueId();
 		UUID conversationId = packet.getConversationId();
-		UUID messageId = packet.getContactRequestMessageId();
-		long timestamp = packet.getContactRequestTimestamp();
 
 		if (!Skype.getPlugin().getUserManager()
 				.hasContactRequest(participantId, conversationId)) {

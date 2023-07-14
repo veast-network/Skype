@@ -3,6 +3,7 @@ package codes.elisa32.Skype.api.v1_0_R1.socket;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -35,13 +36,13 @@ public class SocketInboundHandler extends SocketHandler {
 					Socket socket = ctx.getSocket();
 					while (true) {
 						int r;
-						byte[] b = new byte[16384];
+						byte[] b = new byte[32768];
 						StringBuilder sb = new StringBuilder();
 						List<String> validJsonStrings = new ArrayList<String>();
 						try {
 							while ((r = socket.getInputStream().read(b, 0,
 									b.length)) > 0) {
-								sb.append(new String(Arrays.copyOf(b, r)));
+								sb.append(new String(Arrays.copyOf(b, r), StandardCharsets.UTF_8));
 								if (ctx.getJsonManipulator()
 										.validateJsonStrict(sb.toString())) {
 									/**

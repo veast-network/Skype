@@ -3,6 +3,7 @@ package codes.elisa32.Skype.api.v1_0_R1.socket;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -27,7 +28,7 @@ public class SocketOutboundHandler extends SocketHandler {
 	public void write(SocketHandlerContext ctx, Object msg) {
 		Socket socket = ctx.getSocket();
 		try {
-			socket.getOutputStream().write(msg.toString().getBytes());
+			socket.getOutputStream().write(msg.toString().getBytes(StandardCharsets.UTF_8));
 			socket.getOutputStream().flush();
 		} catch (IOException cause) {
 			exceptionCaught(ctx, cause);
@@ -45,7 +46,7 @@ public class SocketOutboundHandler extends SocketHandler {
 					+ " was not already added to " + SocketHandlerContext.class);
 		}
 		try {
-			byte[] b = msg.toString().getBytes();
+			byte[] b = msg.toString().getBytes(StandardCharsets.UTF_8);
 			ctx.getSocket().getOutputStream().write(b, 0, b.length);
 			ctx.getSocket().getOutputStream().flush();
 		} catch (Exception e) {
@@ -53,11 +54,11 @@ public class SocketOutboundHandler extends SocketHandler {
 			return Optional.empty();
 		}
 		int r;
-		byte[] b = new byte[16384];
+		byte[] b = new byte[32768];
 		StringBuilder sb = new StringBuilder();
 		try {
 			while ((r = ctx.getSocket().getInputStream().read(b, 0, b.length)) > 0) {
-				sb.append(new String(Arrays.copyOf(b, r)));
+				sb.append(new String(Arrays.copyOf(b, r), StandardCharsets.UTF_8));
 				if (ctx.getJsonManipulator().validateJsonStrict(sb.toString())) {
 					break;
 				}
@@ -91,7 +92,7 @@ public class SocketOutboundHandler extends SocketHandler {
 			@Override
 			public void run() {
 				try {
-					byte[] b = msg.toString().getBytes();
+					byte[] b = msg.toString().getBytes(StandardCharsets.UTF_8);
 					ctx.getSocket().getOutputStream().write(b, 0, b.length);
 					ctx.getSocket().getOutputStream().flush();
 				} catch (Exception e) {
@@ -104,12 +105,12 @@ public class SocketOutboundHandler extends SocketHandler {
 					return;
 				}
 				int r;
-				byte[] b = new byte[16384];
+				byte[] b = new byte[32768];
 				StringBuilder sb = new StringBuilder();
 				try {
 					while ((r = ctx.getSocket().getInputStream()
 							.read(b, 0, b.length)) > 0) {
-						sb.append(new String(Arrays.copyOf(b, r)));
+						sb.append(new String(Arrays.copyOf(b, r), StandardCharsets.UTF_8));
 						if (ctx.getJsonManipulator().validateJsonStrict(
 								sb.toString())) {
 							break;
