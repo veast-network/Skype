@@ -141,7 +141,8 @@ public class UserManager {
 	public List<Connection> getDataStreamConnectionsInCall(UUID participantId,
 			UUID callId) {
 		List<Connection> cons = new ArrayList<>();
-		for (Connection con : Skype.getPlugin().getConnectionMap().values().toArray(new Connection[0])) {
+		for (Connection con : Skype.getPlugin().getConnectionMap().values()
+				.toArray(new Connection[0])) {
 			if (con.getExpiryTime() < System.currentTimeMillis()) {
 				continue;
 			}
@@ -164,7 +165,8 @@ public class UserManager {
 
 	public List<Connection> getListeningConnections(UUID participantId) {
 		List<Connection> cons = new ArrayList<>();
-		for (Connection con : Skype.getPlugin().getConnectionMap().values().toArray(new Connection[0])) {
+		for (Connection con : Skype.getPlugin().getConnectionMap().values()
+				.toArray(new Connection[0])) {
 			if (con.getExpiryTime() < System.currentTimeMillis()) {
 				continue;
 			}
@@ -233,7 +235,9 @@ public class UserManager {
 				list = gson.fromJson(json, List.class);
 			}
 			for (UUID participant : participantIds) {
-				list.add(participant.toString());
+				if (!list.contains(participant.toString())) {
+					list.add(participant.toString());
+				}
 			}
 			String json = gson.toJson(list);
 			config.replace("conversation." + conversationId.toString()
@@ -257,7 +261,9 @@ public class UserManager {
 				list = gson.fromJson(json, List.class);
 			}
 			for (UUID participant : participantIds) {
-				list.remove(participant.toString());
+				if (list.contains(participant.toString())) {
+					list.remove(participant.toString());
+				}
 			}
 			String json = gson.toJson(list);
 			config.replace("conversation." + conversationId.toString()

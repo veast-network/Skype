@@ -380,7 +380,8 @@ public class ConversationManager {
 		try {
 			Date date = new Date(timestamp);
 			ConfigurationSection section = this.getConfig(conversationId,
-					participantId, date, false).getConfigurationSection("messages");
+					participantId, date, false).getConfigurationSection(
+					"messages");
 			section = section.getConfigurationSection(messageId.toString());
 			if (payload == null) {
 				section.replace("payload", null);

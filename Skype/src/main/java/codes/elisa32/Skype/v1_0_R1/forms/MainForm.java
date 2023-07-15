@@ -11,11 +11,15 @@ import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -30,6 +34,7 @@ import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
@@ -56,6 +61,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
+import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -78,6 +84,7 @@ import javax.swing.Timer;
 import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 
 import org.apache.commons.imaging.ImageReadException;
@@ -115,8 +122,10 @@ import codes.elisa32.Skype.v1_0_R1.data.types.MessageType;
 import codes.elisa32.Skype.v1_0_R1.data.types.Status;
 import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
 import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
+import codes.elisa32.Skype.v1_0_R1.imgur.ImgurUploader;
 import codes.elisa32.Skype.v1_0_R1.pgp.PGPUtilities;
 import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
+import codes.elisa32.Skype.v1_0_R1.uicommon.CombinedAction;
 import codes.elisa32.Skype.v1_0_R1.uicommon.CopyOfJButtonRounded;
 import codes.elisa32.Skype.v1_0_R1.uicommon.JContactsConversationGroup;
 import codes.elisa32.Skype.v1_0_R1.uicommon.JRecentConversationGroup;
@@ -4070,6 +4079,19 @@ public class MainForm extends JFrame {
 											.replace("<", "&lt;")
 											.replace(">", "&gt;")));
 
+							if (message.getDecryptedMessage().startsWith(
+									"<img src=\"https://i.imgur.com/")) {
+								if (message.getDecryptedMessage().endsWith(
+										"\" />")) {
+									if (message.getDecryptedMessage().length() == 44
+											|| message.getDecryptedMessage()
+													.length() == 45) {
+										label = new JLabel(String.format(html,
+												message.getDecryptedMessage()));
+									}
+								}
+							}
+
 							JPopupMenu popUp = new JPopupMenu();
 							{
 								JMenuItem menuItem = new JMenuItem(
@@ -4318,6 +4340,19 @@ public class MainForm extends JFrame {
 									message.getDecryptedMessage()
 											.replace("<", "&lt;")
 											.replace(">", "&gt;")));
+
+							if (message.getDecryptedMessage().startsWith(
+									"<img src=\"https://i.imgur.com/")) {
+								if (message.getDecryptedMessage().endsWith(
+										"\" />")) {
+									if (message.getDecryptedMessage().length() == 44
+											|| message.getDecryptedMessage()
+													.length() == 45) {
+										label = new JLabel(String.format(html,
+												message.getDecryptedMessage()));
+									}
+								}
+							}
 
 							JPopupMenu popUp = new JPopupMenu();
 							{
@@ -4587,14 +4622,123 @@ public class MainForm extends JFrame {
 					.getResourceAsImageIcon("/1173550536.png");
 			JLabel iconLabel = new JLabel(imageIcon);
 
-			/**
-			 * Reserved for future use
-			 */
+			JPopupMenu menu = new JPopupMenu();
+
+			JMenuItem sendFile = new JMenuItem("Send file...");
+
+			sendFile.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					JFileChooser fc = new JFileChooser();
+					fc.setCurrentDirectory(new java.io.File("."));
+					fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+					FileNameExtensionFilter filter = new FileNameExtensionFilter(
+							"Images", "png", "jpg", "jpeg", "gif", "bmp");
+					fc.setFileFilter(filter);
+					int returnVal = fc.showSaveDialog(null);
+					if (returnVal == JFileChooser.APPROVE_OPTION) {
+						DialogForm form = new DialogForm(
+								frame,
+								"Skype™ - Upload image?",
+								"Upload image?",
+								"Are you sure you want to upload this image? The"
+										+ '\r'
+										+ '\n'
+										+ "image will first be uploaded to Imgur and then sent"
+										+ '\r'
+										+ '\n'
+										+ "in the chat. Please check out https://imgur.com/rules to"
+										+ '\r'
+										+ '\n'
+										+ "see what kind of content is not legal to be uploaded.",
+								"Upload", new Runnable() {
+
+									@Override
+									public void run() {
+										File pathToData = fc.getSelectedFile();
+										ImgurUploader imgurUploader = new ImgurUploader();
+										Optional<String> url = imgurUploader
+												.uploadFile(pathToData);
+										if (!url.isPresent()) {
+											return;
+										}
+										Optional<SocketHandlerContext> ctx = Skype
+												.getPlugin().createHandle();
+										if (!ctx.isPresent()) {
+											return;
+										}
+										UUID messageId = UUID.randomUUID();
+										long timestamp = System
+												.currentTimeMillis();
+										Message message = new Message(
+												messageId, loggedInUser
+														.getUniqueId(),
+												PGPUtilities.encryptAndSign(
+														"<img src=\""
+																+ url.get()
+																+ "\" />",
+														selectedConversation),
+												timestamp);
+										if (!conversations
+												.contains(selectedConversation)) {
+											conversations
+													.add(selectedConversation);
+										}
+										UUID conversationId = selectedConversation
+												.getUniqueId();
+										Optional<PacketPlayInReply> replyPacket = ctx
+												.get()
+												.getOutboundHandler()
+												.dispatch(
+														ctx.get(),
+														new PacketPlayOutSendMessage(
+																authCode,
+																conversationId,
+																messageId,
+																message.toString(),
+																timestamp));
+										if (!replyPacket.isPresent()) {
+											return;
+										}
+										if (replyPacket.get().getStatusCode() == 200) {
+											selectedConversation.getMessages()
+													.add(message);
+											selectedConversation
+													.setLastModified(new Date());
+											refreshWindow();
+											AudioIO.IM_SENT.playSound();
+										}
+									}
+								});
+						form.show();
+					}
+				}
+
+			});
+
+			menu.add(sendFile);
+
+			MouseAdapter mouseAdapter = new MouseAdapter() {
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					if (evt.getButton() == MouseEvent.BUTTON1) {
+						menu.show(evt.getComponent(), evt.getX(), evt.getY());
+					}
+				}
+			};
+
 			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+			iconLabel.addMouseListener(mouseAdapter);
 
 			iconLabelPanel.setBounds(37, 21, 36, 36);
 			iconLabelPanel.setOpaque(false);
 			iconLabelPanel.add(iconLabel);
+
+			iconLabelPanel.addMouseListener(mouseAdapter);
 
 			/**
 			 * Panel added to pane with z-index 0
@@ -4726,6 +4870,117 @@ public class MainForm extends JFrame {
 				}
 
 			});
+
+			KeyStroke ctrlV = KeyStroke.getKeyStroke(KeyEvent.VK_V,
+					KeyEvent.CTRL_DOWN_MASK);
+			final ActionListener ctrlVAction = conversationTextField
+					.getActionForKeyStroke(ctrlV);
+			conversationTextField.registerKeyboardAction(new CombinedAction(
+					ctrlVAction, new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							Transferable transferable = Toolkit
+									.getDefaultToolkit().getSystemClipboard()
+									.getContents(null);
+							if (transferable != null
+									&& transferable
+											.isDataFlavorSupported(DataFlavor.imageFlavor)) {
+								try {
+									BufferedImage bufferedImage = (BufferedImage) transferable
+											.getTransferData(DataFlavor.imageFlavor);
+									ByteArrayOutputStream baos = new ByteArrayOutputStream();
+									javax.imageio.ImageIO.write(bufferedImage,
+											"jpg", baos);
+									DialogForm form = new DialogForm(
+											frame,
+											"Skype™ - Upload image?",
+											"Upload image?",
+											"Are you sure you want to upload this image? The"
+													+ '\r'
+													+ '\n'
+													+ "image will first be uploaded to Imgur and then sent"
+													+ '\r'
+													+ '\n'
+													+ "in the chat. Please check out https://imgur.com/rules to"
+													+ '\r'
+													+ '\n'
+													+ "see what kind of content is not legal to be uploaded.",
+											"Upload", new Runnable() {
+
+												@Override
+												public void run() {
+													ImgurUploader imgurUploader = new ImgurUploader();
+													Optional<String> url = imgurUploader.uploadImg(baos
+															.toByteArray());
+													if (!url.isPresent()) {
+														return;
+													}
+													Optional<SocketHandlerContext> ctx = Skype
+															.getPlugin()
+															.createHandle();
+													if (!ctx.isPresent()) {
+														return;
+													}
+													UUID messageId = UUID
+															.randomUUID();
+													long timestamp = System
+															.currentTimeMillis();
+													Message message = new Message(
+															messageId,
+															loggedInUser
+																	.getUniqueId(),
+															PGPUtilities
+																	.encryptAndSign(
+																			"<img src=\""
+																					+ url.get()
+																					+ "\" />",
+																			selectedConversation),
+															timestamp);
+													if (!conversations
+															.contains(selectedConversation)) {
+														conversations
+																.add(selectedConversation);
+													}
+													UUID conversationId = selectedConversation
+															.getUniqueId();
+													Optional<PacketPlayInReply> replyPacket = ctx
+															.get()
+															.getOutboundHandler()
+															.dispatch(
+																	ctx.get(),
+																	new PacketPlayOutSendMessage(
+																			authCode,
+																			conversationId,
+																			messageId,
+																			message.toString(),
+																			timestamp));
+													if (!replyPacket
+															.isPresent()) {
+														return;
+													}
+													if (replyPacket.get()
+															.getStatusCode() == 200) {
+														selectedConversation
+																.getMessages()
+																.add(message);
+														selectedConversation
+																.setLastModified(new Date());
+														refreshWindow();
+														AudioIO.IM_SENT
+																.playSound();
+													}
+												}
+											});
+									form.show();
+								} catch (UnsupportedFlavorException e1) {
+									e1.printStackTrace();
+								} catch (IOException e1) {
+									e1.printStackTrace();
+								}
+							}
+						}
+					}), ctrlV, JComponent.WHEN_FOCUSED);
 
 			iconLabelPanel.add(conversationTextField);
 
