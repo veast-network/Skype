@@ -11,7 +11,6 @@ import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
@@ -5228,6 +5227,10 @@ public class MainForm extends JFrame {
 		conversations.clear();
 		SocketHandlerContext ctx = Skype.getPlugin().getHandle();
 		Date now = new Date();
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(now);
+		cal.add(Calendar.DAY_OF_MONTH, 1);
+		now = cal.getTime();
 		Date startOfTime = new Date(2012 - 1900, 0, 1);
 		Gson gson = GsonBuilder.create();
 		PacketPlayOutLookupContacts contactsLookup = new PacketPlayOutLookupContacts(
@@ -5310,12 +5313,7 @@ public class MainForm extends JFrame {
 				List<String> messages = gson.fromJson(replyPacket.get()
 						.getText(), List.class);
 				for (String message : messages) {
-					Message payload = new Message(message);
-					if (payload.getMessage().trim().replace("\r", "")
-							.replace("\n", "").equals("")) {
-						continue;
-					}
-					contact.getMessages().add(payload);
+					contact.getMessages().add(new Message(message));
 				}
 				Collections.sort(contact.getMessages());
 				if (contact.getMessages().size() > 0) {
@@ -5413,17 +5411,29 @@ public class MainForm extends JFrame {
 
 		loggedInUser.setOnlineStatus(Status.OFFLINE);
 
-		try {
-			loggedInUser.setPubKey(PGPUtilities
-					.createOrLookupPublicKey(loggedInUser.getSkypeName()));
-		} catch (InvalidAlgorithmParameterException e1) {
-			e1.printStackTrace();
-		} catch (NoSuchAlgorithmException e1) {
-			e1.printStackTrace();
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		} catch (PGPException e1) {
-			e1.printStackTrace();
+		{
+
+			SocketHandlerContext ctx = Skype.getPlugin().getHandle();
+
+			try {
+				loggedInUser.setPubKey(PGPUtilities
+						.createOrLookupPublicKey(loggedInUser.getSkypeName()));
+			} catch (InvalidAlgorithmParameterException e1) {
+				e1.printStackTrace();
+			} catch (NoSuchAlgorithmException e1) {
+				e1.printStackTrace();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			} catch (PGPException e1) {
+				e1.printStackTrace();
+			}
+
+			{
+				PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+						authCode, loggedInUser.getUniqueId(), loggedInUser);
+				ctx.getOutboundHandler().dispatch(ctx, msg);
+			}
+
 		}
 
 		addWindowListener(windowAdapter);
@@ -6382,12 +6392,6 @@ public class MainForm extends JFrame {
 			});
 
 			SocketHandlerContext ctx = Skype.getPlugin().getHandle();
-
-			{
-				PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
-						authCode, loggedInUser.getUniqueId(), loggedInUser);
-				ctx.getOutboundHandler().dispatch(ctx, msg);
-			}
 
 			loggedInUser.setOnlineStatus(Status.ONLINE);
 
