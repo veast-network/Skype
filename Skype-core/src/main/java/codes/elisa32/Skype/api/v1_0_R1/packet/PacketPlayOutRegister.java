@@ -9,6 +9,8 @@ public class PacketPlayOutRegister extends Packet {
 
 	private volatile String password;
 	
+	private volatile boolean silent = false;
+	
 	private final int protocolVersion = PacketPlayOutLogin.PROTOCOL_VERSION;
 
 	public PacketPlayOutRegister(String fullName, String skypeName, String password) {
@@ -40,6 +42,14 @@ public class PacketPlayOutRegister extends Packet {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+
+	public boolean isSilent() {
+		return silent;
+	}
+
+	public void setSilent(boolean silent) {
+		this.silent = silent;
 	}
 
 	public int getProtocolVersion() {

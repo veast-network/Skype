@@ -8,26 +8,19 @@ import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
-import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUserSearch;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUserRegistry;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.server.v1_0_R1.Skype;
 import codes.elisa32.Skype.server.v1_0_R1.data.types.Connection;
 
-public class UserSearchCmd extends CommandExecutor {
+public class LookupUserRegistryCmd extends CommandExecutor {
 
 	@Override
 	public PacketPlayInReply onCommand(SocketHandlerContext ctx, Object msg) {
-		PacketPlayOutUserSearch packet = Packet.fromJson(msg.toString(),
-				PacketPlayOutUserSearch.class);
+		PacketPlayOutLookupUserRegistry packet = Packet.fromJson(msg.toString(),
+				PacketPlayOutLookupUserRegistry.class);
 		UUID authCode = packet.getAuthCode();
-		String input = packet.getInput();
-		if (input == null || input.length() == 0) {
-			PacketPlayInReply replyPacket = new PacketPlayInReply(
-					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
-							+ " failed");
-			return replyPacket;
-		}
 		Connection con = Skype.getPlugin().getUserManager()
 				.getConnection(authCode);
 		if (con == null) {
@@ -43,10 +36,8 @@ public class UserSearchCmd extends CommandExecutor {
 			Optional<String> skypeName = Skype.getPlugin().getUserManager()
 					.getSkypeName(participantId);
 			if (skypeName.isPresent()) {
-				if (skypeName.get().startsWith(input)) {
-					if (!skypeNames.contains(skypeName.get())) {
-						skypeNames.add(skypeName.get());
-					}
+				if (!skypeNames.contains(skypeName.get())) {
+					skypeNames.add(skypeName.get());
 				}
 			}
 		}

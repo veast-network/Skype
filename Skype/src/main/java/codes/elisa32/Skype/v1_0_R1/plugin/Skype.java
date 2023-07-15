@@ -21,6 +21,7 @@ import codes.elisa32.Skype.v1_0_R1.command.CallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.DeclineCallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.ReceiveMessageCmd;
 import codes.elisa32.Skype.v1_0_R1.command.RemoveMessageCmd;
+import codes.elisa32.Skype.v1_0_R1.command.UserRegistryChangedCmd;
 
 public class Skype {
 
@@ -48,6 +49,8 @@ public class Skype {
 				new DeclineCallRequestCmd());
 		CommandMap.register(PacketType.CALL_DATA_STREAM_REQUEST_IN,
 				new CallDataStreamRequestCmd());
+		CommandMap.register(PacketType.USER_REGISTRY_CHANGED_IN,
+				new UserRegistryChangedCmd());
 	}
 
 	public Skype() {

@@ -82,12 +82,11 @@ public class SkypeChatImporter extends JDialog implements Runnable {
 
 	private Contact registerUser(String displayName, String username,
 			String password) {
-		PacketPlayInReply replyPacket = ctx
-				.getOutboundHandler()
-				.dispatch(
-						ctx,
-						new PacketPlayOutRegister(displayName, username,
-								password)).get();
+		PacketPlayOutRegister registerPacket = new PacketPlayOutRegister(
+				displayName, username, password);
+		registerPacket.setSilent(true);
+		PacketPlayInReply replyPacket = ctx.getOutboundHandler()
+				.dispatch(ctx, registerPacket).get();
 		UUID authCode = UUID.fromString(ctx.getOutboundHandler()
 				.dispatch(ctx, new PacketPlayOutLogin(username, password))
 				.get().getText());

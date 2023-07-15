@@ -28,7 +28,7 @@ public enum PacketType {
 	
 	LOOKUP_ONLINE_STATUS,
 
-	USER_SEARCH,
+	LOOKUP_USER_REGISTRY,
 
 	MESSAGE_OUT,
 
@@ -110,4 +110,6 @@ public enum PacketType {
 	 * client should use a new auth code when doing this.
 	 */
 	CALL_DATA_STREAM_REQUEST_IN,
+	
+	USER_REGISTRY_CHANGED_IN
 }

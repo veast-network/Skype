@@ -20,6 +20,8 @@ public class Conversation {
 
 	public volatile UUID uuid;
 
+	public volatile String skypeName;
+
 	public volatile String name;
 
 	public volatile boolean groupChat = false;
@@ -37,7 +39,7 @@ public class Conversation {
 	public volatile transient ImageIcon imageIcon;
 
 	public volatile transient List<Message> messages = new ArrayList<>();
-	
+
 	private volatile transient JPanel onlineStatusPanel;
 
 	private volatile transient JLabel onlineStatusLabel;
@@ -66,6 +68,7 @@ public class Conversation {
 		Gson gson = GsonBuilder.create();
 		Conversation clazz = gson.fromJson(json, Conversation.class);
 		this.uuid = clazz.uuid;
+		this.skypeName = clazz.skypeName;
 		this.name = clazz.name;
 		this.groupChat = clazz.groupChat;
 		if (this instanceof Contact) {
@@ -117,6 +120,14 @@ public class Conversation {
 
 	public void setUniqueId(UUID uuid) {
 		this.uuid = uuid;
+	}
+
+	public String getSkypeName() {
+		return skypeName;
+	}
+
+	public void setSkypeName(String skypeName) {
+		this.skypeName = skypeName;
 	}
 
 	public String getDisplayName() {

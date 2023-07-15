@@ -1,7 +1,13 @@
 package codes.elisa32.Skype.server.v1_0_R1.command;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
+import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInUserRegistryChanged;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRegister;
@@ -86,6 +92,46 @@ public class RegisterCmd extends CommandExecutor {
 		 * If they refresh the token before 30 minutes it does not expire
 		 */
 		long expiryTime = System.currentTimeMillis() + (30 * (60 * 1000L));
+
+		if (packet.isSilent() == false) {
+
+			List<String> skypeNames = new ArrayList<String>();
+			for (String key : Skype.getPlugin().getConfig()
+					.getConfigurationSection("registry").getKeys(false)) {
+				UUID participantId = UUID.fromString(key);
+				Optional<String> skypeName2 = Skype.getPlugin()
+						.getUserManager().getSkypeName(participantId);
+				if (skypeName2.isPresent()) {
+					if (!skypeNames.contains(skypeName2.get())) {
+						skypeNames.add(skypeName2.get());
+					}
+				}
+			}
+			Object payload = GsonBuilder.create().toJson(skypeNames);
+
+			for (UUID authCode2 : Skype.getPlugin().getConnectionMap().keySet()
+					.toArray(new UUID[0]).clone()) {
+				Connection con = Skype.getPlugin().getUserManager()
+						.getConnection(authCode2);
+				if (con == null) {
+					continue;
+				}
+				if (con.isListening() && !con.isInCall()
+						&& !con.isCallDataStream()) {
+					try {
+						con.getSocketHandlerContext()
+								.getOutboundHandler()
+								.dispatchAsync(
+										con.getSocketHandlerContext(),
+										new PacketPlayInUserRegistryChanged(
+												payload), null);
+					} catch (IllegalArgumentException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+
+		}
 
 		/**
 		 * Store the connection in memory for reference

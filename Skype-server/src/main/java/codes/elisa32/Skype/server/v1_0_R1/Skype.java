@@ -33,7 +33,7 @@ import codes.elisa32.Skype.server.v1_0_R1.command.SendCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendContactRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendMessageCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.UpdateUserCmd;
-import codes.elisa32.Skype.server.v1_0_R1.command.UserSearchCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.LookupUserRegistryCmd;
 import codes.elisa32.Skype.server.v1_0_R1.data.types.Connection;
 import codes.elisa32.Skype.server.v1_0_R1.manager.ConversationManager;
 import codes.elisa32.Skype.server.v1_0_R1.manager.UserManager;
@@ -115,7 +115,7 @@ public class Skype {
 		CommandMap.register(PacketType.LOOKUP_USER, new LookupUserCmd());
 		CommandMap.register(PacketType.LOOKUP_ONLINE_STATUS,
 				new LookupOnlineStatusCmd());
-		CommandMap.register(PacketType.USER_SEARCH, new UserSearchCmd());
+		CommandMap.register(PacketType.LOOKUP_USER_REGISTRY, new LookupUserRegistryCmd());
 		CommandMap.register(PacketType.MESSAGE_OUT, new SendMessageCmd());
 		CommandMap.register(PacketType.REMOVE_MESSAGE_OUT,
 				new RemoveMessageCmd());

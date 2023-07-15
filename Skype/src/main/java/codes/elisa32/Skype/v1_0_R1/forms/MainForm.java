@@ -79,6 +79,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
@@ -103,13 +104,13 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupConversationHis
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupMessageHistory;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupOnlineStatus;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUserRegistry;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRefreshToken;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRemoveMessage;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendContactRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendMessage;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
-import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUserSearch;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.Utils;
@@ -143,6 +144,8 @@ public class MainForm extends JFrame {
 	private Timer timer1, timer2, timer3;
 
 	private int messagesToBeDisplayed = 30;
+
+	public List<String> registry = new ArrayList<String>();
 
 	private WindowAdapter windowAdapter = new WindowAdapter() {
 		@Override
@@ -4633,7 +4636,8 @@ public class MainForm extends JFrame {
 					fc.setCurrentDirectory(new java.io.File("."));
 					fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 					FileNameExtensionFilter filter = new FileNameExtensionFilter(
-							"Images", "png", "jpg", "jpeg", "gif", "bmp");
+							"*.png|*.jpg|*.jpeg|*.gif|*.bmp", "png", "jpg",
+							"jpeg", "gif", "bmp");
 					fc.setFileFilter(filter);
 					int returnVal = fc.showSaveDialog(null);
 					if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -5233,10 +5237,21 @@ public class MainForm extends JFrame {
 		now = cal.getTime();
 		Date startOfTime = new Date(2012 - 1900, 0, 1);
 		Gson gson = GsonBuilder.create();
-		PacketPlayOutLookupContacts contactsLookup = new PacketPlayOutLookupContacts(
+		PacketPlayOutLookupUserRegistry packet = new PacketPlayOutLookupUserRegistry(
 				authCode);
 		Optional<PacketPlayInReply> replyPacket = ctx.getOutboundHandler()
-				.dispatch(ctx, contactsLookup);
+				.dispatch(ctx, packet);
+		if (!replyPacket.isPresent()) {
+			return;
+		}
+		if (replyPacket.get().getStatusCode() != 200) {
+			return;
+		}
+		String json = replyPacket.get().getText();
+		registry = gson.fromJson(json, List.class);
+		PacketPlayOutLookupContacts contactsLookup = new PacketPlayOutLookupContacts(
+				authCode);
+		replyPacket = ctx.getOutboundHandler().dispatch(ctx, contactsLookup);
 		if (!replyPacket.isPresent()) {
 			return;
 		}
@@ -5325,6 +5340,7 @@ public class MainForm extends JFrame {
 			} else {
 				Conversation conversation = new Conversation(replyPacket.get()
 						.getText());
+				conversation.setDisplayName(conversation.getSkypeName());
 				PacketPlayOutLookupMessageHistory messageHistoryLookup = new PacketPlayOutLookupMessageHistory(
 						authCode, participantId, startOfTime, now);
 				replyPacket = ctx.getOutboundHandler().dispatch(ctx,
@@ -6060,81 +6076,94 @@ public class MainForm extends JFrame {
 
 		});
 
-		Timer searchTextFieldTimer = new Timer(1000, new ActionListener() {
+		Timer searchTextFieldTimer = new Timer(100, new ActionListener() {
 
 			String lastText = "";
+
+			Thread thread = null;
+
+			boolean nyaa = false;
 
 			@Override
 			public void actionPerformed(ActionEvent evt) {
 				((Timer) evt.getSource()).stop();
-				if (lastText.equals(searchTextField.getText())
-						|| (lastText.equals("") && searchTextField.getText()
-								.equals("Search"))
-						|| (lastText.equals("Search") && searchTextField
-								.getText().equals(""))) {
-					return;
+				if (thread != null) {
+					thread.stop();
 				}
-				lastText = searchTextField.getText();
-				searchTextFieldConversations.clear();
-				if (searchTextField.getText().length() == 0) {
-					return;
-				}
-				if (searchTextField.getText().equals("Search")) {
-					return;
-				}
-				Optional<SocketHandlerContext> ctx = Skype.getPlugin()
-						.createHandle();
-				if (!ctx.isPresent()) {
-					return;
-				}
-				PacketPlayOutUserSearch packet = new PacketPlayOutUserSearch(
-						authCode, searchTextField.getText());
-				Optional<PacketPlayInReply> replyPacket = ctx.get()
-						.getOutboundHandler().dispatch(ctx.get(), packet);
-				if (!replyPacket.isPresent()) {
-					return;
-				}
-				if (replyPacket.get().getStatusCode() != 200) {
-					return;
-				}
-				String json = replyPacket.get().getText();
-				Gson gson = GsonBuilder.create();
-				List<String> skypeNames = gson.fromJson(json, List.class);
-				for (String skypeName : skypeNames) {
-					if (skypeName.equals(loggedInUser.skypeName)) {
-						continue;
-					}
-					UUID participantId = Skype.getPlugin().getUniqueId(
-							skypeName);
-					PacketPlayOutLookupUser lookupUserPacket = new PacketPlayOutLookupUser(
-							authCode, participantId);
-					replyPacket = ctx.get().getOutboundHandler()
-							.dispatch(ctx.get(), lookupUserPacket);
-					if (!replyPacket.isPresent()) {
-						return;
-					}
-					if (replyPacket.get().getStatusCode() != 200) {
-						continue;
-					}
-					Conversation conversation = new Conversation(replyPacket
-							.get().getText());
-					boolean hit = false;
-					for (Conversation o : conversations) {
-						if (o.getUniqueId().equals(conversation.getUniqueId())) {
-							searchTextFieldConversations.add(o);
-							hit = true;
-						}
-					}
-					if (!hit) {
-						searchTextFieldConversations.add(conversation);
-					}
-				}
-				leftBottomPanelPage = "RecentOlder";
-				refreshLeftTopPanel();
-				refreshLeftBottomPanel();
-				searchTextField.grabFocus();
-				searchTextField.setSelectionStart(searchTextField.getText()
-						.length());
+				thread = new Thread(
+						() -> {
+							lastText = searchTextField.getText();
+							searchTextFieldConversations.clear();
+							if (searchTextField.getText().length() == 0
+									|| searchTextField.getText().equals(
+											"Search")) {
+								if (!nyaa) {
+									nyaa = true;
+									leftBottomPanelPage = "RecentOlder";
+									refreshLeftTopPanel();
+									refreshLeftBottomPanel();
+									searchTextField.grabFocus();
+									searchTextField
+											.setSelectionStart(searchTextField
+													.getText().length());
+								}
+								return;
+							}
+							nyaa = false;
+							List<String> matchedNames = new ArrayList<>();
+							for (Conversation o : conversations) {
+								if (o instanceof Contact) {
+									Contact contact = (Contact) o;
+									if (contact
+											.getDisplayName()
+											.toLowerCase()
+											.contains(
+													searchTextField.getText()
+															.toLowerCase())) {
+										searchTextFieldConversations.add(o);
+										matchedNames.add(contact.getSkypeName());
+										continue;
+									}
+								}
+								if (o.getDisplayName()
+										.toLowerCase()
+										.contains(
+												searchTextField.getText()
+														.toLowerCase())) {
+									searchTextFieldConversations.add(o);
+									matchedNames.add(o.getSkypeName());
+								}
+							}
+							for (String skypeName : registry) {
+								if (skypeName.equals(loggedInUser.skypeName)) {
+									continue;
+								}
+								if (matchedNames.contains(skypeName)) {
+									continue;
+								}
+								UUID participantId = Skype.getPlugin()
+										.getUniqueId(skypeName);
+								Conversation conversation = new Conversation();
+								conversation.setUniqueId(participantId);
+								conversation.setDisplayName(skypeName);
+								if (!skypeName.contains(searchTextField
+										.getText())) {
+									continue;
+								}
+								searchTextFieldConversations.add(conversation);
+							}
+							SwingUtilities.invokeLater(() -> {
+								leftBottomPanelPage = "RecentOlder";
+								refreshLeftTopPanel();
+								refreshLeftBottomPanel();
+								searchTextField.grabFocus();
+								searchTextField
+										.setSelectionStart(searchTextField
+												.getText().length());
+							});
+						});
+				thread.start();
+
 			}
 
 		});
@@ -6144,16 +6173,20 @@ public class MainForm extends JFrame {
 
 					@Override
 					public void changedUpdate(DocumentEvent e) {
-						searchTextFieldTimer.restart();
+						valueChanged();
 					}
 
 					@Override
 					public void removeUpdate(DocumentEvent e) {
-						searchTextFieldTimer.restart();
+						valueChanged();
 					}
 
 					@Override
 					public void insertUpdate(DocumentEvent e) {
+						valueChanged();
+					}
+
+					public void valueChanged() {
 						searchTextFieldTimer.restart();
 					}
 				});

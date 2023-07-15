@@ -30,7 +30,6 @@ public class Contact extends Conversation {
 	/*
 	 * Show profile
 	 */
-	public volatile String skypeName;
 	public volatile String mood;
 	public volatile Status onlineStatus = Status.OFFLINE;
 	public volatile String mobilePhone;
@@ -63,6 +62,7 @@ public class Contact extends Conversation {
 		 * Conversation
 		 */
 		this.uuid = clazz.uuid;
+		this.skypeName = clazz.skypeName;
 		this.name = clazz.name;
 		this.lastModified = clazz.lastModified;
 		this.notificationCount = clazz.notificationCount;
@@ -72,7 +72,6 @@ public class Contact extends Conversation {
 		 */
 		this.pubKey = clazz.pubKey;
 		this.favorite = clazz.favorite;
-		this.skypeName = clazz.skypeName;
 		this.mood = clazz.mood;
 		this.onlineStatus = clazz.onlineStatus;
 		this.mobilePhone = clazz.mobilePhone;
@@ -120,14 +119,6 @@ public class Contact extends Conversation {
 
 	public void setFavorite(boolean favorite) {
 		this.favorite = favorite;
-	}
-
-	public String getSkypeName() {
-		return skypeName;
-	}
-
-	public void setSkypeName(String skypeName) {
-		this.skypeName = skypeName;
 	}
 
 	public String getMood() {
