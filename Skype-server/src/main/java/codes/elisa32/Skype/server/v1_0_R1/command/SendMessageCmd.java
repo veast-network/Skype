@@ -1,5 +1,8 @@
 package codes.elisa32.Skype.server.v1_0_R1.command;
 
+import java.util.List;
+import java.util.Optional;
+
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInMessage;
@@ -44,19 +47,46 @@ public class SendMessageCmd extends CommandExecutor {
 				.addParticipants(conversationId, participantId);
 		Skype.getPlugin().getConversationManager()
 				.addParticipants(participantId, conversationId);
-		PacketPlayInMessage messageReceivePacket = new PacketPlayInMessage(
-				participantId, participantId, payload);
-		for (Connection listeningParticipant : Skype.getPlugin()
-				.getUserManager().getListeningConnections(conversationId)) {
-			try {
-				listeningParticipant
-						.getSocketHandlerContext()
-						.getOutboundHandler()
-						.dispatchAsync(
-								listeningParticipant.getSocketHandlerContext(),
-								messageReceivePacket, null);
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
+		if (Skype.getPlugin().getUserManager().isGroupChat(conversationId)) {
+			Optional<List<UUID>> participants = Skype.getPlugin()
+					.getConversationManager().getParticipants(conversationId);
+			if (participants.isPresent()) {
+				for (UUID participantId2 : participants.get()) {
+					PacketPlayInMessage messageReceivePacket = new PacketPlayInMessage(
+							conversationId, participantId, payload);
+					for (Connection listeningParticipant : Skype.getPlugin()
+							.getUserManager()
+							.getListeningConnections(participantId2)) {
+						try {
+							listeningParticipant
+									.getSocketHandlerContext()
+									.getOutboundHandler()
+									.dispatchAsync(
+											listeningParticipant
+													.getSocketHandlerContext(),
+											messageReceivePacket, null);
+						} catch (IllegalArgumentException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		} else {
+			PacketPlayInMessage messageReceivePacket = new PacketPlayInMessage(
+					participantId, participantId, payload);
+			for (Connection listeningParticipant : Skype.getPlugin()
+					.getUserManager().getListeningConnections(conversationId)) {
+				try {
+					listeningParticipant
+							.getSocketHandlerContext()
+							.getOutboundHandler()
+							.dispatchAsync(
+									listeningParticipant
+											.getSocketHandlerContext(),
+									messageReceivePacket, null);
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		PacketPlayInReply replyPacket = new PacketPlayInReply(

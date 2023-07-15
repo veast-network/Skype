@@ -25,6 +25,7 @@ public class RegisterCmd extends CommandExecutor {
 		String fullName = packet.getFullName();
 		String skypeName = packet.getSkypeName();
 		String password = packet.getPassword();
+		boolean isGroupChat = packet.isGroupChat();
 		if (fullName == null) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST,
@@ -77,7 +78,7 @@ public class RegisterCmd extends CommandExecutor {
 			return replyPacket;
 		}
 		if (!Skype.getPlugin().getUserManager()
-				.createUser(ctx, fullName, skypeName, password)) {
+				.createUser(ctx, fullName, skypeName, password, isGroupChat)) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
 							+ " failed");

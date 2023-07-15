@@ -1,5 +1,6 @@
 package codes.elisa32.Skype.server.v1_0_R1.command;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -32,10 +33,21 @@ public class LookupMessageHistoryCmd extends CommandExecutor {
 		UUID participantId = con.getUniqueId();
 		Date from = packet.getFrom();
 		Date to = packet.getTo();
-		List<String> messages = Skype.getPlugin().getConversationManager()
-				.getMessages(conversationId, participantId, from, to);
-		messages.addAll(Skype.getPlugin().getConversationManager()
-				.getMessages(participantId, conversationId, from, to));
+		List<String> messages = new ArrayList<>();
+		if (Skype.getPlugin().getUserManager().isGroupChat(conversationId)) {
+			for (UUID participant : Skype.getPlugin().getConversationManager()
+					.getParticipants(conversationId).get()) {
+				messages.addAll(Skype.getPlugin().getConversationManager()
+						.getMessages(participant, conversationId, from, to));
+				messages.addAll(Skype.getPlugin().getConversationManager()
+						.getMessages(conversationId, participant, from, to));
+			}
+		} else {
+			messages = Skype.getPlugin().getConversationManager()
+					.getMessages(conversationId, participantId, from, to);
+			messages.addAll(Skype.getPlugin().getConversationManager()
+					.getMessages(participantId, conversationId, from, to));
+		}
 		if (messages.size() == 0) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()

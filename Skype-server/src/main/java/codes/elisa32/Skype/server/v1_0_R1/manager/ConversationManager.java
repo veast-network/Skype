@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -196,6 +197,26 @@ public class ConversationManager {
 		}
 	}
 
+	public boolean setParticipants(UUID conversationId, UUID... participantIds) {
+		try {
+			Gson gson = GsonBuilder.create();
+			List<UUID> participants = Arrays.asList(participantIds);
+			List<String> participants2 = new ArrayList<>();
+			for (UUID participant : participants) {
+				participants2.add(participant.toString());
+			}
+			String json = gson.toJson(participants2);
+			config.replace("conversation." + conversationId.toString()
+					+ ".participants", json);
+			config.replace("conversation." + conversationId.toString()
+					+ ".historicParticipants", json);
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
 	public boolean removeParticipants(UUID conversationId,
 			UUID... participantIds) {
 		try {
@@ -241,11 +262,11 @@ public class ConversationManager {
 						+ conversationId.toString() + ".participants");
 				list = gson.fromJson(json, List.class);
 			}
-			List<UUID> participants = new ArrayList<>();
+			List<UUID> participantIds = new ArrayList<>();
 			for (String participant : list) {
-				participants.add(UUID.fromString(participant));
+				participantIds.add(UUID.fromString(participant));
 			}
-			return Optional.of(participants);
+			return Optional.of(participantIds);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -262,11 +283,11 @@ public class ConversationManager {
 						+ conversationId.toString() + ".historicParticipants");
 				list = gson.fromJson(json, List.class);
 			}
-			List<UUID> participants = new ArrayList<>();
+			List<UUID> participantIds = new ArrayList<>();
 			for (String participant : list) {
-				participants.add(UUID.fromString(participant));
+				participantIds.add(UUID.fromString(participant));
 			}
-			return Optional.of(participants);
+			return Optional.of(participantIds);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

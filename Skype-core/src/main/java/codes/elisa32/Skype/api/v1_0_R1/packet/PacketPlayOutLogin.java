@@ -4,7 +4,7 @@ import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 
 public class PacketPlayOutLogin extends Packet {
 	
-	public static final int PROTOCOL_VERSION = 4;
+	public static final int PROTOCOL_VERSION = 5;
 
 	private UUID authCode;
 

@@ -198,7 +198,7 @@ public class Conversation {
 	public ImageIcon getImageIcon() {
 		if (imageIcon == null) {
 			if (groupChat) {
-				return imageIcon;
+				return ImageIO.getResourceAsImageIcon("/151908522.png");
 			} else {
 				return ImageIO.getResourceAsImageIcon("/1595064335.png");
 			}

@@ -9,6 +9,8 @@ public class PacketPlayOutRegister extends Packet {
 
 	private volatile String password;
 	
+	private volatile boolean groupChat = false;
+	
 	private volatile boolean silent = false;
 	
 	private final int protocolVersion = PacketPlayOutLogin.PROTOCOL_VERSION;
@@ -42,6 +44,14 @@ public class PacketPlayOutRegister extends Packet {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+
+	public boolean isGroupChat() {
+		return groupChat;
+	}
+
+	public void setGroupChat(boolean groupChat) {
+		this.groupChat = groupChat;
 	}
 
 	public boolean isSilent() {

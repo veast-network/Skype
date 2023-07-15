@@ -20,11 +20,14 @@ public class Message implements Comparable<Message> {
 
 	public volatile UUID sender;
 
+	public volatile transient UUID participantId;
+
 	public volatile String message;
 
 	private volatile transient String decryptedMessage = null;
 
-	private volatile transient boolean decryptionSuccessful, signatureVerified = false;
+	private volatile transient boolean decryptionSuccessful,
+			signatureVerified = false;
 
 	public volatile long timestamp;
 
@@ -35,6 +38,7 @@ public class Message implements Comparable<Message> {
 	public Message(UUID uuid, UUID sender, String message, long timestamp) {
 		this.setUniqueId(uuid);
 		this.setSender(sender);
+		this.participantId = sender;
 		this.setMessage(message);
 		this.setTimestamp(timestamp);
 	}
@@ -43,6 +47,7 @@ public class Message implements Comparable<Message> {
 			String message, long timestamp) {
 		this.setUniqueId(uuid);
 		this.setSender(sender);
+		this.participantId = sender;
 		this.setMessageType(messageType);
 		this.setMessage(message);
 		this.setTimestamp(timestamp);
@@ -53,6 +58,7 @@ public class Message implements Comparable<Message> {
 		Message clazz = gson.fromJson(json, Message.class);
 		this.uuid = clazz.uuid;
 		this.sender = clazz.sender;
+		this.participantId = clazz.sender;
 		this.message = clazz.message;
 		this.timestamp = clazz.timestamp;
 		this.messageType = clazz.messageType;
@@ -82,6 +88,14 @@ public class Message implements Comparable<Message> {
 
 	public void setSender(UUID sender) {
 		this.sender = sender;
+	}
+
+	public UUID getParticipantId() {
+		return participantId;
+	}
+
+	public void setParticipantId(UUID participantId) {
+		this.participantId = participantId;
 	}
 
 	public String getMessage() {
@@ -132,7 +146,7 @@ public class Message implements Comparable<Message> {
 	public void setMessage(String message) {
 		this.message = message;
 	}
-	
+
 	public void setDecryptedMessage(String decryptedMessage) {
 		this.decryptedMessage = decryptedMessage;
 	}
@@ -159,13 +173,14 @@ public class Message implements Comparable<Message> {
 						BufferedImage.TYPE_INT_ARGB));
 			}
 		} else {
-			Optional<Conversation> sender = MainForm.get().getConversation(
-					this.sender);
+			Optional<Conversation> sender = MainForm.get().lookupUser(
+					this.participantId);
 			if (sender.isPresent()) {
 				return sender.get().getImageIcon();
+			} else {
+				return new ImageIcon(new BufferedImage(30, 30,
+						BufferedImage.TYPE_INT_ARGB));
 			}
-			return new ImageIcon(new BufferedImage(30, 30,
-					BufferedImage.TYPE_INT_ARGB));
 		}
 	}
 

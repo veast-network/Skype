@@ -26,14 +26,15 @@ import codes.elisa32.Skype.server.v1_0_R1.command.LookupConversationHistoryCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupMessageHistoryCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupOnlineStatusCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupUserCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.LookupUserRegistryCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.RefreshTokenCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.RegisterCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.RemoveMessageCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendContactRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendMessageCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.UpdateGroupChatParticipantsCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.UpdateUserCmd;
-import codes.elisa32.Skype.server.v1_0_R1.command.LookupUserRegistryCmd;
 import codes.elisa32.Skype.server.v1_0_R1.data.types.Connection;
 import codes.elisa32.Skype.server.v1_0_R1.manager.ConversationManager;
 import codes.elisa32.Skype.server.v1_0_R1.manager.UserManager;
@@ -110,12 +111,15 @@ public class Skype {
 		CommandMap.register(PacketType.LOGIN, new LoginCmd());
 		CommandMap.register(PacketType.REFRESH_TOKEN, new RefreshTokenCmd());
 		CommandMap.register(PacketType.UPDATE_USER, new UpdateUserCmd());
+		CommandMap.register(PacketType.UPDATE_GROUP_CHAT_PARTICIPANTS,
+				new UpdateGroupChatParticipantsCmd());
 		CommandMap.register(PacketType.ENTERING_LISTEN_MODE,
 				new EnteringListeningModeCmd());
 		CommandMap.register(PacketType.LOOKUP_USER, new LookupUserCmd());
 		CommandMap.register(PacketType.LOOKUP_ONLINE_STATUS,
 				new LookupOnlineStatusCmd());
-		CommandMap.register(PacketType.LOOKUP_USER_REGISTRY, new LookupUserRegistryCmd());
+		CommandMap.register(PacketType.LOOKUP_USER_REGISTRY,
+				new LookupUserRegistryCmd());
 		CommandMap.register(PacketType.MESSAGE_OUT, new SendMessageCmd());
 		CommandMap.register(PacketType.REMOVE_MESSAGE_OUT,
 				new RemoveMessageCmd());

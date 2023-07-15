@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
@@ -106,10 +107,12 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupOnlineStatus;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUserRegistry;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRefreshToken;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRegister;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRemoveMessage;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendContactRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendMessage;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateGroupChatParticipants;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
@@ -284,6 +287,55 @@ public class MainForm extends JFrame {
 	public Conversation ongoingCallConversation = null;
 	public Socket callOutgoingAudioSocket = null;
 	public Socket callIncomingAudioSocket = null;
+
+	/*
+	 * User lookup
+	 */
+	private HashMap<UUID, Conversation> cachedUsers = new HashMap<>();
+
+	public Optional<Conversation> lookupUser(UUID participantId) {
+		for (Conversation conversation : conversations) {
+			if (conversation.getUniqueId().equals(participantId)) {
+				return Optional.of(conversation);
+			}
+		}
+		for (Conversation conversation : searchTextFieldConversations) {
+			if (conversation.getUniqueId().equals(participantId)) {
+				return Optional.of(conversation);
+			}
+		}
+		if (selectedConversation != null) {
+			if (selectedConversation.getUniqueId().equals(participantId)) {
+				return Optional.of(selectedConversation);
+			}
+		}
+		if (cachedUsers.containsKey(participantId)) {
+			return Optional.of(cachedUsers.get(participantId));
+		}
+		Optional<SocketHandlerContext> ctx = Skype.getPlugin().createHandle();
+		if (!ctx.isPresent()) {
+			return Optional.empty();
+		}
+		Optional<PacketPlayInReply> replyPacket = ctx.get()
+				.getOutboundHandler()
+				.dispatch(ctx.get(), new PacketPlayOutLogin(authCode));
+		UUID authCode = UUID.fromString(replyPacket.get().getText());
+		replyPacket = ctx
+				.get()
+				.getOutboundHandler()
+				.dispatch(ctx.get(),
+						new PacketPlayOutLookupUser(authCode, participantId));
+		if (!replyPacket.isPresent()) {
+			return Optional.empty();
+		}
+		Conversation conversation = new Conversation(replyPacket.get()
+				.getText());
+		if (!conversation.isGroupChat()) {
+			conversation.setDisplayName(conversation.getSkypeName());
+		}
+		cachedUsers.put(participantId, conversation);
+		return Optional.of(conversation);
+	}
 
 	public UUID getAuthCode() {
 		return authCode;
@@ -2202,8 +2254,7 @@ public class MainForm extends JFrame {
 						.getCircularStatusIcon(((Contact) selectedConversation)
 								.getOnlineStatus());
 			} else if (selectedConversation.isGroupChat()) {
-				imageIcon = new ImageIcon(new BufferedImage(30, 30,
-						BufferedImage.TYPE_INT_ARGB));
+				imageIcon = ImageIO.getResourceAsImageIcon("/212013846.png");
 			}
 			JLabel iconLabel = new JLabel(imageIcon);
 
@@ -3221,7 +3272,9 @@ public class MainForm extends JFrame {
 					panel.add(label);
 					panel.add(Box.createRigidArea(new Dimension(10,
 							spacerHeight)));
-					lastSender = message.getSender();
+					if (!selectedConversation.isGroupChat()) {
+						lastSender = message.getParticipantId();
+					}
 				}
 
 				if (message.getSender() == null) {
@@ -4014,14 +4067,124 @@ public class MainForm extends JFrame {
 							.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
 					messagePanel.setOpaque(false);
 
+					JLayeredPane displayNameLayeredPane = new JLayeredPane();
+					displayNameLayeredPane.setOpaque(false);
+
 					JLayeredPane layeredPane = new JLayeredPane();
 					layeredPane.setOpaque(false);
 
 					if (lastSender == null
-							|| !lastSender.equals(message.getSender())) {
-						panel.add(Box.createRigidArea(new Dimension(10,
-								spacerHeight)));
-						lastSender = message.sender;
+							|| !lastSender.equals(message.getParticipantId())) {
+						if (!selectedConversation.isGroupChat()
+								|| message.getParticipantId().equals(
+										loggedInUser.getUniqueId())) {
+							panel.add(Box.createRigidArea(new Dimension(10,
+									spacerHeight)));
+						}
+						lastSender = message.participantId;
+						if (!message.getParticipantId().equals(
+								loggedInUser.getUniqueId())
+								&& selectedConversation.isGroupChat()) {
+							Optional<Conversation> userLookup = lookupUser(message
+									.getParticipantId());
+							if (userLookup.isPresent()) {
+								if (message.sender.equals(loggedInUser
+										.getUniqueId())) {
+
+									{
+										JPanel labelPanel = new JPanel();
+										labelPanel.setLayout(new FlowLayout(
+												FlowLayout.LEFT, 0, 0));
+										labelPanel.setOpaque(false);
+
+										JLabel label = new JLabel(userLookup
+												.get().getDisplayName());
+
+										label.setBorder(BorderFactory
+												.createEmptyBorder());
+										label.setFont(font);
+
+										if (message.isDeleted()) {
+											label.setFont(label.getFont()
+													.deriveFont(Font.ITALIC));
+										}
+
+										int width = label.getPreferredSize().width;
+										int height = label.getPreferredSize().height;
+
+										labelPanel.add(label);
+
+										if (width > panelWidth - 236) {
+											width = panelWidth - 236;
+										}
+
+										labelPanel.setBounds(127, 13, width,
+												height + 10);
+
+										displayNameLayeredPane.setBounds(0, 0,
+												panelWidth, 8 + height + 10);
+										displayNameLayeredPane
+												.setPreferredSize(new Dimension(
+														panelWidth,
+														8 + height + 10));
+
+										/**
+										 * Panel added to pane with z-index 1
+										 */
+										displayNameLayeredPane.add(labelPanel,
+												new Integer(1), 0);
+									}
+
+								} else {
+
+									{
+										JPanel labelPanel = new JPanel();
+										labelPanel.setLayout(new FlowLayout(
+												FlowLayout.LEFT, 0, 0));
+										labelPanel.setOpaque(false);
+
+										JLabel label = new JLabel(userLookup
+												.get().getDisplayName());
+
+										label.setFont(font);
+
+										if (message.isDeleted()) {
+											label.setFont(label.getFont()
+													.deriveFont(Font.ITALIC));
+										}
+
+										int width = label.getPreferredSize().width;
+										int height = label.getPreferredSize().height;
+
+										labelPanel.add(label);
+
+										if (width > panelWidth - 236) {
+											width = panelWidth - 236;
+										}
+
+										labelPanel.setBounds(91, 13, width,
+												height + 10);
+
+										displayNameLayeredPane.setBounds(0, 0,
+												panelWidth, 8 + height + 10);
+										displayNameLayeredPane
+												.setPreferredSize(new Dimension(
+														panelWidth,
+														8 + height + 10));
+
+										/**
+										 * Panel added to pane with z-index 1
+										 */
+										displayNameLayeredPane.add(labelPanel,
+												new Integer(1), 0);
+									}
+								}
+
+								panel.add(displayNameLayeredPane);
+
+								// TODO: END
+							}
+						}
 						if (!message.sender.equals(loggedInUser.getUniqueId())) {
 							{
 								JPanel iconLabelPanel = new JPanel();
@@ -4705,11 +4868,15 @@ public class MainForm extends JFrame {
 											return;
 										}
 										if (replyPacket.get().getStatusCode() == 200) {
-											selectedConversation.getMessages()
-													.add(message);
-											selectedConversation
-													.setLastModified(new Date());
-											refreshWindow();
+											if (!selectedConversation
+													.isGroupChat()) {
+												selectedConversation
+														.getMessages().add(
+																message);
+												selectedConversation
+														.setLastModified(new Date());
+												refreshWindow();
+											}
 											AudioIO.IM_SENT.playSound();
 										}
 									}
@@ -4865,9 +5032,11 @@ public class MainForm extends JFrame {
 						return;
 					}
 					if (replyPacket.get().getStatusCode() == 200) {
-						selectedConversation.getMessages().add(message);
-						selectedConversation.setLastModified(new Date());
-						refreshWindow();
+						if (!selectedConversation.isGroupChat()) {
+							selectedConversation.getMessages().add(message);
+							selectedConversation.setLastModified(new Date());
+							refreshWindow();
+						}
 						AudioIO.IM_SENT.playSound();
 					}
 				}
@@ -4964,12 +5133,15 @@ public class MainForm extends JFrame {
 													}
 													if (replyPacket.get()
 															.getStatusCode() == 200) {
-														selectedConversation
-																.getMessages()
-																.add(message);
-														selectedConversation
-																.setLastModified(new Date());
-														refreshWindow();
+														if (!selectedConversation
+																.isGroupChat()) {
+															selectedConversation
+																	.getMessages()
+																	.add(message);
+															selectedConversation
+																	.setLastModified(new Date());
+															refreshWindow();
+														}
 														AudioIO.IM_SENT
 																.playSound();
 													}
@@ -5340,7 +5512,9 @@ public class MainForm extends JFrame {
 			} else {
 				Conversation conversation = new Conversation(replyPacket.get()
 						.getText());
-				conversation.setDisplayName(conversation.getSkypeName());
+				if (!conversation.isGroupChat()) {
+					conversation.setDisplayName(conversation.getSkypeName());
+				}
 				PacketPlayOutLookupMessageHistory messageHistoryLookup = new PacketPlayOutLookupMessageHistory(
 						authCode, participantId, startOfTime, now);
 				replyPacket = ctx.getOutboundHandler().dispatch(ctx,
@@ -5407,6 +5581,50 @@ public class MainForm extends JFrame {
 	DataLine.Info micInfo = new DataLine.Info(TargetDataLine.class, format);
 	public TargetDataLine mic = null;
 
+	private Optional<Contact> registerUser(String displayName, String username,
+			String password) {
+		return registerUser(displayName, username, password);
+	}
+
+	private Optional<UUID> registerUser(Conversation conversation,
+			String password) {
+		Optional<SocketHandlerContext> ctx = Skype.getPlugin().createHandle();
+		if (!ctx.isPresent()) {
+			return Optional.empty();
+		}
+		PacketPlayOutRegister registerPacket = new PacketPlayOutRegister(
+				conversation.getDisplayName(), conversation.getSkypeName(),
+				password);
+		registerPacket.setSilent(true);
+		registerPacket.setGroupChat(conversation.isGroupChat());
+		ctx.get().getOutboundHandler().dispatch(ctx.get(), registerPacket);
+		UUID authCode = UUID.fromString(ctx
+				.get()
+				.getOutboundHandler()
+				.dispatch(
+						ctx.get(),
+						new PacketPlayOutLogin(conversation.getSkypeName(),
+								password)).get().getText());
+		UUID participantId = Skype.getPlugin().getUniqueId(
+				conversation.getSkypeName());
+		ctx.get().getOutboundHandler()
+				.dispatch(ctx.get(), new PacketPlayOutRefreshToken(authCode));
+		Contact contact = new Contact();
+		contact.setUniqueId(participantId);
+		contact.setSkypeName(conversation.getSkypeName());
+		contact.setDisplayName(conversation.getDisplayName());
+		contact.setOnlineStatus(Status.OFFLINE);
+		contact.setGroupChat(conversation.isGroupChat());
+		ctx.get()
+				.getOutboundHandler()
+				.dispatch(
+						ctx.get(),
+						new PacketPlayOutUpdateUser(authCode, participantId,
+								contact));
+		contact = new Contact(contact.toString());
+		return Optional.of(authCode);
+	}
+
 	public MainForm(UUID authCode, String password, Contact loggedInUser) {
 		super("Skype\u2122 - " + loggedInUser.getSkypeName());
 
@@ -5455,6 +5673,92 @@ public class MainForm extends JFrame {
 		addWindowListener(windowAdapter);
 
 		JMenuBar menuBar = new JMenuBar();
+
+		// TODO: Experimental
+		{
+			JMenu experimentalMenu = new JMenu("Experimental");
+
+			JMenuItem createGroupChat = new JMenuItem("Create Group Chat");
+			createGroupChat.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					String skypeName;
+					do {
+						skypeName = "guest:"
+								+ UUID.randomUUID().toString().replace("-", "")
+										.substring(0, 16);
+					} while (registry.contains(skypeName));
+					Random random = new Random();
+					UUID participantId = Skype.getPlugin().getUniqueId(
+							skypeName);
+					Conversation groupChat = new Conversation();
+					groupChat.setUniqueId(participantId);
+					groupChat.setDisplayName("group chat "
+							+ (random.nextInt(1000) + 100));
+					groupChat.setSkypeName(skypeName);
+					groupChat.setGroupChat(true);
+					Optional<UUID> authCode2 = registerUser(groupChat, password);
+					if (!authCode2.isPresent()) {
+						return;
+					}
+					UUID messageId = UUID.randomUUID();
+					long timestamp = System.currentTimeMillis();
+					Message message = new Message(messageId, loggedInUser
+							.getUniqueId(), "uwu", timestamp);
+					if (!conversations.contains(groupChat)) {
+						conversations.add(groupChat);
+					}
+					UUID conversationId = groupChat.getUniqueId();
+					Optional<SocketHandlerContext> ctx = Skype.getPlugin()
+							.createHandle();
+					if (!ctx.isPresent()) {
+						return;
+					}
+					try {
+						ctx.get().getSocket().setSoTimeout(10000);
+					} catch (SocketException e) {
+						e.printStackTrace();
+					}
+					Object payload = GsonBuilder.create().toJson(registry);
+					Optional<PacketPlayInReply> replyPacket = ctx
+							.get()
+							.getOutboundHandler()
+							.dispatch(
+									ctx.get(),
+									new PacketPlayOutUpdateGroupChatParticipants(
+											authCode2.get(), payload));
+					if (!replyPacket.isPresent()) {
+						return;
+					}
+					if (replyPacket.get().getStatusCode() != 200) {
+						return;
+					}
+					replyPacket = ctx
+							.get()
+							.getOutboundHandler()
+							.dispatch(
+									ctx.get(),
+									new PacketPlayOutSendMessage(authCode,
+											conversationId, messageId, message
+													.toString(), timestamp));
+					if (!replyPacket.isPresent()) {
+						return;
+					}
+					if (replyPacket.get().getStatusCode() != 200) {
+						return;
+					}
+					groupChat.setLastModified(new Date());
+					refreshWindow();
+					AudioIO.IM_SENT.playSound();
+				}
+
+			});
+
+			experimentalMenu.add(createGroupChat);
+
+			menuBar.add(experimentalMenu);
+		}
 
 		JMenu skypeMenu = new JMenu("Skype");
 		if (getProperty("os.name").startsWith("Windows")) {

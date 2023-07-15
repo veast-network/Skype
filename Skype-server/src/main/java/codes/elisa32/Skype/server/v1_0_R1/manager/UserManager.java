@@ -77,7 +77,7 @@ public class UserManager {
 	}
 
 	public boolean createUser(SocketHandlerContext ctx, String fullName,
-			String skypeName, String password) {
+			String skypeName, String password, boolean isGroupChat) {
 		password = ctx.getCryptographicContext().encodeToString(
 				password.getBytes(StandardCharsets.UTF_8));
 		UUID participantId = getUniqueId(skypeName);
@@ -86,6 +86,8 @@ public class UserManager {
 					password);
 			config.set("registry." + participantId.toString() + ".skypeName",
 					skypeName);
+			config.set("registry." + participantId.toString() + ".isGroupChat",
+					isGroupChat);
 			Skype.getPlugin().getConversationManager()
 					.addAuthorizedPersonnel(participantId, participantId);
 			Skype.getPlugin().getConversationManager()
@@ -104,12 +106,41 @@ public class UserManager {
 					null);
 			config.set("registry." + participantId.toString() + ".skypeName",
 					null);
+			config.set("registry." + participantId.toString() + ".isGroupChat",
+					null);
 			Skype.getPlugin().getConversationManager()
 					.removeAuthorizedPersonnel(participantId);
 			Skype.getPlugin().getConversationManager()
 					.removeParticipants(participantId);
 			return true;
 		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	public boolean isGroupChat(String skypeName) {
+		UUID participantId = getUniqueId(skypeName);
+		try {
+			if (config.contains("registry." + participantId.toString()
+					+ ".isGroupChat")) {
+				return config.getBoolean("registry." + participantId.toString()
+						+ ".isGroupChat", false);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	public boolean isGroupChat(UUID participantId) {
+		try {
+			if (config.contains("registry." + participantId.toString()
+					+ ".isGroupChat")) {
+				return config.getBoolean("registry." + participantId.toString()
+						+ ".isGroupChat", false);
+			}
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return false;
