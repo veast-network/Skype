@@ -24,6 +24,7 @@ import codes.elisa32.Skype.server.v1_0_R1.command.EnteringListeningModeCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LoginCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupContactsCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupConversationHistoryCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.LookupConversationParticipantsCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupMessageHistoryCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupOnlineStatusCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupUserCmd;
@@ -126,6 +127,8 @@ public class Skype {
 				new RemoveMessageCmd());
 		CommandMap.register(PacketType.LOOKUP_CONVERSATION_HISTORY,
 				new LookupConversationHistoryCmd());
+		CommandMap.register(PacketType.LOOKUP_CONVERSATION_PARTICIPANTS,
+				new LookupConversationParticipantsCmd());
 		CommandMap.register(PacketType.LOOKUP_MESSAGE_HISTORY,
 				new LookupMessageHistoryCmd());
 		CommandMap

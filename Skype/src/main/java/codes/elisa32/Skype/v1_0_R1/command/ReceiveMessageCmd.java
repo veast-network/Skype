@@ -34,9 +34,7 @@ public class ReceiveMessageCmd extends CommandExecutor {
 		Conversation _conversation = null;
 		for (Conversation conversation : MainForm.get().getConversations()) {
 			if (conversation.getUniqueId().equals(conversationId)) {
-				if (conversation.isGroupChat()) {
-					message.setParticipantId(participantId);
-				}
+				message.setConversation(conversation);
 				conversation.getMessages().add(message);
 				conversation.setNotificationCount(conversation
 						.getNotificationCount() + 1);
@@ -71,9 +69,7 @@ public class ReceiveMessageCmd extends CommandExecutor {
 					.getSelectedConversation();
 			if (conversation != null) {
 				if (conversation.getUniqueId().equals(conversationId)) {
-					if (conversation.isGroupChat()) {
-						message.setParticipantId(participantId);
-					}
+					message.setConversation(conversation);
 					conversation.getMessages().add(message);
 					conversation.setNotificationCount(conversation
 							.getNotificationCount() + 1);
@@ -124,7 +120,7 @@ public class ReceiveMessageCmd extends CommandExecutor {
 			Conversation conversation = new Conversation(replyPacket.get()
 					.getText());
 			if (conversation.isGroupChat()) {
-				message.setParticipantId(participantId);
+				message.setConversation(conversation);
 			} else {
 				conversation.setDisplayName(conversation.getSkypeName());
 			}

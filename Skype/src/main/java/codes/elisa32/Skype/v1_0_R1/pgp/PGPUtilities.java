@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import org.bouncycastle.openpgp.PGPException;
@@ -35,8 +37,9 @@ import org.pgpainless.key.generation.type.rsa.RSA;
 import org.pgpainless.key.generation.type.rsa.RsaLength;
 import org.pgpainless.key.protection.SecretKeyRingProtector;
 
-import codes.elisa32.Skype.v1_0_R1.data.types.Contact;
+import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
+import codes.elisa32.Skype.v1_0_R1.data.types.Message;
 import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
 
 public class PGPUtilities {
@@ -105,9 +108,25 @@ public class PGPUtilities {
 		try {
 			PGPSecretKeyRing secretKey = createOrLookupPrivateKey(MainForm
 					.get().getLoggedInUser().getSkypeName());
-			if (arg1 instanceof Contact) {
-				Contact contact = (Contact) arg1;
-				Optional<PGPPublicKeyRing> pubKey = contact.getPubKey();
+			if (arg1.isGroupChat()) {
+				List<PGPPublicKeyRing> pubKeys = new ArrayList<>();
+				for (UUID participantId : arg1.getParticipants()) {
+					Optional<Conversation> userLookup = MainForm.get()
+							.lookupUser(participantId);
+					if (userLookup.isPresent()) {
+						Optional<PGPPublicKeyRing> pubKey = userLookup.get()
+								.getPubKey();
+						if (pubKey.isPresent()) {
+							pubKeys.add(pubKey.get());
+						}
+					}
+				}
+				if (pubKeys.size() > 0) {
+					return encryptAndSign(arg0, secretKey,
+							pubKeys.toArray(new PGPPublicKeyRing[0]));
+				}
+			} else {
+				Optional<PGPPublicKeyRing> pubKey = arg1.getPubKey();
 				if (pubKey.isPresent()) {
 					return encryptAndSign(arg0, secretKey, pubKey.get());
 				}
@@ -118,39 +137,53 @@ public class PGPUtilities {
 		return arg0;
 	}
 
-	public static DecryptionResult decryptAndVerify(String arg0,
+	public static DecryptionResult decryptAndVerify(Message arg0,
 			Conversation arg1) {
 		try {
 			PGPSecretKeyRing secretKey = createOrLookupPrivateKey(MainForm
 					.get().getLoggedInUser().getSkypeName());
-			if (arg1 instanceof Contact) {
-				Contact contact = (Contact) arg1;
-				Optional<PGPPublicKeyRing> pubKey = contact.getPubKey();
+			if (arg1.isGroupChat()) {
+				Optional<Conversation> userLookup = MainForm.get().lookupUser(
+						arg0.getSender());
+				if (userLookup.isPresent()) {
+					Optional<PGPPublicKeyRing> pubKey = userLookup.get()
+							.getPubKey();
+					if (pubKey.isPresent()) {
+						return decryptAndVerify(arg0.getMessage(), secretKey,
+								pubKey.get());
+					}
+				}
+			} else {
+				Optional<PGPPublicKeyRing> pubKey = arg1.getPubKey();
 				if (pubKey.isPresent()) {
-					return decryptAndVerify(arg0, secretKey, pubKey.get());
+					return decryptAndVerify(arg0.getMessage(), secretKey,
+							pubKey.get());
 				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return new DecryptionResult(arg0, false, false);
+		return new DecryptionResult(arg0.getMessage(), false, false);
 	}
 
 	public static String encryptAndSign(String arg0,
-			PGPSecretKeyRing secretKey, PGPPublicKeyRing pubKey)
+			PGPSecretKeyRing secretKey, PGPPublicKeyRing... pubKeys)
 			throws KeyException, PGPException, IOException {
 		PGPPublicKeyRing secretKeyPubKey = PGPainless
 				.extractCertificate(secretKey);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		EncryptionOptions options = new EncryptionOptions()
+				.addRecipient(secretKeyPubKey);
+		for (PGPPublicKeyRing pubKey : pubKeys) {
+			options.addRecipient(pubKey);
+		}
 		EncryptionStream encryptionStream = PGPainless
 				.encryptAndOrSign()
 				.onOutputStream(baos)
 				.withOptions(
 						ProducerOptions
 								.signAndEncrypt(
-										new EncryptionOptions().addRecipient(
-												secretKeyPubKey).addRecipient(
-												pubKey),
+										options,
 										new SigningOptions().addInlineSignature(
 												SecretKeyRingProtector
 														.unprotectedKeys(),
@@ -168,13 +201,11 @@ public class PGPUtilities {
 			PGPSecretKeyRing secretKey, PGPPublicKeyRing pubKey)
 			throws PGPException, IOException {
 		ByteArrayInputStream bais = new ByteArrayInputStream(arg0.getBytes());
-		DecryptionStream decryptionStream = PGPainless
-				.decryptAndOrVerify()
-				.onInputStream(bais)
-				.withOptions(
-						new ConsumerOptions().addDecryptionKey(secretKey,
-								SecretKeyRingProtector.unprotectedKeys())
-								.addVerificationCert(pubKey));
+		ConsumerOptions options = new ConsumerOptions().addDecryptionKey(
+				secretKey, SecretKeyRingProtector.unprotectedKeys());
+		options.addVerificationCert(pubKey);
+		DecryptionStream decryptionStream = PGPainless.decryptAndOrVerify()
+				.onInputStream(bais).withOptions(options);
 
 		byte[] b = new byte[1024];
 		int bytesRead;

@@ -2196,20 +2196,18 @@ public class MainForm extends JFrame {
 				@Override
 				public void mousePressed(MouseEvent evt) {
 					super.mousePressed(evt);
-					if (selectedConversation instanceof Contact) {
-						Contact contact = (Contact) selectedConversation;
-						if (contact.getPubKey().isPresent()) {
-							String pubKey;
-							try {
-								pubKey = PGPainless.asciiArmor(contact
-										.getPubKey().get());
-								JOptionPane.showMessageDialog(frame, pubKey);
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						} else {
-							JOptionPane.showMessageDialog(frame, contact);
+					if (selectedConversation.getPubKey().isPresent()) {
+						String pubKey;
+						try {
+							pubKey = PGPainless.asciiArmor(selectedConversation
+									.getPubKey().get());
+							JOptionPane.showMessageDialog(frame, pubKey);
+						} catch (IOException e) {
+							e.printStackTrace();
 						}
+					} else {
+						JOptionPane.showMessageDialog(frame,
+								selectedConversation);
 					}
 				}
 
@@ -2344,20 +2342,18 @@ public class MainForm extends JFrame {
 				@Override
 				public void mousePressed(MouseEvent evt) {
 					super.mousePressed(evt);
-					if (selectedConversation instanceof Contact) {
-						Contact contact = (Contact) selectedConversation;
-						if (contact.getPubKey().isPresent()) {
-							String pubKey;
-							try {
-								pubKey = PGPainless.asciiArmor(contact
-										.getPubKey().get());
-								JOptionPane.showMessageDialog(frame, pubKey);
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						} else {
-							JOptionPane.showMessageDialog(frame, contact);
+					if (selectedConversation.getPubKey().isPresent()) {
+						String pubKey;
+						try {
+							pubKey = PGPainless.asciiArmor(selectedConversation
+									.getPubKey().get());
+							JOptionPane.showMessageDialog(frame, pubKey);
+						} catch (IOException e) {
+							e.printStackTrace();
 						}
+					} else {
+						JOptionPane.showMessageDialog(frame,
+								selectedConversation);
 					}
 				}
 
@@ -2521,7 +2517,7 @@ public class MainForm extends JFrame {
 									long timestamp = System.currentTimeMillis();
 									Message message = new Message(messageId,
 											loggedInUser.getUniqueId(), "uwu",
-											timestamp);
+											timestamp, groupChat);
 									if (!conversations.contains(groupChat)) {
 										conversations.add(groupChat);
 									}
@@ -3210,7 +3206,8 @@ public class MainForm extends JFrame {
 													messageId,
 													loggedInUser.getUniqueId(),
 													MessageType.ACCEPT_FRIEND_REQUEST,
-													"", timestamp);
+													"", timestamp,
+													selectedConversation);
 											replyPacket = ctx
 													.get()
 													.getOutboundHandler()
@@ -3334,7 +3331,8 @@ public class MainForm extends JFrame {
 																		.getUniqueId(),
 																MessageType.SEND_FRIEND_REQUEST,
 																input,
-																timestamp);
+																timestamp,
+																selectedConversation);
 														replyPacket = ctx
 																.get()
 																.getOutboundHandler()
@@ -3466,7 +3464,7 @@ public class MainForm extends JFrame {
 					panel.add(Box.createRigidArea(new Dimension(10,
 							spacerHeight)));
 					if (!selectedConversation.isGroupChat()) {
-						lastSender = message.getParticipantId();
+						lastSender = message.getSender();
 					}
 				}
 
@@ -4132,7 +4130,8 @@ public class MainForm extends JFrame {
 																loggedInUser
 																		.getUniqueId(),
 																MessageType.ACCEPT_FRIEND_REQUEST,
-																"", timestamp);
+																"", timestamp,
+																selectedConversation);
 														replyPacket = ctx
 																.get()
 																.getOutboundHandler()
@@ -4267,19 +4266,19 @@ public class MainForm extends JFrame {
 					layeredPane.setOpaque(false);
 
 					if (lastSender == null
-							|| !lastSender.equals(message.getParticipantId())) {
+							|| !lastSender.equals(message.getSender())) {
 						if (!selectedConversation.isGroupChat()
-								|| message.getParticipantId().equals(
+								|| message.getSender().equals(
 										loggedInUser.getUniqueId())) {
 							panel.add(Box.createRigidArea(new Dimension(10,
 									spacerHeight)));
 						}
-						lastSender = message.participantId;
-						if (!message.getParticipantId().equals(
+						lastSender = message.sender;
+						if (!message.getSender().equals(
 								loggedInUser.getUniqueId())
 								&& selectedConversation.isGroupChat()) {
 							Optional<Conversation> userLookup = lookupUser(message
-									.getParticipantId());
+									.getSender());
 							if (userLookup.isPresent()) {
 								if (message.sender.equals(loggedInUser
 										.getUniqueId())) {
@@ -5038,7 +5037,7 @@ public class MainForm extends JFrame {
 																+ url.get()
 																+ "\" />",
 														selectedConversation),
-												timestamp);
+												timestamp, selectedConversation);
 										if (!conversations
 												.contains(selectedConversation)) {
 											conversations
@@ -5208,7 +5207,8 @@ public class MainForm extends JFrame {
 					Message message = new Message(messageId, loggedInUser
 							.getUniqueId(), PGPUtilities.encryptAndSign(
 							conversationTextField.getText().trim(),
-							selectedConversation), timestamp);
+							selectedConversation), timestamp,
+							selectedConversation);
 					if (!conversations.contains(selectedConversation)) {
 						conversations.add(selectedConversation);
 					}
@@ -5301,7 +5301,8 @@ public class MainForm extends JFrame {
 																					+ url.get()
 																					+ "\" />",
 																			selectedConversation),
-															timestamp);
+															timestamp,
+															selectedConversation);
 													if (!conversations
 															.contains(selectedConversation)) {
 														conversations
@@ -5693,7 +5694,7 @@ public class MainForm extends JFrame {
 				List<String> messages = gson.fromJson(replyPacket.get()
 						.getText(), List.class);
 				for (String message : messages) {
-					contact.getMessages().add(new Message(message));
+					contact.getMessages().add(new Message(message, contact));
 				}
 				Collections.sort(contact.getMessages());
 				if (contact.getMessages().size() > 0) {
@@ -5721,7 +5722,8 @@ public class MainForm extends JFrame {
 				List<String> messages = gson.fromJson(replyPacket.get()
 						.getText(), List.class);
 				for (String message : messages) {
-					conversation.getMessages().add(new Message(message));
+					conversation.getMessages().add(
+							new Message(message, conversation));
 				}
 				Collections.sort(conversation.getMessages());
 				for (Message message : conversation.getMessages()) {

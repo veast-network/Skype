@@ -215,7 +215,7 @@ public class SkypeChatImporter extends JDialog implements Runnable {
 			}
 			UUID messageId = UUID.randomUUID();
 			Message payload = new Message(messageId, arg0.getUniqueId(),
-					message, timestamp);
+					message, timestamp, arg1);
 			ctx.getOutboundHandler().dispatch(
 					ctx,
 					new PacketPlayOutSendMessage(authCode, arg1.getUniqueId(),

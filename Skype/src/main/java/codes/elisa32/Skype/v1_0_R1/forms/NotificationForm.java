@@ -96,7 +96,7 @@ public class NotificationForm extends JDialog {
 			@Override
 			public void run() {
 				if (playSound) {
-					if (!message.getParticipantId().equals(
+					if (!message.getSender().equals(
 							MainForm.get().getLoggedInUser().getUniqueId())) {
 						AudioIO.IM.playSound();
 					}

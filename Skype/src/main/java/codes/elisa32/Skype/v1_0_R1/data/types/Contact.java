@@ -23,11 +23,6 @@ public class Contact extends Conversation {
 	public volatile boolean favorite = false;
 
 	/*
-	 * Public key
-	 */
-	public volatile String pubKey;
-
-	/*
 	 * Show profile
 	 */
 	public volatile String mood;
@@ -61,6 +56,7 @@ public class Contact extends Conversation {
 		/**
 		 * Conversation
 		 */
+		this.pubKey = clazz.pubKey;
 		this.uuid = clazz.uuid;
 		this.skypeName = clazz.skypeName;
 		this.name = clazz.name;
@@ -70,7 +66,6 @@ public class Contact extends Conversation {
 		/**
 		 * Contact
 		 */
-		this.pubKey = clazz.pubKey;
 		this.favorite = clazz.favorite;
 		this.mood = clazz.mood;
 		this.onlineStatus = clazz.onlineStatus;
@@ -94,23 +89,6 @@ public class Contact extends Conversation {
 	public String exportAsJson() {
 		Gson gson = GsonBuilder.create();
 		return gson.toJson(this);
-	}
-
-	public Optional<PGPPublicKeyRing> getPubKey() {
-		try {
-			if (pubKey != null) {
-				PGPPublicKeyRing pubKey = PGPainless.readKeyRing()
-						.publicKeyRing(this.pubKey);
-				return Optional.of(pubKey);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return Optional.empty();
-	}
-	
-	public void setPubKey(String pubKey) {
-		this.pubKey = pubKey;
 	}
 
 	public boolean isFavorite() {

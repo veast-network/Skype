@@ -20,8 +20,6 @@ public class Message implements Comparable<Message> {
 
 	public volatile UUID sender;
 
-	public volatile transient UUID participantId;
-
 	public volatile String message;
 
 	private volatile transient String decryptedMessage = null;
@@ -35,22 +33,36 @@ public class Message implements Comparable<Message> {
 
 	public volatile transient boolean deleted = false;
 
-	public Message(UUID uuid, UUID sender, String message, long timestamp) {
+	private volatile transient Conversation conversation;
+
+	public Message(UUID uuid, UUID sender, String message, long timestamp,
+			Conversation conversation) {
 		this.setUniqueId(uuid);
 		this.setSender(sender);
-		this.participantId = sender;
 		this.setMessage(message);
 		this.setTimestamp(timestamp);
+		this.setConversation(conversation);
 	}
 
 	public Message(UUID uuid, UUID sender, MessageType messageType,
-			String message, long timestamp) {
+			String message, long timestamp, Conversation conversation) {
 		this.setUniqueId(uuid);
 		this.setSender(sender);
-		this.participantId = sender;
 		this.setMessageType(messageType);
 		this.setMessage(message);
 		this.setTimestamp(timestamp);
+		this.setConversation(conversation);
+	}
+
+	public Message(String json, Conversation conversation) {
+		Gson gson = GsonBuilder.create();
+		Message clazz = gson.fromJson(json, Message.class);
+		this.uuid = clazz.uuid;
+		this.sender = clazz.sender;
+		this.message = clazz.message;
+		this.timestamp = clazz.timestamp;
+		this.messageType = clazz.messageType;
+		this.conversation = conversation;
 	}
 
 	public Message(String json) {
@@ -58,7 +70,6 @@ public class Message implements Comparable<Message> {
 		Message clazz = gson.fromJson(json, Message.class);
 		this.uuid = clazz.uuid;
 		this.sender = clazz.sender;
-		this.participantId = clazz.sender;
 		this.message = clazz.message;
 		this.timestamp = clazz.timestamp;
 		this.messageType = clazz.messageType;
@@ -90,14 +101,6 @@ public class Message implements Comparable<Message> {
 		this.sender = sender;
 	}
 
-	public UUID getParticipantId() {
-		return participantId;
-	}
-
-	public void setParticipantId(UUID participantId) {
-		this.participantId = participantId;
-	}
-
 	public String getMessage() {
 		return message;
 	}
@@ -106,18 +109,16 @@ public class Message implements Comparable<Message> {
 		if (decryptedMessage != null) {
 			return decryptedMessage;
 		}
-		Contact sender = MainForm.get().getLoggedInUser();
+		Conversation sender = MainForm.get().getLoggedInUser();
 		if (!MainForm.get().getLoggedInUser().getUniqueId().equals(this.sender)) {
-			for (Conversation conversation : MainForm.get().getConversations()) {
-				if (conversation.getUniqueId().equals(this.sender)) {
-					if (conversation instanceof Contact) {
-						sender = (Contact) conversation;
-					}
-				}
+			Optional<Conversation> userLookup = MainForm.get().lookupUser(
+					this.sender);
+			if (userLookup.isPresent()) {
+				sender = userLookup.get();
 			}
 		}
 		if (message.startsWith("-----BEGIN PGP MESSAGE-----")) {
-			DecryptionResult result = PGPUtilities.decryptAndVerify(message,
+			DecryptionResult result = PGPUtilities.decryptAndVerify(this,
 					sender);
 			decryptionSuccessful = result.isSuccessful();
 			signatureVerified = result.isSignatureVerified();
@@ -174,7 +175,7 @@ public class Message implements Comparable<Message> {
 			}
 		} else {
 			Optional<Conversation> sender = MainForm.get().lookupUser(
-					this.participantId);
+					this.sender);
 			if (sender.isPresent()) {
 				return sender.get().getImageIcon();
 			} else {
@@ -208,5 +209,13 @@ public class Message implements Comparable<Message> {
 	@Override
 	public int compareTo(Message msg) {
 		return new Date(timestamp).compareTo(new Date(msg.getTimestamp()));
+	}
+
+	public Conversation getConversation() {
+		return conversation;
+	}
+
+	public void setConversation(Conversation conversation) {
+		this.conversation = conversation;
 	}
 }
