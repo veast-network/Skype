@@ -1,7 +1,6 @@
 package codes.elisa32.Skype.v1_0_R1.command;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.Optional;
@@ -21,8 +20,6 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptCallDataStreamR
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
-import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
-import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
 import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
 import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
 
@@ -85,17 +82,8 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 					}
 					try {
 						socket.setSoTimeout(0);
-						MainForm.get().callIncomingAudioSocket = ctx2.get()
-								.getSocket();
-						for (Conversation conversation : MainForm.get()
-								.getConversations()) {
-							if (conversation.getUniqueId()
-									.equals(participantId)) {
-								MainForm.get().setSelectedConversation(
-										conversation);
-								MainForm.get().ongoingCallConversation = conversation;
-							}
-						}
+						MainForm.get().callIncomingAudioSockets.add(ctx2.get()
+								.getSocket());
 						MainForm.get().rightPanelPage = "OngoingCall";
 						MainForm.get().ongoingCall = true;
 						MainForm.get().ongoingCallStartTime = System
@@ -107,8 +95,7 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 								byte[] b = new byte[1024];
 								int len = socket.getInputStream().read(b, 0,
 										b.length);
-								System.out.println(len);
-								if (len == -1) {
+								if (len == -1 || len == 0) {
 									break;
 								}
 								b = Arrays.copyOf(b, len);
@@ -125,7 +112,6 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 								speaker.write(data, 0, bytesRead);
 								ais.close();
 								bais.close();
-								socket.setSoTimeout(8000);
 							} catch (Exception e) {
 								e.printStackTrace();
 								break;
@@ -136,18 +122,30 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 					}
 					speaker.drain();
 					speaker.close();
-					AudioIO.HANGUP.playSound();
-					MainForm.get().ongoingCall = false;
-					MainForm.get().ongoingCallConversation = null;
-					MainForm.get().rightPanelPage = "Conversation";
-					MainForm.get().ongoingCallStartTime = 0L;
-					MainForm.get().refreshWindow(MainForm.get().SCROLL_TO_BOTTOM);
-					try {
-						MainForm.get().callIncomingAudioSocket.close();
-						MainForm.get().callOutgoingAudioSocket.close();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+					if (MainForm.get().ongoingCallId != null)
+						if (callId.equals(MainForm.get().ongoingCallId)) {
+							MainForm.get().ongoingCall = false;
+							MainForm.get().ongoingCallConversation = null;
+							MainForm.get().ongoingCallId = null;
+							MainForm.get().rightPanelPage = "Conversation";
+							MainForm.get().ongoingCallStartTime = 0L;
+							MainForm.get().refreshWindow(
+									MainForm.get().SCROLL_TO_BOTTOM);
+							try {
+								for (Socket socket2 : MainForm.get().callIncomingAudioSockets) {
+									socket2.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							try {
+								for (Socket socket2 : MainForm.get().callOutgoingAudioSockets) {
+									socket2.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
 				});
 		thread.start();
 

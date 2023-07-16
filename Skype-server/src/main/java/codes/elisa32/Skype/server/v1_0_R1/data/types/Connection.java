@@ -23,6 +23,8 @@ public class Connection {
 	private UUID receivingCallId;
 
 	private UUID receivingCallDataStreamParticipantId;
+	
+	private boolean isCallDataStreamEnded = false;
 
 	public Connection(UUID authCode, long expiryTime, String skypeName,
 			SocketHandlerContext ctx) {
@@ -94,6 +96,14 @@ public class Connection {
 
 	public boolean isCallDataStream() {
 		return isReceivingCallDataStream;
+	}
+
+	public boolean isCallDataStreamEnded() {
+		return isCallDataStreamEnded;
+	}
+
+	public void setCallDataStreamEnded(boolean isCallDataStreamEnded) {
+		this.isCallDataStreamEnded = isCallDataStreamEnded;
 	}
 
 	public void setCallId(UUID callId) {

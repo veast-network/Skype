@@ -89,8 +89,6 @@ public class UserManager {
 			config.set("registry." + participantId.toString() + ".isGroupChat",
 					isGroupChat);
 			Skype.getPlugin().getConversationManager()
-					.addAuthorizedPersonnel(participantId, participantId);
-			Skype.getPlugin().getConversationManager()
 					.addParticipants(participantId, participantId);
 			return true;
 		} catch (SQLException e) {
@@ -108,8 +106,6 @@ public class UserManager {
 					null);
 			config.set("registry." + participantId.toString() + ".isGroupChat",
 					null);
-			Skype.getPlugin().getConversationManager()
-					.removeAuthorizedPersonnel(participantId);
 			Skype.getPlugin().getConversationManager()
 					.removeParticipants(participantId);
 			return true;
@@ -173,7 +169,7 @@ public class UserManager {
 			UUID callId) {
 		List<Connection> cons = new ArrayList<>();
 		for (Connection con : Skype.getPlugin().getConnectionMap().values()
-				.toArray(new Connection[0])) {
+				.toArray(new Connection[0]).clone()) {
 			if (con.getExpiryTime() < System.currentTimeMillis()) {
 				continue;
 			}
@@ -197,7 +193,7 @@ public class UserManager {
 	public List<Connection> getListeningConnections(UUID participantId) {
 		List<Connection> cons = new ArrayList<>();
 		for (Connection con : Skype.getPlugin().getConnectionMap().values()
-				.toArray(new Connection[0])) {
+				.toArray(new Connection[0]).clone()) {
 			if (con.getExpiryTime() < System.currentTimeMillis()) {
 				continue;
 			}

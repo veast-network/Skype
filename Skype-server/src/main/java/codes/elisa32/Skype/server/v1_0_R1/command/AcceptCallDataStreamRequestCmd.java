@@ -47,6 +47,12 @@ public class AcceptCallDataStreamRequestCmd extends CommandExecutor {
 			return replyPacket;
 		}
 		ctx.fireInboundHandlerInactive();
+		if (con.isListening()) {
+			PacketPlayInReply replyPacket = new PacketPlayInReply(
+					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
+							+ " failed");
+			return replyPacket;
+		}
 		con.setCallDataStream(callId, participantId);
 		PacketPlayInReply replyPacket = new PacketPlayInReply(
 				PacketPlayInReply.OK, packet.getType().name() + " success");

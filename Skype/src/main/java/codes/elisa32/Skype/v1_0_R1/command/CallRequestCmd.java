@@ -1,6 +1,7 @@
 package codes.elisa32.Skype.v1_0_R1.command;
 
 import java.io.DataOutputStream;
+import java.net.Socket;
 import java.util.Optional;
 
 import javax.swing.JFrame;
@@ -42,13 +43,15 @@ public class CallRequestCmd extends CommandExecutor {
 		}
 		authCode = UUID.fromString(reply.get().getText());
 		UUID conversationId = packet.getConversationId();
+		UUID participantId = packet.getParticipantId();
 		Conversation personWhoIsCalling = null;
 		for (Conversation conversation : MainForm.get().getConversations()) {
 			if (conversation.getUniqueId().equals(conversationId)) {
 				personWhoIsCalling = conversation;
 			}
 		}
-		if (personWhoIsCalling == null || personWhoIsCalling.getUniqueId().equals(loggedInUser)) {
+		if (participantId.equals(loggedInUser)) {
+			MainForm.get().ongoingCallId = callId;
 			reply = ctx2
 					.get()
 					.getOutboundHandler()
@@ -71,19 +74,23 @@ public class CallRequestCmd extends CommandExecutor {
 							byte tmpBuff[] = new byte[MainForm.get().mic
 									.getBufferSize() / 5];
 							MainForm.get().mic.start();
-							MainForm.get().callOutgoingAudioSocket = ctx2.get()
-									.getSocket();
+							MainForm.get().callOutgoingAudioSockets.add(ctx2
+									.get().getSocket());
 							JFrame mainForm = MainForm.get();
 							while (mainForm.isVisible()) {
 								try {
 									int count = MainForm.get().mic.read(
 											tmpBuff, 0, tmpBuff.length);
 									if (count > 0) {
-										out.write(tmpBuff, 0, count);
+										try {
+											out.write(tmpBuff, 0, count);
+										} catch (Exception e) {
+											e.printStackTrace();
+											break;
+										}
 									}
 								} catch (Exception e) {
 									e.printStackTrace();
-									break;
 								}
 							}
 						} catch (Exception e) {
@@ -95,21 +102,35 @@ public class CallRequestCmd extends CommandExecutor {
 						} catch (Exception e2) {
 							e2.printStackTrace();
 						}
-						MainForm.get().ongoingCall = false;
-						MainForm.get().ongoingCallConversation = null;
-						MainForm.get().rightPanelPage = "Conversation";
-						MainForm.get().ongoingCallStartTime = 0L;
-						MainForm.get().refreshWindow(MainForm.get().SCROLL_TO_BOTTOM);
-						try {
-							MainForm.get().callIncomingAudioSocket.close();
-							MainForm.get().callOutgoingAudioSocket.close();
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
+						if (MainForm.get().ongoingCallId != null)
+							if (callId.equals(MainForm.get().ongoingCallId)) {
+								MainForm.get().ongoingCall = false;
+								MainForm.get().ongoingCallConversation = null;
+								MainForm.get().ongoingCallId = null;
+								MainForm.get().rightPanelPage = "Conversation";
+								MainForm.get().ongoingCallStartTime = 0L;
+								MainForm.get().refreshWindow(
+										MainForm.get().SCROLL_TO_BOTTOM);
+								try {
+									for (Socket socket : MainForm.get().callIncomingAudioSockets) {
+										socket.close();
+									}
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+								try {
+									for (Socket socket : MainForm.get().callOutgoingAudioSockets) {
+										socket.close();
+									}
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							}
 					});
 			thread.start();
 		} else {
-			IncomingCallForm incomingCallForm = new IncomingCallForm(packet, personWhoIsCalling, true);
+			IncomingCallForm incomingCallForm = new IncomingCallForm(packet,
+					personWhoIsCalling, true);
 			incomingCallForm.show();
 		}
 		return PacketPlayInReply.empty();

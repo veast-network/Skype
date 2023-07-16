@@ -279,14 +279,15 @@ public class MainForm extends JFrame {
 	/*
 	 * Call variables
 	 */
-	private boolean microphoneEnabled = true;
+	public boolean microphoneEnabled = true;
 	private boolean videoEnabled = false;
 	public boolean ongoingCall = false;
 	public JLabel ongoingCallTimeLabel = new JLabel();
 	public long ongoingCallStartTime = 0L;
 	public Conversation ongoingCallConversation = null;
-	public Socket callOutgoingAudioSocket = null;
-	public Socket callIncomingAudioSocket = null;
+	public UUID ongoingCallId = null;
+	public List<Socket> callOutgoingAudioSockets = new ArrayList<Socket>();
+	public List<Socket> callIncomingAudioSockets = new ArrayList<Socket>();
 
 	/*
 	 * User lookup
@@ -2393,6 +2394,8 @@ public class MainForm extends JFrame {
 				@Override
 				public void mousePressed(MouseEvent evt) {
 					super.mousePressed(evt);
+					microphoneEnabled = true;
+					mic.start();
 					if (ongoingCall == false) {
 						Optional<SocketHandlerContext> ctx = Skype.getPlugin()
 								.createHandle();
@@ -2614,17 +2617,29 @@ public class MainForm extends JFrame {
 							/*
 							 * TODO: End call
 							 */
+							mic.stop();
+							mic.drain();
 							ongoingCall = false;
 							ongoingCallConversation = null;
+							ongoingCallId = null;
 							ongoingCallStartTime = 0L;
 							rightPanelPage = "Conversation";
 							refreshWindow(SCROLL_TO_BOTTOM);
 							try {
-								callIncomingAudioSocket.close();
-								callOutgoingAudioSocket.close();
+								for (Socket socket : callIncomingAudioSockets) {
+									socket.close();
+								}
 							} catch (Exception e) {
 								e.printStackTrace();
 							}
+							try {
+								for (Socket socket : callOutgoingAudioSockets) {
+									socket.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							AudioIO.HANGUP.playSound();
 						}
 					};
 
@@ -2666,6 +2681,12 @@ public class MainForm extends JFrame {
 						@Override
 						public void mousePressed(MouseEvent evt) {
 							microphoneEnabled = !microphoneEnabled;
+							if (microphoneEnabled) {
+								mic.start();
+							} else {
+								mic.stop();
+								mic.drain();
+							}
 							refreshWindow();
 						}
 					};
@@ -2930,7 +2951,7 @@ public class MainForm extends JFrame {
 				return panel;
 			}
 
-			if (!(selectedConversation instanceof Contact)) {
+			if (!(selectedConversation instanceof Contact) && !selectedConversation.isGroupChat()) {
 				/**
 				 * System level message
 				 */

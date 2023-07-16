@@ -25,7 +25,6 @@ public class UpdateGroupChatParticipantsCmd extends CommandExecutor {
 		Connection con = Skype.getPlugin().getUserManager()
 				.getConnection(authCode);
 		if (con == null) {
-			System.out.println("err");
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
 							+ " failed");
@@ -36,7 +35,6 @@ public class UpdateGroupChatParticipantsCmd extends CommandExecutor {
 		Gson gson = GsonBuilder.create();
 		List<String> participants = gson.fromJson(json, List.class);
 		if (!Skype.getPlugin().getUserManager().isGroupChat(conversationId)) {
-			System.out.println("Not a group chat!");
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
 							+ " failed");
@@ -52,11 +50,14 @@ public class UpdateGroupChatParticipantsCmd extends CommandExecutor {
 				.getConversationManager()
 				.setParticipants(conversationId,
 						participantIds.toArray(new UUID[0]))) {
-			System.out.println("err!!");
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
 							+ " failed");
 			return replyPacket;
+		}
+		for (UUID participantId : participantIds) {
+			Skype.getPlugin().getConversationManager()
+					.addParticipants(participantId, conversationId);
 		}
 		PacketPlayInReply replyPacket = new PacketPlayInReply(
 				PacketPlayInReply.OK, packet.getType().name() + " success");

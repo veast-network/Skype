@@ -39,13 +39,8 @@ public class CallingInboundHandler implements Runnable {
 			try {
 				byte[] b = new byte[1024];
 				int len = socket.getInputStream().read(b, 0, b.length);
-				if (len == -1) {
+				if (len == -1 || len == 0) {
 					break;
-				}
-				try {
-					socket.setSoTimeout(8000);
-				} catch (SocketException e1) {
-					e1.printStackTrace();
 				}
 				for (UUID callParticipant : call.getParticipants()
 						.toArray(new UUID[0]).clone()) {
@@ -78,7 +73,7 @@ public class CallingInboundHandler implements Runnable {
 											.getOutputStream().flush();
 								} catch (Exception e) {
 									e.printStackTrace();
-									call.removeParticipant(callParticipant);
+									con.setCallDataStream(null, null);
 								}
 							}
 						}
@@ -94,11 +89,9 @@ public class CallingInboundHandler implements Runnable {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		int hits = 0;
 		for (UUID callParticipant : call.getParticipants().toArray(new UUID[0])
 				.clone()) {
-			if (callParticipant.equals(loggedInUser)) {
-				continue;
-			}
 			for (Connection con : Skype
 					.getPlugin()
 					.getUserManager()
@@ -115,11 +108,58 @@ public class CallingInboundHandler implements Runnable {
 				UUID receivingCallDataStreamParticipantId = con
 						.getParticipantId().get();
 				if (receivingCallId.equals(call.getCallId())) {
+					if (!con.isCallDataStreamEnded()) {
+						hits++;
+					}
 					if (receivingCallDataStreamParticipantId
 							.equals(this.loggedInUser)) {
+						con.setCallDataStreamEnded(true);
+					}
+				}
+			}
+		}
+		if (hits < 3) {
+			for (UUID callParticipant : call.getParticipants()
+					.toArray(new UUID[0]).clone()) {
+				for (Connection con : Skype
+						.getPlugin()
+						.getUserManager()
+						.getDataStreamConnectionsInCall(callParticipant,
+								call.getCallId()).toArray(new Connection[0])
+						.clone()) {
+					if (!con.getCallId().isPresent()) {
+						continue;
+					}
+					if (!con.getParticipantId().isPresent()) {
+						continue;
+					}
+					UUID receivingCallId = con.getCallId().get();
+					if (receivingCallId.equals(call.getCallId())) {
 						try {
 							con.getSocketHandlerContext().getSocket().close();
-							call.removeParticipant(callParticipant);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+			for (UUID callParticipant : call.getParticipants()
+					.toArray(new UUID[0]).clone()) {
+				for (Connection con : Skype
+						.getPlugin()
+						.getUserManager()
+						.getConnectionsInCall(callParticipant, call.getCallId())
+						.toArray(new Connection[0]).clone()) {
+					if (!con.getCallId().isPresent()) {
+						continue;
+					}
+					if (!con.getParticipantId().isPresent()) {
+						continue;
+					}
+					UUID receivingCallId = con.getCallId().get();
+					if (receivingCallId.equals(call.getCallId())) {
+						try {
+							con.getSocketHandlerContext().getSocket().close();
 						} catch (Exception e) {
 							e.printStackTrace();
 						}

@@ -12,6 +12,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.Socket;
 import java.util.Optional;
 
 import javax.sound.sampled.Clip;
@@ -72,10 +73,13 @@ public class IncomingCallForm extends JDialog {
 								.getSocket().getOutputStream());
 						byte tmpBuff[] = new byte[MainForm.get().mic
 								.getBufferSize() / 5];
+						MainForm.get().mic.stop();
+						MainForm.get().mic.drain();
 						MainForm.get().mic.start();
-						MainForm.get().callOutgoingAudioSocket = ctx2.get()
-								.getSocket();
-						while (true) {
+						MainForm.get().callOutgoingAudioSockets.add(ctx2.get()
+								.getSocket());
+
+						while (MainForm.get().isVisible()) {
 							try {
 								int count = MainForm.get().mic.read(tmpBuff, 0,
 										tmpBuff.length);
@@ -96,19 +100,38 @@ public class IncomingCallForm extends JDialog {
 					} catch (Exception e2) {
 						e2.printStackTrace();
 					}
-					try {
-						MainForm.get().callIncomingAudioSocket.close();
-						MainForm.get().callOutgoingAudioSocket.close();
-						MainForm.get().ongoingCall = false;
-						MainForm.get().rightPanelPage = "Conversation";
-					} catch (IOException e2) {
-						e2.printStackTrace();
-					}
-					MainForm.get().refreshWindow();
+					if (MainForm.get().ongoingCallId != null)
+						if (callId.equals(MainForm.get().ongoingCallId)) {
+							try {
+								for (Socket socket : MainForm.get().callIncomingAudioSockets) {
+									socket.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							try {
+								for (Socket socket : MainForm.get().callOutgoingAudioSockets) {
+									socket.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							MainForm.get().ongoingCall = false;
+							MainForm.get().rightPanelPage = "Conversation";
+							MainForm.get().refreshWindow();
+						}
 				});
 		thread.start();
 		MainForm.get().rightPanelPage = "OngoingCall";
 		MainForm.get().ongoingCall = true;
+		for (Conversation conversation : MainForm.get().getConversations()) {
+			if (conversation.getUniqueId().equals(
+					this.conversation.getUniqueId())) {
+				MainForm.get().setSelectedConversation(conversation);
+				MainForm.get().ongoingCallConversation = conversation;
+				MainForm.get().ongoingCallId = packet.getCallId();
+			}
+		}
 		MainForm.get().refreshWindow();
 		dialog.dispatchEvent(new WindowEvent(dialog, WindowEvent.WINDOW_CLOSING));
 	}

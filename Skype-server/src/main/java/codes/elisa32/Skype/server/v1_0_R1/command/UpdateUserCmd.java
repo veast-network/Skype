@@ -1,8 +1,5 @@
 package codes.elisa32.Skype.server.v1_0_R1.command;
 
-import java.util.List;
-import java.util.Optional;
-
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
@@ -29,17 +26,8 @@ public class UpdateUserCmd extends CommandExecutor {
 							+ " failed");
 			return replyPacket;
 		}
-		UUID participantId = con.getUniqueId();
-		Optional<List<UUID>> authorizedPersonnel = Skype.getPlugin()
-				.getConversationManager()
-				.getAuthorizedPersonnel(conversationId);
-		if (!authorizedPersonnel.isPresent()) {
-			PacketPlayInReply replyPacket = new PacketPlayInReply(
-					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
-							+ " failed");
-			return replyPacket;
-		}
-		if (!authorizedPersonnel.get().contains(participantId)) {
+		if (!Skype.getPlugin().getUserManager().getUniqueId(con.getSkypeName())
+				.equals(conversationId)) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
 							+ " failed");
