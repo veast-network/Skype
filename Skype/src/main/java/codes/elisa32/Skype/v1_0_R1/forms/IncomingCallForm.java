@@ -266,9 +266,14 @@ public class IncomingCallForm extends JDialog {
 				JPanel iconLabelPanel = new JPanel();
 				iconLabelPanel
 						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
-				ImageIcon imageIcon = ImageIO.getScaledImageIcon(
-						conversation.getImageIcon(),
-						new Dimension(66, 66));
+				ImageIcon imageIcon = ImageIO
+						.getScaledImageIcon(
+								conversation == null ? ImageIO
+										.getResourceAsImageIcon("/2121871768.png")
+										: (conversation.getImageIcon() == null ? ImageIO
+												.getResourceAsImageIcon("/2121871768.png")
+												: conversation.getImageIcon()),
+								new Dimension(66, 66));
 				JLabel iconLabel = new JLabel(imageIcon);
 
 				iconLabelPanel.setBounds(10, 36, 66, 66);

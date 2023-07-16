@@ -156,7 +156,7 @@ public class AppDelegate {
 				"Button.font",
 				new FontUIResource(FontIO.TAHOMA.deriveFont(Font.TRUETYPE_FONT,
 						11)));
-		
+				
 		LoginForm loginForm = new LoginForm();
 		loginForm.show();
 	}

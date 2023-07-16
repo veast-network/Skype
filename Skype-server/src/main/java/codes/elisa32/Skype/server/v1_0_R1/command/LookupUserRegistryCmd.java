@@ -18,8 +18,8 @@ public class LookupUserRegistryCmd extends CommandExecutor {
 
 	@Override
 	public PacketPlayInReply onCommand(SocketHandlerContext ctx, Object msg) {
-		PacketPlayOutLookupUserRegistry packet = Packet.fromJson(msg.toString(),
-				PacketPlayOutLookupUserRegistry.class);
+		PacketPlayOutLookupUserRegistry packet = Packet.fromJson(
+				msg.toString(), PacketPlayOutLookupUserRegistry.class);
 		UUID authCode = packet.getAuthCode();
 		Connection con = Skype.getPlugin().getUserManager()
 				.getConnection(authCode);
@@ -36,6 +36,12 @@ public class LookupUserRegistryCmd extends CommandExecutor {
 			Optional<String> skypeName = Skype.getPlugin().getUserManager()
 					.getSkypeName(participantId);
 			if (skypeName.isPresent()) {
+				if (skypeName.get().startsWith("guest:")) {
+					if (Skype.getPlugin().getUserManager()
+							.isGroupChat(skypeName.get())) {
+						continue;
+					}
+				}
 				if (!skypeNames.contains(skypeName.get())) {
 					skypeNames.add(skypeName.get());
 				}

@@ -7,8 +7,8 @@ import java.util.Optional;
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
-import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInUserRegistryChanged;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInUserRegistryChanged;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRegister;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
@@ -103,6 +103,12 @@ public class RegisterCmd extends CommandExecutor {
 				Optional<String> skypeName2 = Skype.getPlugin()
 						.getUserManager().getSkypeName(participantId);
 				if (skypeName2.isPresent()) {
+					if (skypeName2.get().startsWith("guest:")) {
+						if (Skype.getPlugin().getUserManager()
+								.isGroupChat(skypeName2.get())) {
+							continue;
+						}
+					}
 					if (!skypeNames.contains(skypeName2.get())) {
 						skypeNames.add(skypeName2.get());
 					}

@@ -49,7 +49,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
@@ -141,6 +140,8 @@ import com.ibm.icu.util.Calendar;
 public class MainForm extends JFrame {
 
 	private JFrame frame = this;
+
+	private String password;
 
 	private static MainForm instance;
 
@@ -493,8 +494,7 @@ public class MainForm extends JFrame {
 		 */
 		{
 			JPanel iconLabelPanel = new JPanel();
-			ImageIcon imageIcon = ImageIO
-					.getResourceAsImageIcon("/2121871768.png");
+			ImageIcon imageIcon = loggedInUser.getImageIcon();
 			imageIcon = ImageIO.getScaledImageIcon(imageIcon, new Dimension(40,
 					40));
 			imageIcon = ImageIO.getCircularImageIcon(imageIcon);
@@ -1352,6 +1352,11 @@ public class MainForm extends JFrame {
 						JPanel iconLabelPanel = conversation
 								.getOnlineStatusPanel();
 
+						if (conversation.isGroupChat()) {
+							conversation.getOnlineStatusLabel().setVisible(
+									false);
+						}
+
 						iconLabelPanel.setBounds(14, 0, 40, 50);
 
 						/**
@@ -1957,6 +1962,11 @@ public class MainForm extends JFrame {
 						JPanel iconLabelPanel = conversation
 								.getOnlineStatusPanel();
 
+						if (conversation.isGroupChat()) {
+							conversation.getOnlineStatusLabel().setVisible(
+									false);
+						}
+
 						iconLabelPanel.setBounds(14, 0, 40, 50);
 
 						/**
@@ -2448,19 +2458,146 @@ public class MainForm extends JFrame {
 
 		{
 			JPanel iconLabelPanel = new JPanel();
+
+			MouseAdapter iconLabelMouseAdapter = new MouseAdapter() {
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					if (selectedConversation.isGroupChat()) {
+						// TODO: Add support for adding more participants
+						return;
+					}
+					List<String> skypeNames = new ArrayList<>();
+					for (Conversation conversation : conversations) {
+						if (conversation instanceof Contact) {
+							skypeNames.add(conversation.getSkypeName());
+						}
+					}
+					AddParticipantsToGroupChatForm form = new AddParticipantsToGroupChatForm(
+							selectedConversation, skypeNames,
+							new AddParticipantsToGroupChatForm.Runnable() {
+
+								@Override
+								public void run() {
+									String skypeName;
+									do {
+										skypeName = "guest:"
+												+ UUID.randomUUID().toString()
+														.replace("-", "")
+														.substring(0, 16);
+									} while (registry.contains(skypeName));
+									UUID participantId = Skype.getPlugin()
+											.getUniqueId(skypeName);
+									Conversation groupChat = new Conversation();
+									groupChat.setUniqueId(participantId);
+									groupChat.setGroupChat(true);
+									String displayName = "";
+									for (String participantId2 : this
+											.getParticipants()) {
+										Optional<Conversation> userLookup = lookupUser(Skype
+												.getPlugin().getUniqueId(
+														participantId2));
+										if (userLookup.isPresent()) {
+											displayName += userLookup.get()
+													.getDisplayName() + ", ";
+										} else {
+											displayName += participantId2
+													.toString() + ", ";
+										}
+									}
+									if (displayName.length() > 0) {
+										displayName = displayName.substring(0,
+												displayName.length() - 2);
+									}
+									groupChat.setDisplayName(displayName);
+									groupChat.setSkypeName(skypeName);
+									Optional<UUID> authCode2 = registerUser(
+											groupChat, password);
+									if (!authCode2.isPresent()) {
+										return;
+									}
+									UUID messageId = UUID.randomUUID();
+									long timestamp = System.currentTimeMillis();
+									Message message = new Message(messageId,
+											loggedInUser.getUniqueId(), "uwu",
+											timestamp);
+									if (!conversations.contains(groupChat)) {
+										conversations.add(groupChat);
+									}
+									UUID conversationId = groupChat
+											.getUniqueId();
+									Optional<SocketHandlerContext> ctx = Skype
+											.getPlugin().createHandle();
+									if (!ctx.isPresent()) {
+										return;
+									}
+									try {
+										ctx.get().getSocket()
+												.setSoTimeout(10000);
+									} catch (SocketException e) {
+										e.printStackTrace();
+									}
+									Object payload = GsonBuilder.create()
+											.toJson(this.getParticipants());
+									Optional<PacketPlayInReply> replyPacket = ctx
+											.get()
+											.getOutboundHandler()
+											.dispatch(
+													ctx.get(),
+													new PacketPlayOutUpdateGroupChatParticipants(
+															authCode2.get(),
+															payload));
+									if (!replyPacket.isPresent()) {
+										return;
+									}
+									if (replyPacket.get().getStatusCode() != 200) {
+										return;
+									}
+									replyPacket = ctx
+											.get()
+											.getOutboundHandler()
+											.dispatch(
+													ctx.get(),
+													new PacketPlayOutSendMessage(
+															authCode,
+															conversationId,
+															messageId,
+															message.toString(),
+															timestamp));
+									if (!replyPacket.isPresent()) {
+										return;
+									}
+									if (replyPacket.get().getStatusCode() != 200) {
+										return;
+									}
+									groupChat.setLastModified(new Date());
+									refreshWindow();
+									AudioIO.IM_SENT.playSound();
+								}
+							});
+					form.setLocationRelativeTo(iconLabelPanel);
+					int x = form.getLocation().x;
+					int y = form.getLocation().y
+							+ (form.getContentPane().getHeight() / 2)
+							+ (iconLabelPanel.getHeight() / 2) + 7;
+					form.setLocation(x, y);
+					form.show();
+				}
+			};
+
 			iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
 			ImageIcon imageIcon = ImageIO
 					.getResourceAsImageIcon("/653174002.png");
 			JLabel iconLabel = new JLabel(imageIcon);
 
-			/**
-			 * Reserved for future use
-			 */
 			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+			iconLabel.addMouseListener(iconLabelMouseAdapter);
 
 			iconLabelPanel.setBounds(panelWidth - 56, 20, 40, 40);
 			iconLabelPanel.setOpaque(false);
 			iconLabelPanel.add(iconLabel);
+			iconLabelPanel.addMouseListener(iconLabelMouseAdapter);
 
 			/**
 			 * Panel added to pane with z-index 0
@@ -2489,13 +2626,16 @@ public class MainForm extends JFrame {
 			if (webPageThread != null) {
 				webPageThread.stop();
 			}
-			webPageThread = new Thread(() -> {
-				try {
-					website.setPage("https://elisa322008.github.io/skype/");
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			});
+			webPageThread = new Thread(
+					() -> {
+						SwingUtilities.invokeLater(() -> {
+							try {
+								website.setPage("https://elisa322008.github.io/skype/");
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						});
+					});
 			webPageThread.start();
 			panel.setBounds(0, 0, panelWidth, panelHeight);
 			JScrollPane pane = new JScrollPane(website);
@@ -5681,6 +5821,8 @@ public class MainForm extends JFrame {
 	public MainForm(UUID authCode, String password, Contact loggedInUser) {
 		super("Skype\u2122 - " + loggedInUser.getSkypeName());
 
+		this.password = password;
+
 		try {
 			mic = (TargetDataLine) AudioSystem.getLine(micInfo);
 			mic.open(format);
@@ -5726,92 +5868,6 @@ public class MainForm extends JFrame {
 		addWindowListener(windowAdapter);
 
 		JMenuBar menuBar = new JMenuBar();
-
-		// TODO: Experimental
-		{
-			JMenu experimentalMenu = new JMenu("Experimental");
-
-			JMenuItem createGroupChat = new JMenuItem("Create Group Chat");
-			createGroupChat.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent arg0) {
-					String skypeName;
-					do {
-						skypeName = "guest:"
-								+ UUID.randomUUID().toString().replace("-", "")
-										.substring(0, 16);
-					} while (registry.contains(skypeName));
-					Random random = new Random();
-					UUID participantId = Skype.getPlugin().getUniqueId(
-							skypeName);
-					Conversation groupChat = new Conversation();
-					groupChat.setUniqueId(participantId);
-					groupChat.setDisplayName("group chat "
-							+ (random.nextInt(1000) + 100));
-					groupChat.setSkypeName(skypeName);
-					groupChat.setGroupChat(true);
-					Optional<UUID> authCode2 = registerUser(groupChat, password);
-					if (!authCode2.isPresent()) {
-						return;
-					}
-					UUID messageId = UUID.randomUUID();
-					long timestamp = System.currentTimeMillis();
-					Message message = new Message(messageId, loggedInUser
-							.getUniqueId(), "uwu", timestamp);
-					if (!conversations.contains(groupChat)) {
-						conversations.add(groupChat);
-					}
-					UUID conversationId = groupChat.getUniqueId();
-					Optional<SocketHandlerContext> ctx = Skype.getPlugin()
-							.createHandle();
-					if (!ctx.isPresent()) {
-						return;
-					}
-					try {
-						ctx.get().getSocket().setSoTimeout(10000);
-					} catch (SocketException e) {
-						e.printStackTrace();
-					}
-					Object payload = GsonBuilder.create().toJson(registry);
-					Optional<PacketPlayInReply> replyPacket = ctx
-							.get()
-							.getOutboundHandler()
-							.dispatch(
-									ctx.get(),
-									new PacketPlayOutUpdateGroupChatParticipants(
-											authCode2.get(), payload));
-					if (!replyPacket.isPresent()) {
-						return;
-					}
-					if (replyPacket.get().getStatusCode() != 200) {
-						return;
-					}
-					replyPacket = ctx
-							.get()
-							.getOutboundHandler()
-							.dispatch(
-									ctx.get(),
-									new PacketPlayOutSendMessage(authCode,
-											conversationId, messageId, message
-													.toString(), timestamp));
-					if (!replyPacket.isPresent()) {
-						return;
-					}
-					if (replyPacket.get().getStatusCode() != 200) {
-						return;
-					}
-					groupChat.setLastModified(new Date());
-					refreshWindow();
-					AudioIO.IM_SENT.playSound();
-				}
-
-			});
-
-			experimentalMenu.add(createGroupChat);
-
-			menuBar.add(experimentalMenu);
-		}
 
 		JMenu skypeMenu = new JMenu("Skype");
 		if (getProperty("os.name").startsWith("Windows")) {
@@ -5910,19 +5966,7 @@ public class MainForm extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				Skype.getPlugin().onDisable();
-				timer1.stop();
-				timer2.stop();
-				timer3.stop();
-				mic.stop();
-				mic.close();
-				AudioIO.LOGOUT.playSound();
-				frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-				frame.removeWindowListener(windowAdapter);
-				frame.dispatchEvent(new WindowEvent(frame,
-						WindowEvent.WINDOW_CLOSING));
-				LoginForm loginForm = new LoginForm();
-				loginForm.show();
+				logOut();
 			}
 
 		});
@@ -6619,20 +6663,12 @@ public class MainForm extends JFrame {
 										new PacketPlayOutRefreshToken(authCode));
 						if (!reply.isPresent()
 								|| reply.get().getStatusCode() != 200) {
-							Skype.getPlugin().onDisable();
-							timer1.stop();
-							timer2.stop();
-							timer3.stop();
-							mic.stop();
-							mic.close();
-							frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-							frame.removeWindowListener(windowAdapter);
-							frame.dispatchEvent(new WindowEvent(frame,
-									WindowEvent.WINDOW_CLOSING));
-							LoginForm loginForm = new LoginForm();
-							loginForm.show();
+							logOut();
 							return;
 						}
+					} else {
+						logOut();
+						return;
 					}
 				}
 
@@ -6679,19 +6715,7 @@ public class MainForm extends JFrame {
 															authCode));
 									if (!reply.isPresent()
 											|| reply.get().getStatusCode() != 200) {
-										Skype.getPlugin().onDisable();
-										timer1.stop();
-										timer2.stop();
-										timer3.stop();
-										mic.stop();
-										mic.close();
-										frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-										frame.removeWindowListener(windowAdapter);
-										frame.dispatchEvent(new WindowEvent(
-												frame,
-												WindowEvent.WINDOW_CLOSING));
-										LoginForm loginForm = new LoginForm();
-										loginForm.show();
+										logOut();
 										return;
 									}
 									UUID authCode2 = UUID.fromString(reply
@@ -6724,6 +6748,9 @@ public class MainForm extends JFrame {
 											contact.setOnlineStatus(onlineStatus);
 										}
 									}
+								} else {
+									logOut();
+									return;
 								}
 							});
 					thread.start();
@@ -6734,6 +6761,21 @@ public class MainForm extends JFrame {
 			timer3.start();
 
 		}
+	}
+
+	public void logOut() {
+		Skype.getPlugin().onDisable();
+		timer1.stop();
+		timer2.stop();
+		timer3.stop();
+		mic.stop();
+		mic.close();
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frame.removeWindowListener(windowAdapter);
+		frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
+		AudioIO.LOGOUT.playSound();
+		LoginForm loginForm = new LoginForm();
+		loginForm.show();
 	}
 
 	private boolean shown = false;
@@ -6790,7 +6832,7 @@ public class MainForm extends JFrame {
 						authCode);
 				ctx.getOutboundHandler().dispatch(ctx, msg);
 			}
-			
+
 			ctx.fireOutboundHandlerInactive();
 
 			ctx.fireInboundHandlerActive();

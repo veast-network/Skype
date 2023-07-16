@@ -52,7 +52,7 @@ public class Contact extends Conversation {
 	public volatile String aboutMe;
 
 	public Contact() {
-
+		
 	}
 
 	public Contact(String json) {

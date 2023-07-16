@@ -50,6 +50,13 @@ public class CallRequestCmd extends CommandExecutor {
 				personWhoIsCalling = conversation;
 			}
 		}
+		if (personWhoIsCalling == null) {
+			Optional<Conversation> userLookup = MainForm.get().lookupUser(conversationId);
+			if (userLookup.isPresent()) {
+				personWhoIsCalling = userLookup.get();
+				MainForm.get().getConversations().add(personWhoIsCalling);
+			}
+		}
 		if (participantId.equals(loggedInUser)) {
 			MainForm.get().ongoingCallId = callId;
 			reply = ctx2

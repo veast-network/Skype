@@ -51,11 +51,6 @@ public class Conversation {
 					this.getImageIcon(), contact.getOnlineStatus());
 			onlineStatusPanel = entry.getKey();
 			onlineStatusLabel = entry.getValue();
-		} else if (this.isGroupChat()) {
-			Map.Entry<JPanel, JLabel> entry = ImageIO
-					.getConversationIconPanel(this.getImageIcon());
-			onlineStatusPanel = entry.getKey();
-			onlineStatusLabel = entry.getValue();
 		} else {
 			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
 					this.getImageIcon(), Status.NOT_A_CONTACT);
@@ -75,11 +70,6 @@ public class Conversation {
 			Contact contact = (Contact) this;
 			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
 					this.getImageIcon(), contact.getOnlineStatus());
-			onlineStatusPanel = entry.getKey();
-			onlineStatusLabel = entry.getValue();
-		} else if (this.isGroupChat()) {
-			Map.Entry<JPanel, JLabel> entry = ImageIO
-					.getConversationIconPanel(this.getImageIcon());
 			onlineStatusPanel = entry.getKey();
 			onlineStatusLabel = entry.getValue();
 		} else {
