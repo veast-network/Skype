@@ -11,7 +11,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.net.Socket;
 import java.util.Optional;
 
@@ -73,8 +72,6 @@ public class IncomingCallForm extends JDialog {
 								.getSocket().getOutputStream());
 						byte tmpBuff[] = new byte[MainForm.get().mic
 								.getBufferSize() / 5];
-						MainForm.get().mic.stop();
-						MainForm.get().mic.drain();
 						MainForm.get().mic.start();
 						MainForm.get().callOutgoingAudioSockets.add(ctx2.get()
 								.getSocket());
@@ -85,6 +82,8 @@ public class IncomingCallForm extends JDialog {
 										tmpBuff.length);
 								if (count > 0) {
 									out.write(tmpBuff, 0, count);
+								} else {
+									Thread.sleep(100);
 								}
 							} catch (Exception e) {
 								e.printStackTrace();
@@ -94,14 +93,14 @@ public class IncomingCallForm extends JDialog {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					try {
-						MainForm.get().mic.stop();
-						MainForm.get().mic.drain();
-					} catch (Exception e2) {
-						e2.printStackTrace();
-					}
 					if (MainForm.get().ongoingCallId != null)
 						if (callId.equals(MainForm.get().ongoingCallId)) {
+							try {
+								MainForm.get().mic.stop();
+								MainForm.get().mic.drain();
+							} catch (Exception e2) {
+								e2.printStackTrace();
+							}
 							try {
 								for (Socket socket : MainForm.get().callIncomingAudioSockets) {
 									socket.close();
@@ -124,6 +123,7 @@ public class IncomingCallForm extends JDialog {
 		thread.start();
 		MainForm.get().rightPanelPage = "OngoingCall";
 		MainForm.get().ongoingCall = true;
+		MainForm.get().ongoingCallStartTime = System.currentTimeMillis();
 		for (Conversation conversation : MainForm.get().getConversations()) {
 			if (conversation.getUniqueId().equals(
 					this.conversation.getUniqueId())) {
@@ -267,7 +267,7 @@ public class IncomingCallForm extends JDialog {
 				iconLabelPanel
 						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
 				ImageIcon imageIcon = ImageIO.getScaledImageIcon(
-						ImageIO.getResourceAsImageIcon("/2121871768.png"),
+						conversation.getImageIcon(),
 						new Dimension(66, 66));
 				JLabel iconLabel = new JLabel(imageIcon);
 

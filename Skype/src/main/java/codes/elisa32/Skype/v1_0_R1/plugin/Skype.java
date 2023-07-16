@@ -17,6 +17,7 @@ import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.command.AcceptCallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.AcceptContactRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.CallDataStreamRequestCmd;
+import codes.elisa32.Skype.v1_0_R1.command.CallParticipantsChangedCmd;
 import codes.elisa32.Skype.v1_0_R1.command.CallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.DeclineCallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.ReceiveMessageCmd;
@@ -51,6 +52,8 @@ public class Skype {
 				new CallDataStreamRequestCmd());
 		CommandMap.register(PacketType.USER_REGISTRY_CHANGED_IN,
 				new UserRegistryChangedCmd());
+		CommandMap.register(PacketType.CALL_PARTICIPANTS_CHANGED_IN,
+				new CallParticipantsChangedCmd());
 	}
 
 	public Skype() {

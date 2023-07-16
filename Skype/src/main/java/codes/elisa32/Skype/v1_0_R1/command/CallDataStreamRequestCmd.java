@@ -46,19 +46,11 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 			return PacketPlayInReply.empty();
 		}
 		authCode = UUID.fromString(reply.get().getText());
-		reply = ctx2
-				.get()
+		ctx2.get()
 				.getOutboundHandler()
-				.dispatch(
-						ctx2.get(),
+				.write(ctx2.get(),
 						new PacketPlayOutAcceptCallDataStreamRequest(authCode,
 								participantId, callId));
-		if (!reply.isPresent()) {
-			return PacketPlayInReply.empty();
-		}
-		if (reply.get().getStatusCode() != 200) {
-			return PacketPlayInReply.empty();
-		}
 		final Socket socket = ctx2.get().getSocket();
 		Thread thread = new Thread(
 				() -> {
@@ -126,6 +118,7 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 						if (callId.equals(MainForm.get().ongoingCallId)) {
 							MainForm.get().ongoingCall = false;
 							MainForm.get().ongoingCallConversation = null;
+							MainForm.get().ongoingCallParticipants.clear();
 							MainForm.get().ongoingCallId = null;
 							MainForm.get().rightPanelPage = "Conversation";
 							MainForm.get().ongoingCallStartTime = 0L;

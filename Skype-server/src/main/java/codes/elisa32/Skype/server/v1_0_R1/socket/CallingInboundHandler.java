@@ -3,9 +3,13 @@ package codes.elisa32.Skype.server.v1_0_R1.socket;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import codes.elisa32.Skype.api.v1_0_R1.data.types.Call;
+import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInCallParticipantsChanged;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.server.v1_0_R1.Skype;
@@ -73,6 +77,7 @@ public class CallingInboundHandler implements Runnable {
 											.getOutputStream().flush();
 								} catch (Exception e) {
 									e.printStackTrace();
+									call.removeParticipant(callParticipant);
 									con.setCallDataStream(null, null);
 								}
 							}
@@ -89,7 +94,7 @@ public class CallingInboundHandler implements Runnable {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		int hits = 0;
+		List<String> skypeNames = new ArrayList<>();
 		for (UUID callParticipant : call.getParticipants().toArray(new UUID[0])
 				.clone()) {
 			for (Connection con : Skype
@@ -109,7 +114,12 @@ public class CallingInboundHandler implements Runnable {
 						.getParticipantId().get();
 				if (receivingCallId.equals(call.getCallId())) {
 					if (!con.isCallDataStreamEnded()) {
-						hits++;
+						if (!skypeNames.contains(con.getSkypeName())) {
+							if (!con.getSkypeName().equals(
+									this.con.getSkypeName())) {
+								skypeNames.add(con.getSkypeName());
+							}
+						}
 					}
 					if (receivingCallDataStreamParticipantId
 							.equals(this.loggedInUser)) {
@@ -118,7 +128,42 @@ public class CallingInboundHandler implements Runnable {
 				}
 			}
 		}
-		if (hits < 3) {
+		List<String> participantIds = new ArrayList<>();
+		for (String skypeName : skypeNames) {
+			participantIds.add(Skype.getPlugin().getUserManager()
+					.getUniqueId(skypeName).toString());
+		}
+		Object payload = GsonBuilder.create().toJson(participantIds);
+		for (UUID callParticipant : call.getParticipants()) {
+			boolean hasParticipantAnsweredCall = Skype.getPlugin()
+					.getUserManager()
+					.getConnectionsInCall(callParticipant, call.getCallId())
+					.size() > 0
+					|| Skype.getPlugin()
+							.getUserManager()
+							.getDataStreamConnectionsInCall(callParticipant,
+									call.getCallId()).size() > 0;
+			if (!hasParticipantAnsweredCall) {
+				continue;
+			}
+			PacketPlayInCallParticipantsChanged callParticipantsChangedPacket = new PacketPlayInCallParticipantsChanged(
+					call.getCallId(), payload);
+			for (Connection listeningParticipant : Skype.getPlugin()
+					.getUserManager().getListeningConnections(callParticipant)) {
+				Thread thread = new Thread(
+						() -> {
+							listeningParticipant
+									.getSocketHandlerContext()
+									.getOutboundHandler()
+									.dispatch(
+											listeningParticipant
+													.getSocketHandlerContext(),
+											callParticipantsChangedPacket);
+						});
+				thread.start();
+			}
+		}
+		if (skypeNames.size() < 2) {
 			for (UUID callParticipant : call.getParticipants()
 					.toArray(new UUID[0]).clone()) {
 				for (Connection con : Skype

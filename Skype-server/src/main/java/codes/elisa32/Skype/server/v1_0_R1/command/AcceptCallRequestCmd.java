@@ -64,14 +64,14 @@ public class AcceptCallRequestCmd extends CommandExecutor {
 								listeningParticipant
 										.getSocketHandlerContext()
 										.getOutboundHandler()
-										.dispatch(
+										.write(
 												listeningParticipant
 														.getSocketHandlerContext(),
 												acceptCallRequestPacket);
 								listeningParticipant
 										.getSocketHandlerContext()
 										.getOutboundHandler()
-										.dispatch(
+										.write(
 												listeningParticipant
 														.getSocketHandlerContext(),
 												callDataStreamRequestPacket);
@@ -99,14 +99,14 @@ public class AcceptCallRequestCmd extends CommandExecutor {
 								listeningParticipant
 										.getSocketHandlerContext()
 										.getOutboundHandler()
-										.dispatch(
+										.write(
 												listeningParticipant
 														.getSocketHandlerContext(),
 												acceptCallRequestPacket);
 								listeningParticipant
 										.getSocketHandlerContext()
 										.getOutboundHandler()
-										.dispatch(
+										.write(
 												listeningParticipant
 														.getSocketHandlerContext(),
 												callDataStreamRequestPacket);

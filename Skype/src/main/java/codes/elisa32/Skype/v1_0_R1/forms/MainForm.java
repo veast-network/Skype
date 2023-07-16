@@ -285,6 +285,7 @@ public class MainForm extends JFrame {
 	public JLabel ongoingCallTimeLabel = new JLabel();
 	public long ongoingCallStartTime = 0L;
 	public Conversation ongoingCallConversation = null;
+	public List<UUID> ongoingCallParticipants = new ArrayList<>();
 	public UUID ongoingCallId = null;
 	public List<Socket> callOutgoingAudioSockets = new ArrayList<Socket>();
 	public List<Socket> callIncomingAudioSockets = new ArrayList<Socket>();
@@ -2470,6 +2471,8 @@ public class MainForm extends JFrame {
 		return rightTopLayeredPane;
 	}
 
+	private Thread webPageThread = null;
+
 	private JPanel createRightBottomTopPanel(int panelWidth, int flag) {
 		JPanel panel = new JPanel();
 
@@ -2483,11 +2486,17 @@ public class MainForm extends JFrame {
 			int panelHeight = this.getContentPane().getHeight();
 			JEditorPane website = new JEditorPane();
 			website.setEditable(false);
-			try {
-				website.setPage("https://elisa322008.github.io/skype/");
-			} catch (IOException e) {
-				e.printStackTrace();
+			if (webPageThread != null) {
+				webPageThread.stop();
 			}
+			webPageThread = new Thread(() -> {
+				try {
+					website.setPage("https://elisa322008.github.io/skype/");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			});
+			webPageThread.start();
 			panel.setBounds(0, 0, panelWidth, panelHeight);
 			JScrollPane pane = new JScrollPane(website);
 			pane.setBorder(BorderFactory.createEmptyBorder());
@@ -2621,6 +2630,7 @@ public class MainForm extends JFrame {
 							mic.drain();
 							ongoingCall = false;
 							ongoingCallConversation = null;
+							MainForm.get().ongoingCallParticipants.clear();
 							ongoingCallId = null;
 							ongoingCallStartTime = 0L;
 							rightPanelPage = "Conversation";
@@ -2709,8 +2719,8 @@ public class MainForm extends JFrame {
 					JPanel iconLabelPanel = new JPanel();
 					iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER,
 							0, 0));
-					ImageIcon imageIcon = ImageIO
-							.getResourceAsImageIcon("/1595064335.png");
+					ImageIcon imageIcon = ongoingCallConversation
+							.getImageIcon();
 
 					JLabel iconLabel = new JLabel(imageIcon);
 
@@ -2891,9 +2901,30 @@ public class MainForm extends JFrame {
 
 				{
 					JPanel labelPanel = new JPanel();
+					String displayName = ongoingCallConversation
+							.getDisplayName();
+					if (ongoingCallConversation.isGroupChat()) {
+						if (!ongoingCallParticipants.isEmpty()) {
+							displayName = "";
+							for (UUID participantId : ongoingCallParticipants) {
+								Optional<Conversation> userLookup = lookupUser(participantId);
+								if (userLookup.isPresent()) {
+									displayName += userLookup.get()
+											.getDisplayName() + ", ";
+								} else {
+									displayName += participantId.toString()
+											+ ", ";
+								}
+							}
+							if (displayName.length() > 0) {
+								displayName = displayName.substring(0,
+										displayName.length() - 2);
+							}
+						}
+					}
 					JLabel label = new JLabel(
 							ongoingCallConversation == null ? "Echo / Sound Test Service ."
-									: ongoingCallConversation.getDisplayName());
+									: displayName);
 					label.setFont(FontIO.SEGOE_UI.deriveFont(15.0f));
 					label.setForeground(Color.white);
 					labelPanel.setOpaque(false);
@@ -2951,7 +2982,8 @@ public class MainForm extends JFrame {
 				return panel;
 			}
 
-			if (!(selectedConversation instanceof Contact) && !selectedConversation.isGroupChat()) {
+			if (!(selectedConversation instanceof Contact)
+					&& !selectedConversation.isGroupChat()) {
 				/**
 				 * System level message
 				 */
@@ -6758,6 +6790,8 @@ public class MainForm extends JFrame {
 						authCode);
 				ctx.getOutboundHandler().dispatch(ctx, msg);
 			}
+			
+			ctx.fireOutboundHandlerInactive();
 
 			ctx.fireInboundHandlerActive();
 

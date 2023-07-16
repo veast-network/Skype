@@ -88,6 +88,8 @@ public class CallRequestCmd extends CommandExecutor {
 											e.printStackTrace();
 											break;
 										}
+									} else {
+										Thread.sleep(100);
 									}
 								} catch (Exception e) {
 									e.printStackTrace();
@@ -96,16 +98,17 @@ public class CallRequestCmd extends CommandExecutor {
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
-						try {
-							MainForm.get().mic.stop();
-							MainForm.get().mic.drain();
-						} catch (Exception e2) {
-							e2.printStackTrace();
-						}
 						if (MainForm.get().ongoingCallId != null)
 							if (callId.equals(MainForm.get().ongoingCallId)) {
+								try {
+									MainForm.get().mic.stop();
+									MainForm.get().mic.drain();
+								} catch (Exception e2) {
+									e2.printStackTrace();
+								}
 								MainForm.get().ongoingCall = false;
 								MainForm.get().ongoingCallConversation = null;
+								MainForm.get().ongoingCallParticipants.clear();
 								MainForm.get().ongoingCallId = null;
 								MainForm.get().rightPanelPage = "Conversation";
 								MainForm.get().ongoingCallStartTime = 0L;
