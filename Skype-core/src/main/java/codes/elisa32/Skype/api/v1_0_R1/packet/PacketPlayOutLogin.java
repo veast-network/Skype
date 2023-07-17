@@ -3,7 +3,7 @@ package codes.elisa32.Skype.api.v1_0_R1.packet;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 
 public class PacketPlayOutLogin extends Packet {
-	
+
 	public static final int PROTOCOL_VERSION = 5;
 
 	private UUID authCode;
@@ -11,12 +11,18 @@ public class PacketPlayOutLogin extends Packet {
 	private String skypeName;
 
 	private String password;
-	
+
 	private final int protocolVersion = PROTOCOL_VERSION;
 
 	public PacketPlayOutLogin(UUID authCode) {
 		super(PacketType.LOGIN);
 		this.setAuthCode(authCode);
+	}
+
+	public PacketPlayOutLogin(UUID authCode, String skypeName) {
+		super(PacketType.LOGIN);
+		this.setAuthCode(authCode);
+		this.setSkypeName(skypeName);
 	}
 
 	public PacketPlayOutLogin(String skypeName, String password) {

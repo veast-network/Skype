@@ -7,19 +7,18 @@ import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
-import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupConversationParticipants;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupGroupChatAdmins;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.server.v1_0_R1.Skype;
 import codes.elisa32.Skype.server.v1_0_R1.data.types.Connection;
 
-public class LookupConversationParticipantsCmd extends CommandExecutor {
+public class LookupGroupChatAdminsCmd extends CommandExecutor {
 
 	@Override
 	public PacketPlayInReply onCommand(SocketHandlerContext ctx, Object msg) {
-		PacketPlayOutLookupConversationParticipants packet = Packet.fromJson(
-				msg.toString(),
-				PacketPlayOutLookupConversationParticipants.class);
+		PacketPlayOutLookupGroupChatAdmins packet = Packet.fromJson(
+				msg.toString(), PacketPlayOutLookupGroupChatAdmins.class);
 		UUID authCode = packet.getAuthCode();
 		UUID conversationId = packet.getConversationId();
 		Connection con = Skype.getPlugin().getUserManager()
@@ -38,7 +37,7 @@ public class LookupConversationParticipantsCmd extends CommandExecutor {
 		}
 		List<String> participantIds = new ArrayList<>();
 		for (UUID participantId : Skype.getPlugin().getConversationManager()
-				.getParticipants(conversationId).get()) {
+				.getGroupChatAdmins(conversationId).get()) {
 			participantIds.add(participantId.toString());
 		}
 		String json = GsonBuilder.create().toJson(participantIds);

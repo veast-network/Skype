@@ -17,6 +17,7 @@ import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupConversationParticipants;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupGroupChatAdmins;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
@@ -302,6 +303,53 @@ public class Conversation {
 			participantIds.add(UUID.fromString(participant));
 		}
 		this.participants = participantIds;
+		return participantIds;
+	}
+
+	private List<UUID> groupChatAdmins = null;
+
+	public void setGroupChatAdmins(List<UUID> groupChatAdmins) {
+		this.groupChatAdmins = groupChatAdmins;
+	}
+
+	public List<UUID> getGroupChatAdmins() {
+		if (groupChatAdmins != null) {
+			return groupChatAdmins;
+		}
+		if (!groupChat) {
+			return new ArrayList<>();
+		}
+		Optional<SocketHandlerContext> ctx = Skype.getPlugin().createHandle();
+		if (!ctx.isPresent()) {
+			return new ArrayList<>();
+		}
+		Optional<PacketPlayInReply> reply = ctx
+				.get()
+				.getOutboundHandler()
+				.dispatch(ctx.get(),
+						new PacketPlayOutLogin(MainForm.get().getAuthCode()));
+		if (!reply.isPresent() || reply.get().getStatusCode() != 200) {
+			return new ArrayList<>();
+		}
+		UUID authCode = UUID.fromString(reply.get().getText());
+		PacketPlayOutLookupGroupChatAdmins packet = new PacketPlayOutLookupGroupChatAdmins(
+				authCode, this.getUniqueId());
+		Optional<PacketPlayInReply> replyPacket = ctx.get()
+				.getOutboundHandler().dispatch(ctx.get(), packet);
+		if (!replyPacket.isPresent()) {
+			return new ArrayList<>();
+		}
+		if (replyPacket.get().getStatusCode() != 200) {
+			return new ArrayList<>();
+		}
+		String json = replyPacket.get().getText();
+		Gson gson = GsonBuilder.create();
+		List<String> participants = gson.fromJson(json, List.class);
+		List<UUID> participantIds = new ArrayList<>();
+		for (String participant : participants) {
+			participantIds.add(UUID.fromString(participant));
+		}
+		this.groupChatAdmins = participantIds;
 		return participantIds;
 	}
 

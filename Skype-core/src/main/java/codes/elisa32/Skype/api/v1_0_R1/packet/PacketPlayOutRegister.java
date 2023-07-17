@@ -1,5 +1,6 @@
 package codes.elisa32.Skype.api.v1_0_R1.packet;
 
+import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 
 public class PacketPlayOutRegister extends Packet {
 
@@ -8,14 +9,17 @@ public class PacketPlayOutRegister extends Packet {
 	private volatile String skypeName;
 
 	private volatile String password;
-	
+
 	private volatile boolean groupChat = false;
-	
+
+	private volatile UUID groupChatAdmin = null;
+
 	private volatile boolean silent = false;
-	
+
 	private final int protocolVersion = PacketPlayOutLogin.PROTOCOL_VERSION;
 
-	public PacketPlayOutRegister(String fullName, String skypeName, String password) {
+	public PacketPlayOutRegister(String fullName, String skypeName,
+			String password) {
 		super(PacketType.REGISTER);
 		this.setFullName(fullName);
 		this.setSkypeName(skypeName);
@@ -50,8 +54,18 @@ public class PacketPlayOutRegister extends Packet {
 		return groupChat;
 	}
 
-	public void setGroupChat(boolean groupChat) {
-		this.groupChat = groupChat;
+	public void setGroupChatAdmin(UUID groupChatAdmin) {
+		if (groupChatAdmin == null) {
+			this.groupChat = false;
+			this.groupChatAdmin = null;
+		} else {
+			this.groupChat = true;
+			this.groupChatAdmin = groupChatAdmin;
+		}
+	}
+
+	public UUID getGroupChatAdmin() {
+		return groupChatAdmin;
 	}
 
 	public boolean isSilent() {

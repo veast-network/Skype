@@ -59,6 +59,107 @@ public class ConversationManager {
 		}
 	}
 
+	public boolean addGroupChatAdmins(UUID conversationId,
+			UUID... participantIds) {
+		try {
+			Gson gson = GsonBuilder.create();
+			List<String> participants = new ArrayList<String>();
+			if (config.contains("conversation." + conversationId.toString()
+					+ ".groupChatAdmins")) {
+				String json = config.getString("conversation."
+						+ conversationId.toString() + ".groupChatAdmins");
+				participants = gson.fromJson(json, List.class);
+			}
+			for (UUID participant : participantIds) {
+				if (!participants.contains(participant.toString())) {
+					participants.add(participant.toString());
+				}
+			}
+			String json = gson.toJson(participants);
+			config.replace("conversation." + conversationId.toString()
+					+ ".groupChatAdmins", json);
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public boolean setGroupChatAdmins(UUID conversationId,
+			UUID... participantIds) {
+		try {
+			Gson gson = GsonBuilder.create();
+			List<UUID> participants = Arrays.asList(participantIds);
+			List<String> participants2 = new ArrayList<>();
+			for (UUID participant : participants) {
+				participants2.add(participant.toString());
+			}
+			String json = gson.toJson(participants2);
+			config.replace("conversation." + conversationId.toString()
+					+ ".groupChatAdmins", json);
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public boolean removeGroupChatAdmins(UUID conversationId,
+			UUID... participantIds) {
+		try {
+			Gson gson = GsonBuilder.create();
+			List<String> participants = new ArrayList<String>();
+			if (config.contains("conversation." + conversationId.toString()
+					+ ".groupChatAdmins")) {
+				String json = config.getString("conversation."
+						+ conversationId.toString() + ".groupChatAdmins");
+				participants = gson.fromJson(json, List.class);
+			}
+			for (UUID participant : participantIds) {
+				participants.remove(participant.toString());
+			}
+			String json = gson.toJson(participants);
+			config.replace("conversation." + conversationId.toString()
+					+ ".groupChatAdmins", json);
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public boolean removeGroupChatAdmins(UUID conversationId) {
+		try {
+			config.replace("conversation." + conversationId.toString()
+					+ ".groupChatAdmins", null);
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public Optional<List<UUID>> getGroupChatAdmins(UUID conversationId) {
+		try {
+			List<String> list = new ArrayList<String>();
+			Gson gson = GsonBuilder.create();
+			if (config.contains("conversation." + conversationId.toString()
+					+ ".groupChatAdmins")) {
+				String json = config.getString("conversation."
+						+ conversationId.toString() + ".groupChatAdmins");
+				list = gson.fromJson(json, List.class);
+			}
+			List<UUID> participantIds = new ArrayList<>();
+			for (String participant : list) {
+				participantIds.add(UUID.fromString(participant));
+			}
+			return Optional.of(participantIds);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return Optional.empty();
+	}
+
 	public boolean addParticipants(UUID conversationId, UUID... participantIds) {
 		try {
 			Gson gson = GsonBuilder.create();

@@ -128,8 +128,7 @@ public class RegisterCmd extends CommandExecutor {
 					try {
 						con.getSocketHandlerContext()
 								.getOutboundHandler()
-								.write(
-										con.getSocketHandlerContext(),
+								.write(con.getSocketHandlerContext(),
 										new PacketPlayInUserRegistryChanged(
 												payload));
 					} catch (IllegalArgumentException e) {
@@ -138,6 +137,17 @@ public class RegisterCmd extends CommandExecutor {
 				}
 			}
 
+		}
+
+		if (packet.isGroupChat()) {
+			if (packet.getGroupChatAdmin() != null) {
+				UUID conversationId = Skype.getPlugin().getUserManager()
+						.getUniqueId(skypeName);
+				Skype.getPlugin()
+						.getConversationManager()
+						.setGroupChatAdmins(conversationId,
+								packet.getGroupChatAdmin());
+			}
 		}
 
 		/**
