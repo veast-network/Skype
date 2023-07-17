@@ -2,30 +2,17 @@ package codes.elisa32.Skype.api.v1_0_R1.packet;
 
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 
-public class PacketPlayOutUpdateUser extends Packet {
-
-	private UUID authCode;
+public class PacketPlayInUpdateUser extends Packet {
 
 	private UUID conversationId;
 
 	private Object payload;
-	
-	private boolean silent = false;
 
-	public PacketPlayOutUpdateUser(UUID authCode, UUID conversationId,
+	public PacketPlayInUpdateUser(UUID conversationId,
 			Object payload) {
-		super(PacketType.UPDATE_USER);
-		this.setAuthCode(authCode);
+		super(PacketType.UPDATE_USER_IN);
 		this.setConversationId(conversationId);
 		this.setPayload(payload.toString());
-	}
-
-	public UUID getAuthCode() {
-		return authCode;
-	}
-
-	public void setAuthCode(UUID authCode) {
-		this.authCode = authCode;
 	}
 
 	public UUID getConversationId() {
@@ -42,14 +29,6 @@ public class PacketPlayOutUpdateUser extends Packet {
 
 	public void setPayload(Object payload) {
 		this.payload = payload;
-	}
-
-	public boolean isSilent() {
-		return silent;
-	}
-
-	public void setSilent(boolean silent) {
-		this.silent = silent;
 	}
 
 }

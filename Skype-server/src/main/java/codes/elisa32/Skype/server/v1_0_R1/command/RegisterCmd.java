@@ -128,10 +128,10 @@ public class RegisterCmd extends CommandExecutor {
 					try {
 						con.getSocketHandlerContext()
 								.getOutboundHandler()
-								.dispatchAsync(
+								.write(
 										con.getSocketHandlerContext(),
 										new PacketPlayInUserRegistryChanged(
-												payload), null);
+												payload));
 					} catch (IllegalArgumentException e) {
 						e.printStackTrace();
 					}

@@ -1,7 +1,6 @@
 package codes.elisa32.Skype.v1_0_R1.data.types;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +8,6 @@ import java.util.Optional;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
@@ -76,6 +74,10 @@ public class Conversation {
 	}
 
 	public Conversation(String json) {
+		readFromJson(json);
+	}
+
+	public void readFromJson(String json) {
 		Gson gson = GsonBuilder.create();
 		Conversation clazz = gson.fromJson(json, Conversation.class);
 		this.pubKey = clazz.pubKey;
@@ -257,6 +259,10 @@ public class Conversation {
 	}
 
 	private List<UUID> participants = null;
+
+	public void setParticipants(List<UUID> participants) {
+		this.participants = participants;
+	}
 
 	public List<UUID> getParticipants() {
 		if (participants != null) {

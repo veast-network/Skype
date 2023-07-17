@@ -27,20 +27,15 @@ import javax.swing.JViewport;
 import javax.swing.Scrollable;
 import javax.swing.UIManager;
 
-import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
-
-public class AddParticipantsToGroupChatForm extends JFrame implements
+public class RemoveParticipantsFromGroupChatForm extends JFrame implements
 		WindowFocusListener {
 
-	public AddParticipantsToGroupChatForm(Conversation conversation,
-			List<String> skypeNames, Runnable callback) {
-		super("Add Participants to Group Chat");
+	public RemoveParticipantsFromGroupChatForm(List<String> skypeNames,
+			Runnable callback) {
+		super("Remove Participants from Group Chat");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		JPanel panel = new JPanel();
 		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-		if (skypeNames.contains(conversation.getSkypeName())) {
-			skypeNames.remove(conversation.getSkypeName());
-		}
 		CheckBoxGroup checkBoxGroup = new CheckBoxGroup(
 				skypeNames.toArray(new String[0]));
 		panel.add(checkBoxGroup);
@@ -48,7 +43,7 @@ public class AddParticipantsToGroupChatForm extends JFrame implements
 		{
 			JPanel buttonPanel = new JPanel();
 			buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-			JButton button = new JButton("Add");
+			JButton button = new JButton("Remove");
 			button.addActionListener(new ActionListener() {
 
 				@Override
@@ -56,11 +51,6 @@ public class AddParticipantsToGroupChatForm extends JFrame implements
 					panel.grabFocus();
 					List<String> participantIds = new ArrayList<String>();
 					participantIds.addAll(checkBoxGroup.getSelectedItems());
-					if (!conversation.isGroupChat()) {
-						participantIds.add(conversation.getSkypeName());
-					}
-					participantIds.add(MainForm.get().getLoggedInUser()
-							.getSkypeName());
 					callback.setParticipants(participantIds);
 					callback.run();
 					dispatchEvent(new WindowEvent(frame,

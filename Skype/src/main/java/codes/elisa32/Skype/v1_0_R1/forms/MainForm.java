@@ -620,13 +620,22 @@ public class MainForm extends JFrame {
 				public void mousePressed(MouseEvent evt) {
 					super.mousePressed(evt);
 					if (loggedInUser.getPubKey().isPresent()) {
-						String pubKey;
-						try {
-							pubKey = PGPainless.asciiArmor(loggedInUser
-									.getPubKey().get());
-							JOptionPane.showMessageDialog(frame, pubKey);
-						} catch (IOException e) {
-							e.printStackTrace();
+						String res2 = (String) JOptionPane.showInputDialog(
+								frame,
+								"Enter new name for "
+										+ loggedInUser.getSkypeName(),
+								frame.getTitle(), JOptionPane.PLAIN_MESSAGE,
+								null, null, loggedInUser.getDisplayName());
+						if (res2 != null) {
+							if (res2.trim().equals("")) {
+								res2 = loggedInUser.getSkypeName();
+							}
+							loggedInUser.setDisplayName(res2);
+							Optional<UUID> authCode2 = registerUser(
+									loggedInUser, password);
+							if (authCode2.isPresent()) {
+								refreshWindow(SCROLL_TO_BOTTOM);
+							}
 						}
 					} else {
 						JOptionPane.showMessageDialog(frame, loggedInUser);
@@ -2310,6 +2319,120 @@ public class MainForm extends JFrame {
 						.getOnlineStatus();
 				statusLabel = new JLabel(WordUtils.capitalize(onlineStatus
 						.name().toLowerCase()));
+			} else if (selectedConversation.isGroupChat()) {
+				JLabel label = new JLabel(selectedConversation
+						.getParticipants().size() + " people");
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						List<String> participants = new ArrayList<>();
+						for (UUID participantId : selectedConversation
+								.getParticipants()) {
+							if (participantId
+									.equals(loggedInUser.getUniqueId())) {
+								continue;
+							}
+							Optional<Conversation> userLookup = lookupUser(participantId);
+							if (userLookup.isPresent()) {
+								participants.add(userLookup.get()
+										.getSkypeName());
+							}
+						}
+						RemoveParticipantsFromGroupChatForm form = new RemoveParticipantsFromGroupChatForm(
+								participants,
+								new RemoveParticipantsFromGroupChatForm.Runnable() {
+
+									@Override
+									public void run() {
+										Conversation groupChat = selectedConversation;
+										Optional<UUID> authCode2 = registerUser(
+												groupChat, password);
+										if (!authCode2.isPresent()) {
+											return;
+										}
+										UUID messageId = UUID.randomUUID();
+										long timestamp = System
+												.currentTimeMillis();
+										Message message = new Message(
+												messageId, loggedInUser
+														.getUniqueId(), "uwu",
+												timestamp, groupChat);
+										if (!conversations.contains(groupChat)) {
+											conversations.add(groupChat);
+										}
+										UUID conversationId = groupChat
+												.getUniqueId();
+										Optional<SocketHandlerContext> ctx = Skype
+												.getPlugin().createHandle();
+										if (!ctx.isPresent()) {
+											return;
+										}
+										try {
+											ctx.get().getSocket()
+													.setSoTimeout(10000);
+										} catch (SocketException e) {
+											e.printStackTrace();
+										}
+										List<String> list = participants;
+										for (String participant : this
+												.getParticipants()) {
+											list.remove(participant);
+										}
+										list.add(loggedInUser.getSkypeName());
+										Object payload = GsonBuilder.create()
+												.toJson(list);
+										Optional<PacketPlayInReply> replyPacket = ctx
+												.get()
+												.getOutboundHandler()
+												.dispatch(
+														ctx.get(),
+														new PacketPlayOutUpdateGroupChatParticipants(
+																authCode2.get(),
+																payload));
+										if (!replyPacket.isPresent()) {
+											return;
+										}
+										if (replyPacket.get().getStatusCode() != 200) {
+											return;
+										}
+										replyPacket = ctx
+												.get()
+												.getOutboundHandler()
+												.dispatch(
+														ctx.get(),
+														new PacketPlayOutSendMessage(
+																authCode,
+																conversationId,
+																messageId,
+																message.toString(),
+																timestamp));
+										if (!replyPacket.isPresent()) {
+											return;
+										}
+										if (replyPacket.get().getStatusCode() != 200) {
+											return;
+										}
+										groupChat.setLastModified(new Date());
+										refreshWindow();
+										AudioIO.IM_SENT.playSound();
+									}
+								});
+						form.setLocationRelativeTo(label);
+						int x = form.getLocation().x;
+						int y = form.getLocation().y
+								+ (form.getContentPane().getHeight() / 2)
+								+ (label.getHeight() / 2) + 7;
+						form.setLocation(x, y);
+						form.show();
+					}
+
+				};
+
+				label.addMouseListener(mouseAdapter);
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+				statusLabel = label;
 			}
 
 			statusLabel.setFont(font);
@@ -2331,8 +2454,11 @@ public class MainForm extends JFrame {
 		 */
 		{
 			JPanel displayNameLabelPanel = new JPanel();
-			JLabel displayNameLabel = new JLabel(
-					selectedConversation.getDisplayName());
+			FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(
+					FontIO.SEGOE_UI_SEMILIGHT
+							.deriveFont(Font.TRUETYPE_FONT, 21));
+			JLabel displayNameLabel = new JLabel(Utils.concatStringEllipses(fm,
+					panelWidth - 320, selectedConversation.getDisplayName()));
 			displayNameLabel.setFont(FontIO.SEGOE_UI_SEMILIGHT.deriveFont(
 					Font.TRUETYPE_FONT, 21));
 
@@ -2357,8 +2483,45 @@ public class MainForm extends JFrame {
 							e.printStackTrace();
 						}
 					} else {
-						JOptionPane.showMessageDialog(frame,
-								selectedConversation);
+						if (selectedConversation.isGroupChat()) {
+							Conversation groupChat = selectedConversation;
+							String res2 = (String) JOptionPane.showInputDialog(
+									frame, "Enter new name for group chat",
+									frame.getTitle(),
+									JOptionPane.PLAIN_MESSAGE, null, null,
+									groupChat.getDisplayName());
+							if (res2 != null) {
+								if (res2.trim().equals("")) {
+									String displayName = "";
+									for (UUID participantId2 : groupChat
+											.getParticipants()) {
+										Optional<Conversation> userLookup = lookupUser(participantId2);
+										if (userLookup.isPresent()) {
+											displayName += userLookup.get()
+													.getDisplayName() + ", ";
+										} else {
+											displayName += participantId2
+													.toString() + ", ";
+										}
+									}
+									if (displayName.length() > 0) {
+										displayName = displayName.substring(0,
+												displayName.length() - 2);
+									}
+									res2 = displayName;
+								}
+								String displayName = groupChat.getDisplayName();
+								groupChat.setDisplayName(res2);
+								Optional<UUID> authCode2 = registerUser(
+										groupChat, password);
+								if (authCode2.isPresent()) {
+									refreshWindow(SCROLL_TO_BOTTOM);
+								} else {
+									groupChat.setDisplayName(displayName);
+								}
+							}
+							return;
+						}
 					}
 				}
 
@@ -2478,13 +2641,15 @@ public class MainForm extends JFrame {
 				@Override
 				public void mousePressed(MouseEvent evt) {
 					super.mousePressed(evt);
-					if (selectedConversation.isGroupChat()) {
-						// TODO: Add support for adding more participants
-						return;
-					}
 					List<String> skypeNames = new ArrayList<>();
 					for (Conversation conversation : conversations) {
 						if (conversation instanceof Contact) {
+							if (selectedConversation.isGroupChat()) {
+								if (selectedConversation.getParticipants()
+										.contains(conversation.getUniqueId())) {
+									continue;
+								}
+							}
 							skypeNames.add(conversation.getSkypeName());
 						}
 					}
@@ -2494,38 +2659,44 @@ public class MainForm extends JFrame {
 
 								@Override
 								public void run() {
-									String skypeName;
-									do {
-										skypeName = "guest:"
-												+ UUID.randomUUID().toString()
-														.replace("-", "")
-														.substring(0, 16);
-									} while (registry.contains(skypeName));
-									UUID participantId = Skype.getPlugin()
-											.getUniqueId(skypeName);
-									Conversation groupChat = new Conversation();
-									groupChat.setUniqueId(participantId);
-									groupChat.setGroupChat(true);
-									String displayName = "";
-									for (String participantId2 : this
-											.getParticipants()) {
-										Optional<Conversation> userLookup = lookupUser(Skype
-												.getPlugin().getUniqueId(
-														participantId2));
-										if (userLookup.isPresent()) {
-											displayName += userLookup.get()
-													.getDisplayName() + ", ";
-										} else {
-											displayName += participantId2
-													.toString() + ", ";
+									Conversation groupChat = selectedConversation;
+									if (!selectedConversation.isGroupChat()) {
+										String skypeName;
+										do {
+											skypeName = "guest:"
+													+ UUID.randomUUID()
+															.toString()
+															.replace("-", "")
+															.substring(0, 16);
+										} while (registry.contains(skypeName));
+										UUID participantId = Skype.getPlugin()
+												.getUniqueId(skypeName);
+										groupChat = new Conversation();
+										groupChat.setUniqueId(participantId);
+										groupChat.setGroupChat(true);
+										String displayName = "";
+										for (String participantId2 : this
+												.getParticipants()) {
+											Optional<Conversation> userLookup = lookupUser(Skype
+													.getPlugin().getUniqueId(
+															participantId2));
+											if (userLookup.isPresent()) {
+												displayName += userLookup.get()
+														.getDisplayName()
+														+ ", ";
+											} else {
+												displayName += participantId2
+														.toString() + ", ";
+											}
 										}
+										if (displayName.length() > 0) {
+											displayName = displayName
+													.substring(0, displayName
+															.length() - 2);
+										}
+										groupChat.setDisplayName(displayName);
+										groupChat.setSkypeName(skypeName);
 									}
-									if (displayName.length() > 0) {
-										displayName = displayName.substring(0,
-												displayName.length() - 2);
-									}
-									groupChat.setDisplayName(displayName);
-									groupChat.setSkypeName(skypeName);
 									Optional<UUID> authCode2 = registerUser(
 											groupChat, password);
 									if (!authCode2.isPresent()) {
@@ -2552,8 +2723,26 @@ public class MainForm extends JFrame {
 									} catch (SocketException e) {
 										e.printStackTrace();
 									}
+									List<String> list = this.getParticipants();
+									if (selectedConversation.isGroupChat()) {
+										List<String> skypeNames = new ArrayList<>();
+										for (UUID participantId2 : selectedConversation
+												.getParticipants()) {
+											Optional<Conversation> userLookup = lookupUser(participantId2);
+											if (userLookup.isPresent()) {
+												String skypeName = userLookup
+														.get().getSkypeName();
+												if (skypeName.equals(loggedInUser
+														.getSkypeName())) {
+													continue;
+												}
+												skypeNames.add(skypeName);
+											}
+										}
+										list.addAll(skypeNames);
+									}
 									Object payload = GsonBuilder.create()
-											.toJson(this.getParticipants());
+											.toJson(list);
 									Optional<PacketPlayInReply> replyPacket = ctx
 											.get()
 											.getOutboundHandler()
@@ -5795,11 +5984,6 @@ public class MainForm extends JFrame {
 	DataLine.Info micInfo = new DataLine.Info(TargetDataLine.class, format);
 	public TargetDataLine mic = null;
 
-	private Optional<Contact> registerUser(String displayName, String username,
-			String password) {
-		return registerUser(displayName, username, password);
-	}
-
 	private Optional<UUID> registerUser(Conversation conversation,
 			String password) {
 		Optional<SocketHandlerContext> ctx = Skype.getPlugin().createHandle();
@@ -5811,7 +5995,13 @@ public class MainForm extends JFrame {
 				password);
 		registerPacket.setSilent(true);
 		registerPacket.setGroupChat(conversation.isGroupChat());
-		ctx.get().getOutboundHandler().dispatch(ctx.get(), registerPacket);
+		Optional<PacketPlayInReply> replyPacket = ctx.get()
+				.getOutboundHandler().dispatch(ctx.get(), registerPacket);
+		boolean alreadyRegistered = false;
+		if (!replyPacket.isPresent()
+				|| replyPacket.get().getStatusCode() != 200) {
+			alreadyRegistered = true;
+		}
 		UUID authCode = UUID.fromString(ctx
 				.get()
 				.getOutboundHandler()
@@ -5824,6 +6014,18 @@ public class MainForm extends JFrame {
 		ctx.get().getOutboundHandler()
 				.dispatch(ctx.get(), new PacketPlayOutRefreshToken(authCode));
 		Contact contact = new Contact();
+		if (alreadyRegistered) {
+			replyPacket = ctx
+					.get()
+					.getOutboundHandler()
+					.dispatch(
+							ctx.get(),
+							new PacketPlayOutLookupUser(authCode, participantId));
+			if (!replyPacket.isPresent()) {
+				return Optional.empty();
+			}
+			contact = new Contact(replyPacket.get().getText());
+		}
 		contact.setUniqueId(participantId);
 		contact.setSkypeName(conversation.getSkypeName());
 		contact.setDisplayName(conversation.getDisplayName());

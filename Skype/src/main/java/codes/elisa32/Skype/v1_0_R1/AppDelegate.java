@@ -1,19 +1,11 @@
 package codes.elisa32.Skype.v1_0_R1;
 
 import java.awt.Font;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
 
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.plaf.FontUIResource;
 
-import org.bouncycastle.util.io.Streams;
-
-import codes.elisa32.Skype.v1_0_R1.cipher.CipherInputStream;
-import codes.elisa32.Skype.v1_0_R1.cipher.CipherOutputStream;
-import codes.elisa32.Skype.v1_0_R1.cipher.CipherUtilities;
 import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
 import codes.elisa32.Skype.v1_0_R1.forms.LoginForm;
 
@@ -164,29 +156,6 @@ public class AppDelegate {
 				"Button.font",
 				new FontUIResource(FontIO.TAHOMA.deriveFont(Font.TRUETYPE_FONT,
 						11)));
-
-		try {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			byte[] cipher = CipherUtilities.randomCipher();
-			CipherOutputStream cos = new CipherOutputStream(baos, cipher);
-			byte[] b = "Hello World".getBytes();
-			long before = System.currentTimeMillis();
-			for (int i = 0; i < 100; i++) {
-				cos.write(b, 0, b.length);
-				byte[] enc = baos.toByteArray();
-				ByteArrayInputStream bais = new ByteArrayInputStream(enc);
-				CipherInputStream cis = new CipherInputStream(bais, cipher);
-				ByteArrayOutputStream bos = new ByteArrayOutputStream();
-				Streams.pipeAll(cis, bos);
-				System.out.println(new String(bos.toByteArray()));
-				baos.reset();
-			}
-			cos.close();
-			long elapsed = System.currentTimeMillis() - before;
-			System.out.println(elapsed + "ms");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 
 		LoginForm loginForm = new LoginForm();
 		loginForm.show();

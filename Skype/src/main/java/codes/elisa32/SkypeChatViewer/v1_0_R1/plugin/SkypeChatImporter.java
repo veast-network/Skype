@@ -124,8 +124,10 @@ public class SkypeChatImporter extends JDialog implements Runnable {
 		contact.setSkypeName(username);
 		contact.setDisplayName(displayName);
 		contact.setOnlineStatus(Status.OFFLINE);
-		ctx.getOutboundHandler().dispatch(ctx,
-				new PacketPlayOutUpdateUser(authCode, participantId, contact));
+		PacketPlayOutUpdateUser updateUserPacket = new PacketPlayOutUpdateUser(
+				authCode, participantId, contact);
+		updateUserPacket.setSilent(true);
+		ctx.getOutboundHandler().dispatch(ctx, updateUserPacket);
 		contact = new Contact(contact.toString());
 		return contact;
 	}

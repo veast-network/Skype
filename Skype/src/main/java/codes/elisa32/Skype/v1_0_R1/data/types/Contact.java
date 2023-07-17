@@ -1,17 +1,12 @@
 package codes.elisa32.Skype.v1_0_R1.data.types;
 
-import java.nio.file.Files;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.TimeZone;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-
-import org.bouncycastle.openpgp.PGPPublicKeyRing;
-import org.pgpainless.PGPainless;
 
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
@@ -47,10 +42,15 @@ public class Contact extends Conversation {
 	public volatile String aboutMe;
 
 	public Contact() {
-		
+
 	}
 
 	public Contact(String json) {
+		readFromJson(json);
+	}
+
+	@Override
+	public void readFromJson(String json) {
 		Gson gson = GsonBuilder.create();
 		Contact clazz = gson.fromJson(json, Contact.class);
 		/**
