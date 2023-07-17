@@ -3,6 +3,7 @@ package codes.elisa32.Skype.v1_0_R1;
 import java.awt.Font;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
 
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;

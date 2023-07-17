@@ -10,7 +10,6 @@ import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
-import java.io.DataOutputStream;
 import java.net.Socket;
 import java.util.Optional;
 
@@ -31,6 +30,7 @@ import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
 import codes.elisa32.Skype.v1_0_R1.awt.AWTUtilities;
+import codes.elisa32.Skype.v1_0_R1.cipher.CipherOutputStream;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
 import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
 import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
@@ -68,20 +68,21 @@ public class IncomingCallForm extends JDialog {
 		Thread thread = new Thread(
 				() -> {
 					try {
-						DataOutputStream out = new DataOutputStream(ctx2.get()
-								.getSocket().getOutputStream());
 						byte tmpBuff[] = new byte[MainForm.get().mic
 								.getBufferSize() / 5];
 						MainForm.get().mic.start();
 						MainForm.get().callOutgoingAudioSockets.add(ctx2.get()
 								.getSocket());
-
+						byte[] cipher = new byte[] { 76, 75, 88, 69, 82, 73,
+								87, 55, 71, 83, 66, 73, 70, 88, 76, 75 };
+						CipherOutputStream cos = new CipherOutputStream(ctx2
+								.get().getSocket().getOutputStream(), cipher);
 						while (MainForm.get().isVisible()) {
 							try {
 								int count = MainForm.get().mic.read(tmpBuff, 0,
 										tmpBuff.length);
 								if (count > 0) {
-									out.write(tmpBuff, 0, count);
+									cos.write(tmpBuff, 0, count);
 								} else {
 									Thread.sleep(100);
 								}

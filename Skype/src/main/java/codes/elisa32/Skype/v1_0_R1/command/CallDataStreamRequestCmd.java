@@ -20,6 +20,7 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptCallDataStreamR
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
+import codes.elisa32.Skype.v1_0_R1.cipher.CipherInputStream;
 import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
 import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
 
@@ -54,7 +55,7 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 		final Socket socket = ctx2.get().getSocket();
 		Thread thread = new Thread(
 				() -> {
-					float sampleRate = 16000.0F;
+					float sampleRate = 8000.0F;
 					int sampleSizeBits = 16;
 					int channels = 1;
 					boolean signed = true;
@@ -82,11 +83,14 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 								.currentTimeMillis();
 						MainForm.get().refreshWindow();
 						JFrame mainForm = MainForm.get();
+						byte[] cipher = new byte[] { 76, 75, 88, 69, 82, 73,
+								87, 55, 71, 83, 66, 73, 70, 88, 76, 75 };
+						CipherInputStream cis = new CipherInputStream(socket
+								.getInputStream(), cipher);
 						while (mainForm.isVisible()) {
 							try {
-								byte[] b = new byte[1024];
-								int len = socket.getInputStream().read(b, 0,
-										b.length);
+								byte[] b = new byte[1616];
+								int len = cis.read(b, 0, b.length);
 								if (len == -1 || len == 0) {
 									break;
 								}
@@ -96,7 +100,7 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 								AudioInputStream ais = new AudioInputStream(
 										bais, format, len);
 								int bytesRead = 0;
-								byte[] data = new byte[1024];
+								byte[] data = new byte[1616];
 								bytesRead = ais.read(data);
 								if (bytesRead == -1) {
 									break;

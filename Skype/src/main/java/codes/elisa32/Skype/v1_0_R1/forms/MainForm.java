@@ -5766,7 +5766,7 @@ public class MainForm extends JFrame {
 		}
 	}
 
-	float sampleRate = 16000.0F;
+	float sampleRate = 8000.0F;
 	int sampleSizeBits = 16;
 	int channels = 1;
 	boolean signed = true;
