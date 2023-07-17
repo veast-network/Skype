@@ -10,8 +10,7 @@ import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.net.Socket;
 import java.util.Optional;
 
 import javax.sound.sampled.Clip;
@@ -31,6 +30,7 @@ import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
 import codes.elisa32.Skype.v1_0_R1.awt.AWTUtilities;
+import codes.elisa32.Skype.v1_0_R1.cipher.CipherOutputStream;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
 import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
 import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
@@ -50,17 +50,22 @@ public class IncomingCallForm extends JDialog {
 
 	private UUID authCode = MainForm.get().getAuthCode();
 
+	private byte[] cipher;
+
 	public void answerCall() {
 		UUID callId = packet.getCallId();
+		MainForm.get().ongoingCallCipher = cipher;
 		Optional<PacketPlayInReply> reply = ctx2
 				.get()
 				.getOutboundHandler()
 				.dispatch(ctx2.get(),
 						new PacketPlayOutAcceptCallRequest(authCode, callId));
 		if (!reply.isPresent()) {
+			MainForm.get().ongoingCallCipher = null;
 			return;
 		}
 		if (reply.get().getStatusCode() != 200) {
+			MainForm.get().ongoingCallCipher = null;
 			return;
 		}
 		MainForm.get().mic.stop();
@@ -68,19 +73,21 @@ public class IncomingCallForm extends JDialog {
 		Thread thread = new Thread(
 				() -> {
 					try {
-						DataOutputStream out = new DataOutputStream(ctx2.get()
-								.getSocket().getOutputStream());
 						byte tmpBuff[] = new byte[MainForm.get().mic
 								.getBufferSize() / 5];
 						MainForm.get().mic.start();
-						MainForm.get().callOutgoingAudioSocket = ctx2.get()
-								.getSocket();
-						while (true) {
+						MainForm.get().callOutgoingAudioSockets.add(ctx2.get()
+								.getSocket());
+						CipherOutputStream cos = new CipherOutputStream(ctx2
+								.get().getSocket().getOutputStream(), cipher);
+						while (MainForm.get().isVisible()) {
 							try {
 								int count = MainForm.get().mic.read(tmpBuff, 0,
 										tmpBuff.length);
 								if (count > 0) {
-									out.write(tmpBuff, 0, count);
+									cos.write(tmpBuff, 0, count);
+								} else {
+									Thread.sleep(100);
 								}
 							} catch (Exception e) {
 								e.printStackTrace();
@@ -90,34 +97,55 @@ public class IncomingCallForm extends JDialog {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					try {
-						MainForm.get().mic.stop();
-						MainForm.get().mic.drain();
-					} catch (Exception e2) {
-						e2.printStackTrace();
-					}
-					try {
-						MainForm.get().callIncomingAudioSocket.close();
-						MainForm.get().callOutgoingAudioSocket.close();
-						MainForm.get().ongoingCall = false;
-						MainForm.get().rightPanelPage = "Conversation";
-					} catch (IOException e2) {
-						e2.printStackTrace();
-					}
-					MainForm.get().refreshWindow();
+					if (MainForm.get().ongoingCallId != null)
+						if (callId.equals(MainForm.get().ongoingCallId)) {
+							try {
+								MainForm.get().mic.stop();
+								MainForm.get().mic.drain();
+							} catch (Exception e2) {
+								e2.printStackTrace();
+							}
+							try {
+								for (Socket socket : MainForm.get().callIncomingAudioSockets) {
+									socket.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							try {
+								for (Socket socket : MainForm.get().callOutgoingAudioSockets) {
+									socket.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							MainForm.get().ongoingCall = false;
+							MainForm.get().rightPanelPage = "Conversation";
+							MainForm.get().refreshWindow();
+						}
 				});
 		thread.start();
 		MainForm.get().rightPanelPage = "OngoingCall";
 		MainForm.get().ongoingCall = true;
+		MainForm.get().ongoingCallStartTime = System.currentTimeMillis();
+		for (Conversation conversation : MainForm.get().getConversations()) {
+			if (conversation.getUniqueId().equals(
+					this.conversation.getUniqueId())) {
+				MainForm.get().setSelectedConversation(conversation);
+				MainForm.get().ongoingCallConversation = conversation;
+				MainForm.get().ongoingCallId = packet.getCallId();
+			}
+		}
 		MainForm.get().refreshWindow();
 		dialog.dispatchEvent(new WindowEvent(dialog, WindowEvent.WINDOW_CLOSING));
 	}
 
 	public IncomingCallForm(PacketPlayInCallRequest packet,
-			Conversation conversation, boolean playSound) {
+			Conversation conversation, boolean playSound, byte[] cipher) {
 		this.conversation = conversation;
 		this.ctx2 = Skype.getPlugin().createHandle();
 		this.packet = packet;
+		this.cipher = cipher;
 
 		setTitle("Incoming Call");
 
@@ -243,9 +271,14 @@ public class IncomingCallForm extends JDialog {
 				JPanel iconLabelPanel = new JPanel();
 				iconLabelPanel
 						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
-				ImageIcon imageIcon = ImageIO.getScaledImageIcon(
-						ImageIO.getResourceAsImageIcon("/2121871768.png"),
-						new Dimension(66, 66));
+				ImageIcon imageIcon = ImageIO
+						.getScaledImageIcon(
+								conversation == null ? ImageIO
+										.getResourceAsImageIcon("/2121871768.png")
+										: (conversation.getImageIcon() == null ? ImageIO
+												.getResourceAsImageIcon("/2121871768.png")
+												: conversation.getImageIcon()),
+								new Dimension(66, 66));
 				JLabel iconLabel = new JLabel(imageIcon);
 
 				iconLabelPanel.setBounds(10, 36, 66, 66);

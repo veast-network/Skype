@@ -7,11 +7,14 @@ public class PacketPlayOutSendCallRequest extends Packet {
 	private UUID authCode;
 
 	private UUID conversationId;
+	
+	private String cipher;
 
-	public PacketPlayOutSendCallRequest(UUID authCode, UUID conversationId) {
+	public PacketPlayOutSendCallRequest(UUID authCode, UUID conversationId, String cipher) {
 		super(PacketType.SEND_CALL_REQUEST);
 		this.setAuthCode(authCode);
 		this.setConversationId(conversationId);
+		this.setCipher(cipher);
 	}
 
 	public UUID getAuthCode() {
@@ -28,6 +31,14 @@ public class PacketPlayOutSendCallRequest extends Packet {
 
 	public void setConversationId(UUID conversationId) {
 		this.conversationId = conversationId;
+	}
+
+	public String getCipher() {
+		return cipher;
+	}
+
+	public void setCipher(String cipher) {
+		this.cipher = cipher;
 	}
 
 }

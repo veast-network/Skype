@@ -1,5 +1,8 @@
 package codes.elisa32.Skype.server.v1_0_R1.command;
 
+import java.util.List;
+import java.util.Optional;
+
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
@@ -36,9 +39,46 @@ public class LoginCmd extends CommandExecutor {
 								+ " failed");
 				return replyPacket;
 			}
-			skypeName = con.getSkypeName();
+			if (packet.getSkypeName() == null
+					|| packet.getSkypeName().equals(con.getSkypeName())) {
+				skypeName = con.getSkypeName();
+			} else {
+				if (!Skype.getPlugin().getUserManager()
+						.isGroupChat(packet.getSkypeName())) {
+					PacketPlayInReply replyPacket = new PacketPlayInReply(
+							PacketPlayInReply.BAD_REQUEST, packet.getType()
+									.name() + " failed");
+					return replyPacket;
+				}
+				UUID conversationId = Skype.getPlugin().getUserManager()
+						.getUniqueId(packet.getSkypeName());
+				Optional<List<UUID>> groupChatAdmins = Skype.getPlugin()
+						.getConversationManager()
+						.getGroupChatAdmins(conversationId);
+				if (!groupChatAdmins.isPresent()) {
+					PacketPlayInReply replyPacket = new PacketPlayInReply(
+							PacketPlayInReply.BAD_REQUEST, packet.getType()
+									.name() + " failed");
+					return replyPacket;
+				}
+				boolean hit = false;
+				for (UUID participantId : groupChatAdmins.get()) {
+					if (Skype.getPlugin().getUserManager()
+							.getUniqueId(con.getSkypeName())
+							.equals(participantId)) {
+						skypeName = packet.getSkypeName();
+						hit = true;
+					}
+				}
+				if (!hit) {
+					PacketPlayInReply replyPacket = new PacketPlayInReply(
+							PacketPlayInReply.BAD_REQUEST, packet.getType()
+									.name() + " failed");
+					return replyPacket;
+				}
+			}
 		}
-		
+
 		if (packet.getProtocolVersion() != PacketPlayOutLogin.PROTOCOL_VERSION) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()

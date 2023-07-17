@@ -1,16 +1,13 @@
 package codes.elisa32.Skype.v1_0_R1;
 
 import java.awt.Font;
-import java.io.File;
 
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.plaf.FontUIResource;
 
 import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
-import codes.elisa32.Skype.v1_0_R1.forms.DialogForm;
 import codes.elisa32.Skype.v1_0_R1.forms.LoginForm;
-import codes.elisa32.Skype.v1_0_R1.imgur.ImgurUploader;
 
 public class AppDelegate {
 

@@ -32,14 +32,14 @@ public class SendCallRequestCmd extends CommandExecutor {
 		}
 		UUID callId = UUID.randomUUID();
 		UUID participantId = con.getUniqueId();
+		String cipher = packet.getCipher();
 		Call call = new Call(callId);
 		int hits = 0;
-		if (Skype.getPlugin().getConversationManager()
-				.isGroupChat(conversationId)) {
+		if (Skype.getPlugin().getUserManager().isGroupChat(conversationId)) {
 			Optional<List<UUID>> participants = Skype.getPlugin()
 					.getConversationManager().getParticipants(conversationId);
 			PacketPlayInCallRequest callRequestPacket = new PacketPlayInCallRequest(
-					participantId, callId);
+					conversationId, participantId, callId, cipher);
 			if (participants.isPresent()) {
 				for (UUID participant : participants.get()) {
 					if (participant.equals(participantId)) {
@@ -81,7 +81,7 @@ public class SendCallRequestCmd extends CommandExecutor {
 			}
 		} else {
 			PacketPlayInCallRequest callRequestPacket = new PacketPlayInCallRequest(
-					participantId, callId);
+					participantId, participantId, callId, cipher);
 			call.addParticipant(conversationId);
 			for (Connection listeningParticipant : Skype.getPlugin()
 					.getUserManager().getListeningConnections(conversationId)) {

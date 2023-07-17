@@ -1,5 +1,8 @@
 package codes.elisa32.Skype.server.v1_0_R1.command;
 
+import java.util.List;
+import java.util.Optional;
+
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInRemoveMessage;
@@ -53,34 +56,62 @@ public class RemoveMessageCmd extends CommandExecutor {
 				.addParticipants(conversationId, participantId);
 		Skype.getPlugin().getConversationManager()
 				.addParticipants(participantId, conversationId);
-		for (Connection listeningParticipant : Skype.getPlugin()
-				.getUserManager().getListeningConnections(conversationId)) {
-			PacketPlayInRemoveMessage messageReceivePacket = new PacketPlayInRemoveMessage(
-					participantId, participantId, messageId);
-			try {
-				listeningParticipant
-						.getSocketHandlerContext()
-						.getOutboundHandler()
-						.dispatchAsync(
-								listeningParticipant.getSocketHandlerContext(),
-								messageReceivePacket, null);
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
+		if (Skype.getPlugin().getUserManager().isGroupChat(conversationId)) {
+			Optional<List<UUID>> participants = Skype.getPlugin()
+					.getConversationManager().getParticipants(conversationId);
+			if (participants.isPresent()) {
+				for (UUID participantId2 : participants.get()) {
+					PacketPlayInRemoveMessage messageReceivePacket = new PacketPlayInRemoveMessage(
+							conversationId, participantId, messageId);
+					for (Connection listeningParticipant : Skype.getPlugin()
+							.getUserManager()
+							.getListeningConnections(participantId2)) {
+						try {
+							listeningParticipant
+									.getSocketHandlerContext()
+									.getOutboundHandler()
+									.dispatchAsync(
+											listeningParticipant
+													.getSocketHandlerContext(),
+											messageReceivePacket, null);
+						} catch (IllegalArgumentException e) {
+							e.printStackTrace();
+						}
+					}
+				}
 			}
-		}
-		for (Connection listeningParticipant : Skype.getPlugin()
-				.getUserManager().getListeningConnections(participantId)) {
-			PacketPlayInRemoveMessage messageReceivePacket = new PacketPlayInRemoveMessage(
-					conversationId, participantId, messageId);
-			try {
-				listeningParticipant
-						.getSocketHandlerContext()
-						.getOutboundHandler()
-						.dispatchAsync(
-								listeningParticipant.getSocketHandlerContext(),
-								messageReceivePacket, null);
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
+		} else {
+			for (Connection listeningParticipant : Skype.getPlugin()
+					.getUserManager().getListeningConnections(conversationId)) {
+				PacketPlayInRemoveMessage messageReceivePacket = new PacketPlayInRemoveMessage(
+						participantId, participantId, messageId);
+				try {
+					listeningParticipant
+							.getSocketHandlerContext()
+							.getOutboundHandler()
+							.dispatchAsync(
+									listeningParticipant
+											.getSocketHandlerContext(),
+									messageReceivePacket, null);
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				}
+			}
+			for (Connection listeningParticipant : Skype.getPlugin()
+					.getUserManager().getListeningConnections(participantId)) {
+				PacketPlayInRemoveMessage messageReceivePacket = new PacketPlayInRemoveMessage(
+						conversationId, participantId, messageId);
+				try {
+					listeningParticipant
+							.getSocketHandlerContext()
+							.getOutboundHandler()
+							.dispatchAsync(
+									listeningParticipant
+											.getSocketHandlerContext(),
+									messageReceivePacket, null);
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		PacketPlayInReply replyPacket = new PacketPlayInReply(

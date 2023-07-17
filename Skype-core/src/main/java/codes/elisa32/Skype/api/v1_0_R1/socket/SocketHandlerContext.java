@@ -29,9 +29,9 @@ public class SocketHandlerContext {
 
 		try {
 			/**
-			 * If a read operation blocks for more then 2s, throw err
+			 * If a read operation blocks for more then 8s, throw err
 			 */
-			socket.setSoTimeout(2000);
+			socket.setSoTimeout(8000);
 		} catch (SocketException e) {
 			e.printStackTrace();
 		}

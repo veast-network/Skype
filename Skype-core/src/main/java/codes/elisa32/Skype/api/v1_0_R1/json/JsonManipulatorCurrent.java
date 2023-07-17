@@ -1,7 +1,5 @@
 package codes.elisa32.Skype.api.v1_0_R1.json;
 
-import java.io.IOException;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
@@ -12,7 +10,7 @@ public class JsonManipulatorCurrent extends JsonManipulator {
 		try {
 			new Gson().getAdapter(JsonElement.class).fromJson(input);
 			return true;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			return false;
 		}
 	}

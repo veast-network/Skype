@@ -38,11 +38,35 @@ public class LookupConversationHistoryCmd extends CommandExecutor {
 		List<String> participantIdsWithinDateRange = new ArrayList<>();
 		if (participantIds.isPresent()) {
 			for (UUID participantId : participantIds.get()) {
-				List<String> messages = Skype.getPlugin()
-						.getConversationManager()
-						.getMessages(conversationId, participantId, from, to);
-				messages.addAll(Skype.getPlugin().getConversationManager()
-						.getMessages(participantId, conversationId, from, to));
+				List<String> messages = new ArrayList<>();
+				if (Skype.getPlugin().getUserManager()
+						.isGroupChat(participantId)) {
+					for (UUID participant : Skype.getPlugin()
+							.getConversationManager()
+							.getParticipants(participantId).get()) {
+						messages.addAll(Skype
+								.getPlugin()
+								.getConversationManager()
+								.getMessages(participant, participantId, from,
+										to));
+						messages.addAll(Skype
+								.getPlugin()
+								.getConversationManager()
+								.getMessages(participantId, participant, from,
+										to));
+					}
+				} else {
+					messages.addAll(Skype
+							.getPlugin()
+							.getConversationManager()
+							.getMessages(conversationId, participantId, from,
+									to));
+					messages.addAll(Skype
+							.getPlugin()
+							.getConversationManager()
+							.getMessages(participantId, conversationId, from,
+									to));
+				}
 				if (messages.size() > 0) {
 					participantIdsWithinDateRange.add(participantId.toString());
 				}

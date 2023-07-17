@@ -1,5 +1,7 @@
 package codes.elisa32.Skype.v1_0_R1.command;
 
+import java.util.Optional;
+
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInRemoveMessage;
@@ -31,9 +33,21 @@ public class RemoveMessageCmd extends CommandExecutor {
 									+ " deleted this message");
 							message.setDecryptedMessage(conversation
 									.getDisplayName() + " deleted this message");
-						} else {
+						} else if (participantId.equals(MainForm.get()
+								.getLoggedInUser().getUniqueId())) {
 							message.setMessage("You deleted this message");
 							message.setDecryptedMessage("You deleted this message");
+						} else {
+							Optional<Conversation> userLookup = MainForm.get()
+									.lookupUser(participantId);
+							if (userLookup.isPresent()) {
+								message.setMessage(userLookup.get()
+										.getDisplayName()
+										+ " deleted this message");
+								message.setDecryptedMessage(userLookup.get()
+										.getDisplayName()
+										+ " deleted this message");
+							}
 						}
 						message.setDeleted(true);
 						if (MainForm.get().rightPanelPage
@@ -41,7 +55,8 @@ public class RemoveMessageCmd extends CommandExecutor {
 							if (MainForm.get().getSelectedConversation()
 									.getUniqueId()
 									.equals(conversation.getUniqueId())) {
-								MainForm.get().refreshWindow(MainForm.get().SCROLL_TO_BOTTOM);
+								MainForm.get().refreshWindow(
+										MainForm.get().SCROLL_TO_BOTTOM);
 							}
 						}
 						break;
@@ -67,7 +82,8 @@ public class RemoveMessageCmd extends CommandExecutor {
 						MainForm.get().setSelectedConversation(null);
 						MainForm.get().rightPanelPage = "AccountHome";
 					} else {
-						MainForm.get().refreshWindow(MainForm.get().SCROLL_TO_BOTTOM);
+						MainForm.get().refreshWindow(
+								MainForm.get().SCROLL_TO_BOTTOM);
 						return PacketPlayInReply.empty();
 					}
 				}

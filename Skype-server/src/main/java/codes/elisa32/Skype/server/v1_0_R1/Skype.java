@@ -5,6 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandMap;
 import codes.elisa32.Skype.api.v1_0_R1.data.types.Call;
@@ -23,17 +24,20 @@ import codes.elisa32.Skype.server.v1_0_R1.command.EnteringListeningModeCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LoginCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupContactsCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupConversationHistoryCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.LookupConversationParticipantsCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.LookupGroupChatAdminsCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupMessageHistoryCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupOnlineStatusCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LookupUserCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.LookupUserRegistryCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.RefreshTokenCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.RegisterCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.RemoveMessageCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendContactRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendMessageCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.UpdateGroupChatParticipantsCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.UpdateUserCmd;
-import codes.elisa32.Skype.server.v1_0_R1.command.LookupUserRegistryCmd;
 import codes.elisa32.Skype.server.v1_0_R1.data.types.Connection;
 import codes.elisa32.Skype.server.v1_0_R1.manager.ConversationManager;
 import codes.elisa32.Skype.server.v1_0_R1.manager.UserManager;
@@ -48,7 +52,7 @@ public class Skype {
 
 	private HashMap<UUID, Connection> connectionMap = new HashMap<>();
 
-	private HashMap<UUID, Call> callMap = new HashMap<>();
+	private ConcurrentHashMap<UUID, Call> callMap = new ConcurrentHashMap<>();
 
 	private ConversationManager conversationManager;
 
@@ -88,11 +92,11 @@ public class Skype {
 		return connectionMap;
 	}
 
-	public HashMap<UUID, Call> getCallMap() {
+	public ConcurrentHashMap<UUID, Call> getCallMap() {
 		return callMap;
 	}
 
-	public void setCallMap(HashMap<UUID, Call> callMap) {
+	public void setCallMap(ConcurrentHashMap<UUID, Call> callMap) {
 		this.callMap = callMap;
 	}
 
@@ -110,17 +114,24 @@ public class Skype {
 		CommandMap.register(PacketType.LOGIN, new LoginCmd());
 		CommandMap.register(PacketType.REFRESH_TOKEN, new RefreshTokenCmd());
 		CommandMap.register(PacketType.UPDATE_USER, new UpdateUserCmd());
+		CommandMap.register(PacketType.UPDATE_GROUP_CHAT_PARTICIPANTS,
+				new UpdateGroupChatParticipantsCmd());
 		CommandMap.register(PacketType.ENTERING_LISTEN_MODE,
 				new EnteringListeningModeCmd());
 		CommandMap.register(PacketType.LOOKUP_USER, new LookupUserCmd());
 		CommandMap.register(PacketType.LOOKUP_ONLINE_STATUS,
 				new LookupOnlineStatusCmd());
-		CommandMap.register(PacketType.LOOKUP_USER_REGISTRY, new LookupUserRegistryCmd());
+		CommandMap.register(PacketType.LOOKUP_USER_REGISTRY,
+				new LookupUserRegistryCmd());
 		CommandMap.register(PacketType.MESSAGE_OUT, new SendMessageCmd());
 		CommandMap.register(PacketType.REMOVE_MESSAGE_OUT,
 				new RemoveMessageCmd());
 		CommandMap.register(PacketType.LOOKUP_CONVERSATION_HISTORY,
 				new LookupConversationHistoryCmd());
+		CommandMap.register(PacketType.LOOKUP_CONVERSATION_PARTICIPANTS,
+				new LookupConversationParticipantsCmd());
+		CommandMap.register(PacketType.LOOKUP_GROUP_CHAT_ADMINS,
+				new LookupGroupChatAdminsCmd());
 		CommandMap.register(PacketType.LOOKUP_MESSAGE_HISTORY,
 				new LookupMessageHistoryCmd());
 		CommandMap

@@ -17,10 +17,13 @@ import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.command.AcceptCallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.AcceptContactRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.CallDataStreamRequestCmd;
+import codes.elisa32.Skype.v1_0_R1.command.CallParticipantsChangedCmd;
 import codes.elisa32.Skype.v1_0_R1.command.CallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.DeclineCallRequestCmd;
+import codes.elisa32.Skype.v1_0_R1.command.GroupChatParticipantsChangedCmd;
 import codes.elisa32.Skype.v1_0_R1.command.ReceiveMessageCmd;
 import codes.elisa32.Skype.v1_0_R1.command.RemoveMessageCmd;
+import codes.elisa32.Skype.v1_0_R1.command.UpdateUserCmd;
 import codes.elisa32.Skype.v1_0_R1.command.UserRegistryChangedCmd;
 
 public class Skype {
@@ -33,7 +36,7 @@ public class Skype {
 
 	private ArrayList<SocketHandlerContext> handles = new ArrayList<>();
 
-	private String hostname = "eu-frankfurt-1.elisa32.codes";
+	private String hostname = "localhost";
 
 	static {
 		plugin = new Skype();
@@ -51,6 +54,11 @@ public class Skype {
 				new CallDataStreamRequestCmd());
 		CommandMap.register(PacketType.USER_REGISTRY_CHANGED_IN,
 				new UserRegistryChangedCmd());
+		CommandMap.register(PacketType.CALL_PARTICIPANTS_CHANGED_IN,
+				new CallParticipantsChangedCmd());
+		CommandMap.register(PacketType.GROUP_CHAT_PARTICIPANTS_CHANGED_IN,
+				new GroupChatParticipantsChangedCmd());
+		CommandMap.register(PacketType.UPDATE_USER_IN, new UpdateUserCmd());
 	}
 
 	public Skype() {

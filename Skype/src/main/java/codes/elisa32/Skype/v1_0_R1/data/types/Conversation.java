@@ -10,13 +10,28 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.pgpainless.PGPainless;
+
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupConversationParticipants;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupGroupChatAdmins;
+import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
+import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
 import codes.elisa32.Skype.v1_0_R1.imageio.ImageIO;
+import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
 
 import com.google.gson.Gson;
 
 public class Conversation {
+
+	/*
+	 * Public key
+	 */
+	public volatile String pubKey;
 
 	public volatile UUID uuid;
 
@@ -51,11 +66,6 @@ public class Conversation {
 					this.getImageIcon(), contact.getOnlineStatus());
 			onlineStatusPanel = entry.getKey();
 			onlineStatusLabel = entry.getValue();
-		} else if (this.isGroupChat()) {
-			Map.Entry<JPanel, JLabel> entry = ImageIO
-					.getConversationIconPanel(this.getImageIcon());
-			onlineStatusPanel = entry.getKey();
-			onlineStatusLabel = entry.getValue();
 		} else {
 			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
 					this.getImageIcon(), Status.NOT_A_CONTACT);
@@ -65,8 +75,13 @@ public class Conversation {
 	}
 
 	public Conversation(String json) {
+		readFromJson(json);
+	}
+
+	public void readFromJson(String json) {
 		Gson gson = GsonBuilder.create();
 		Conversation clazz = gson.fromJson(json, Conversation.class);
+		this.pubKey = clazz.pubKey;
 		this.uuid = clazz.uuid;
 		this.skypeName = clazz.skypeName;
 		this.name = clazz.name;
@@ -75,11 +90,6 @@ public class Conversation {
 			Contact contact = (Contact) this;
 			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
 					this.getImageIcon(), contact.getOnlineStatus());
-			onlineStatusPanel = entry.getKey();
-			onlineStatusLabel = entry.getValue();
-		} else if (this.isGroupChat()) {
-			Map.Entry<JPanel, JLabel> entry = ImageIO
-					.getConversationIconPanel(this.getImageIcon());
 			onlineStatusPanel = entry.getKey();
 			onlineStatusLabel = entry.getValue();
 		} else {
@@ -112,6 +122,23 @@ public class Conversation {
 	public String exportAsJson() {
 		Gson gson = GsonBuilder.create();
 		return gson.toJson(this);
+	}
+
+	public Optional<PGPPublicKeyRing> getPubKey() {
+		try {
+			if (pubKey != null) {
+				PGPPublicKeyRing pubKey = PGPainless.readKeyRing()
+						.publicKeyRing(this.pubKey);
+				return Optional.of(pubKey);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return Optional.empty();
+	}
+
+	public void setPubKey(String pubKey) {
+		this.pubKey = pubKey;
 	}
 
 	public UUID getUniqueId() {
@@ -198,7 +225,7 @@ public class Conversation {
 	public ImageIcon getImageIcon() {
 		if (imageIcon == null) {
 			if (groupChat) {
-				return imageIcon;
+				return ImageIO.getResourceAsImageIcon("/151908522.png");
 			} else {
 				return ImageIO.getResourceAsImageIcon("/1595064335.png");
 			}
@@ -230,6 +257,100 @@ public class Conversation {
 
 	public void setOnlineStatusLabel(JLabel onlineStatusLabel) {
 		this.onlineStatusLabel = onlineStatusLabel;
+	}
+
+	private List<UUID> participants = null;
+
+	public void setParticipants(List<UUID> participants) {
+		this.participants = participants;
+	}
+
+	public List<UUID> getParticipants() {
+		if (participants != null) {
+			return participants;
+		}
+		if (!groupChat) {
+			return new ArrayList<>();
+		}
+		Optional<SocketHandlerContext> ctx = Skype.getPlugin().createHandle();
+		if (!ctx.isPresent()) {
+			return new ArrayList<>();
+		}
+		Optional<PacketPlayInReply> reply = ctx
+				.get()
+				.getOutboundHandler()
+				.dispatch(ctx.get(),
+						new PacketPlayOutLogin(MainForm.get().getAuthCode()));
+		if (!reply.isPresent() || reply.get().getStatusCode() != 200) {
+			return new ArrayList<>();
+		}
+		UUID authCode = UUID.fromString(reply.get().getText());
+		PacketPlayOutLookupConversationParticipants packet = new PacketPlayOutLookupConversationParticipants(
+				authCode, this.getUniqueId());
+		Optional<PacketPlayInReply> replyPacket = ctx.get()
+				.getOutboundHandler().dispatch(ctx.get(), packet);
+		if (!replyPacket.isPresent()) {
+			return new ArrayList<>();
+		}
+		if (replyPacket.get().getStatusCode() != 200) {
+			return new ArrayList<>();
+		}
+		String json = replyPacket.get().getText();
+		Gson gson = GsonBuilder.create();
+		List<String> participants = gson.fromJson(json, List.class);
+		List<UUID> participantIds = new ArrayList<>();
+		for (String participant : participants) {
+			participantIds.add(UUID.fromString(participant));
+		}
+		this.participants = participantIds;
+		return participantIds;
+	}
+
+	private List<UUID> groupChatAdmins = null;
+
+	public void setGroupChatAdmins(List<UUID> groupChatAdmins) {
+		this.groupChatAdmins = groupChatAdmins;
+	}
+
+	public List<UUID> getGroupChatAdmins() {
+		if (groupChatAdmins != null) {
+			return groupChatAdmins;
+		}
+		if (!groupChat) {
+			return new ArrayList<>();
+		}
+		Optional<SocketHandlerContext> ctx = Skype.getPlugin().createHandle();
+		if (!ctx.isPresent()) {
+			return new ArrayList<>();
+		}
+		Optional<PacketPlayInReply> reply = ctx
+				.get()
+				.getOutboundHandler()
+				.dispatch(ctx.get(),
+						new PacketPlayOutLogin(MainForm.get().getAuthCode()));
+		if (!reply.isPresent() || reply.get().getStatusCode() != 200) {
+			return new ArrayList<>();
+		}
+		UUID authCode = UUID.fromString(reply.get().getText());
+		PacketPlayOutLookupGroupChatAdmins packet = new PacketPlayOutLookupGroupChatAdmins(
+				authCode, this.getUniqueId());
+		Optional<PacketPlayInReply> replyPacket = ctx.get()
+				.getOutboundHandler().dispatch(ctx.get(), packet);
+		if (!replyPacket.isPresent()) {
+			return new ArrayList<>();
+		}
+		if (replyPacket.get().getStatusCode() != 200) {
+			return new ArrayList<>();
+		}
+		String json = replyPacket.get().getText();
+		Gson gson = GsonBuilder.create();
+		List<String> participants = gson.fromJson(json, List.class);
+		List<UUID> participantIds = new ArrayList<>();
+		for (String participant : participants) {
+			participantIds.add(UUID.fromString(participant));
+		}
+		this.groupChatAdmins = participantIds;
+		return participantIds;
 	}
 
 }

@@ -7,8 +7,8 @@ import java.util.Optional;
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
-import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInUserRegistryChanged;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInUserRegistryChanged;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRegister;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
@@ -25,6 +25,7 @@ public class RegisterCmd extends CommandExecutor {
 		String fullName = packet.getFullName();
 		String skypeName = packet.getSkypeName();
 		String password = packet.getPassword();
+		boolean isGroupChat = packet.isGroupChat();
 		if (fullName == null) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST,
@@ -77,7 +78,7 @@ public class RegisterCmd extends CommandExecutor {
 			return replyPacket;
 		}
 		if (!Skype.getPlugin().getUserManager()
-				.createUser(ctx, fullName, skypeName, password)) {
+				.createUser(ctx, fullName, skypeName, password, isGroupChat)) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
 							+ " failed");
@@ -102,6 +103,12 @@ public class RegisterCmd extends CommandExecutor {
 				Optional<String> skypeName2 = Skype.getPlugin()
 						.getUserManager().getSkypeName(participantId);
 				if (skypeName2.isPresent()) {
+					if (skypeName2.get().startsWith("guest:")) {
+						if (Skype.getPlugin().getUserManager()
+								.isGroupChat(skypeName2.get())) {
+							continue;
+						}
+					}
 					if (!skypeNames.contains(skypeName2.get())) {
 						skypeNames.add(skypeName2.get());
 					}
@@ -121,16 +128,26 @@ public class RegisterCmd extends CommandExecutor {
 					try {
 						con.getSocketHandlerContext()
 								.getOutboundHandler()
-								.dispatchAsync(
-										con.getSocketHandlerContext(),
+								.write(con.getSocketHandlerContext(),
 										new PacketPlayInUserRegistryChanged(
-												payload), null);
+												payload));
 					} catch (IllegalArgumentException e) {
 						e.printStackTrace();
 					}
 				}
 			}
 
+		}
+
+		if (packet.isGroupChat()) {
+			if (packet.getGroupChatAdmin() != null) {
+				UUID conversationId = Skype.getPlugin().getUserManager()
+						.getUniqueId(skypeName);
+				Skype.getPlugin()
+						.getConversationManager()
+						.setGroupChatAdmins(conversationId,
+								packet.getGroupChatAdmin());
+			}
 		}
 
 		/**

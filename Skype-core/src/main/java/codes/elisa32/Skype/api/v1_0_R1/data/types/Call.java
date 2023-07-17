@@ -12,7 +12,7 @@ public class Call {
 
 	public volatile UUID callId;
 
-	private volatile List<String> participants = new ArrayList<String>();
+	private List<String> participants = new ArrayList<String>();
 
 	public volatile long creationTime = System.currentTimeMillis();
 
@@ -47,7 +47,11 @@ public class Call {
 	}
 
 	public boolean isParticipant(UUID participantId) {
-		for (String participant : this.participants) {
+		for (String participant : this.participants.toArray(new String[0])
+				.clone()) {
+			if (participant == null) {
+				continue;
+			}
 			if (participant.equals(participantId.toString())) {
 				return true;
 			}
@@ -65,7 +69,11 @@ public class Call {
 
 	public List<UUID> getParticipants() {
 		List<UUID> participants = new ArrayList<>();
-		for (String participant : this.participants) {
+		for (String participant : this.participants.toArray(new String[0])
+				.clone()) {
+			if (participant == null) {
+				continue;
+			}
 			participants.add(UUID.fromString(participant));
 		}
 		return participants;

@@ -10,7 +10,6 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
-import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
 import codes.elisa32.Skype.v1_0_R1.data.types.Contact;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
 import codes.elisa32.Skype.v1_0_R1.data.types.Message;
@@ -28,12 +27,14 @@ public class ReceiveMessageCmd extends CommandExecutor {
 		UUID authCode = MainForm.get().getAuthCode();
 		Contact loggedInUser = MainForm.get().getLoggedInUser();
 		UUID conversationId = packet.getConversationId();
+		UUID participantId = packet.getParticipantId();
 		String json = packet.getPayload().toString();
 		Message message = new Message(json);
 		boolean hit = false;
 		Conversation _conversation = null;
 		for (Conversation conversation : MainForm.get().getConversations()) {
 			if (conversation.getUniqueId().equals(conversationId)) {
+				message.setConversation(conversation);
 				conversation.getMessages().add(message);
 				conversation.setNotificationCount(conversation
 						.getNotificationCount() + 1);
@@ -68,6 +69,7 @@ public class ReceiveMessageCmd extends CommandExecutor {
 					.getSelectedConversation();
 			if (conversation != null) {
 				if (conversation.getUniqueId().equals(conversationId)) {
+					message.setConversation(conversation);
 					conversation.getMessages().add(message);
 					conversation.setNotificationCount(conversation
 							.getNotificationCount() + 1);
@@ -117,6 +119,11 @@ public class ReceiveMessageCmd extends CommandExecutor {
 			}
 			Conversation conversation = new Conversation(replyPacket.get()
 					.getText());
+			if (conversation.isGroupChat()) {
+				message.setConversation(conversation);
+			} else {
+				conversation.setDisplayName(conversation.getSkypeName());
+			}
 			conversation.getMessages().add(message);
 			conversation.setNotificationCount(1);
 			conversation.setLastModified(new Date());
