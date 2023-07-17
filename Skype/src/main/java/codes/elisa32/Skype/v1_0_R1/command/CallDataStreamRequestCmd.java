@@ -84,12 +84,13 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 						MainForm.get().refreshWindow();
 						JFrame mainForm = MainForm.get();
 						byte[] cipher = MainForm.get().ongoingCallCipher;
-						CipherInputStream cis = new CipherInputStream(socket
-								.getInputStream(), cipher);
+						/*CipherInputStream cis = new CipherInputStream(socket
+								.getInputStream(), cipher);*/
 						while (mainForm.isVisible()) {
 							try {
 								byte[] b = new byte[1616];
-								int len = cis.read(b, 0, b.length);
+								int len = socket
+										.getInputStream().read(b, 0, b.length);
 								if (len == -1 || len == 0) {
 									break;
 								}

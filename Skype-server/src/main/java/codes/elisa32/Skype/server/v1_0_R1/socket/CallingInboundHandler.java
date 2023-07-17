@@ -41,7 +41,7 @@ public class CallingInboundHandler implements Runnable {
 		}
 		while (true) {
 			try {
-				byte[] b = new byte[1616];
+				byte[] b = new byte[16384];
 				int len = socket.getInputStream().read(b, 0, b.length);
 				if (len == -1 || len == 0) {
 					break;

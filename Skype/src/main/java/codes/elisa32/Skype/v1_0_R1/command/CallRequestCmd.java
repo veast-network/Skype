@@ -105,16 +105,16 @@ public class CallRequestCmd extends CommandExecutor {
 							MainForm.get().callOutgoingAudioSockets.add(ctx2
 									.get().getSocket());
 							JFrame mainForm = MainForm.get();
-							CipherOutputStream cos = new CipherOutputStream(
+							/*CipherOutputStream cos = new CipherOutputStream(
 									ctx2.get().getSocket().getOutputStream(),
-									cipher);
+									cipher);*/
 							while (mainForm.isVisible()) {
 								try {
 									int count = MainForm.get().mic.read(
 											tmpBuff, 0, tmpBuff.length);
 									if (count > 0) {
 										try {
-											cos.write(tmpBuff, 0, count);
+											ctx2.get().getSocket().getOutputStream().write(tmpBuff, 0, count);
 										} catch (Exception e) {
 											e.printStackTrace();
 											break;
