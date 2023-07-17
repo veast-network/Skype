@@ -2369,6 +2369,50 @@ public class MainForm extends JFrame {
 										@Override
 										public void run() {
 											Conversation groupChat = selectedConversation;
+											boolean displayNameUpdate = false;
+											{
+												String displayName = "";
+												int x = 0;
+												for (UUID participantId2 : groupChat
+														.getParticipants()) {
+													Optional<Conversation> userLookup = lookupUser(participantId2);
+													if (userLookup.isPresent()) {
+														if (x == groupChat
+																.getParticipants()
+																.size() - 2) {
+															displayName += userLookup
+																	.get()
+																	.getDisplayName()
+																	+ ", and ";
+														} else {
+															displayName += userLookup
+																	.get()
+																	.getDisplayName()
+																	+ ", ";
+														}
+													} else {
+														displayName += participantId2
+																.toString()
+																+ ", ";
+													}
+													x++;
+												}
+												if (displayName.length() > 0) {
+													displayName = displayName
+															.substring(
+																	0,
+																	displayName
+																			.length() - 2);
+												}
+												System.out.println(displayName
+														+ ":"
+														+ groupChat
+																.getDisplayName());
+												if (displayName.equals(groupChat
+														.getDisplayName())) {
+													displayNameUpdate = true;
+												}
+											}
 											Optional<UUID> authCode2 = registerUser(
 													groupChat, password);
 											if (!authCode2.isPresent()) {
@@ -2480,7 +2524,39 @@ public class MainForm extends JFrame {
 											}
 											groupChat
 													.setLastModified(new Date());
-											refreshWindow();
+											if (displayNameUpdate) {
+												String displayName2 = "";
+												int x2 = 0;
+												for (String participantId2 : list) {
+													if (x2 == list.size() - 2) {
+														displayName2 += participantId2
+																+ ", and ";
+													} else {
+														displayName2 += participantId2
+																+ ", ";
+													}
+													x2++;
+												}
+												if (displayName2.length() > 0) {
+													displayName2 = displayName2
+															.substring(
+																	0,
+																	displayName2
+																			.length() - 2);
+												}
+												String res2 = displayName2;
+												groupChat.setDisplayName(res2);
+												registerUser(groupChat,
+														password);
+												if (authCode2.isPresent()) {
+													refreshWindow(SCROLL_TO_BOTTOM);
+												} else {
+													groupChat
+															.setDisplayName(displayName2);
+												}
+											} else {
+												refreshWindow(SCROLL_TO_BOTTOM);
+											}
 											AudioIO.IM_SENT.playSound();
 										}
 									});
@@ -2779,6 +2855,7 @@ public class MainForm extends JFrame {
 								@Override
 								public void run() {
 									Conversation groupChat = selectedConversation;
+									boolean displayNameUpdate = false;
 									if (!selectedConversation.isGroupChat()) {
 										String skypeName;
 										do {
@@ -2826,6 +2903,41 @@ public class MainForm extends JFrame {
 										}
 										groupChat.setDisplayName(displayName);
 										groupChat.setSkypeName(skypeName);
+									} else {
+										String displayName = "";
+										int x = 0;
+										for (UUID participantId2 : groupChat
+												.getParticipants()) {
+											Optional<Conversation> userLookup = lookupUser(participantId2);
+											if (userLookup.isPresent()) {
+												if (x == groupChat
+														.getParticipants()
+														.size() - 2) {
+													displayName += userLookup
+															.get()
+															.getDisplayName()
+															+ ", and ";
+												} else {
+													displayName += userLookup
+															.get()
+															.getDisplayName()
+															+ ", ";
+												}
+											} else {
+												displayName += participantId2
+														.toString() + ", ";
+											}
+											x++;
+										}
+										if (displayName.length() > 0) {
+											displayName = displayName
+													.substring(0, displayName
+															.length() - 2);
+										}
+										if (displayName.equals(groupChat
+												.getDisplayName())) {
+											displayNameUpdate = true;
+										}
 									}
 									Optional<UUID> authCode2 = registerUser(
 											groupChat, password);
@@ -2952,7 +3064,37 @@ public class MainForm extends JFrame {
 										return;
 									}
 									groupChat.setLastModified(new Date());
-									refreshWindow();
+									if (selectedConversation.isGroupChat()
+											&& displayNameUpdate) {
+										String displayName2 = "";
+										int x2 = 0;
+										for (String participantId2 : list) {
+											if (x2 == list.size() - 2) {
+												displayName2 += participantId2
+														+ ", and ";
+											} else {
+												displayName2 += participantId2
+														+ ", ";
+											}
+											x2++;
+										}
+										if (displayName2.length() > 0) {
+											displayName2 = displayName2
+													.substring(0, displayName2
+															.length() - 2);
+										}
+										String res2 = displayName2;
+										groupChat.setDisplayName(res2);
+										registerUser(groupChat, password);
+										if (authCode2.isPresent()) {
+											refreshWindow(SCROLL_TO_BOTTOM);
+										} else {
+											groupChat
+													.setDisplayName(displayName2);
+										}
+									} else {
+										refreshWindow(SCROLL_TO_BOTTOM);
+									}
 									AudioIO.IM_SENT.playSound();
 								}
 							});
