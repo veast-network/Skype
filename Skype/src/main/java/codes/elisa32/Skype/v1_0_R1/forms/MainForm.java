@@ -2580,16 +2580,26 @@ public class MainForm extends JFrame {
 							if (res2 != null) {
 								if (res2.trim().equals("")) {
 									String displayName = "";
+									int x = 0;
 									for (UUID participantId2 : groupChat
 											.getParticipants()) {
 										Optional<Conversation> userLookup = lookupUser(participantId2);
 										if (userLookup.isPresent()) {
-											displayName += userLookup.get()
-													.getDisplayName() + ", ";
+											if (x == groupChat
+													.getParticipants().size() - 2) {
+												displayName += userLookup.get()
+														.getDisplayName()
+														+ ", and ";
+											} else {
+												displayName += userLookup.get()
+														.getDisplayName()
+														+ ", ";
+											}
 										} else {
 											displayName += participantId2
 													.toString() + ", ";
 										}
+										x++;
 									}
 									if (displayName.length() > 0) {
 										displayName = displayName.substring(0,
@@ -2809,6 +2819,11 @@ public class MainForm extends JFrame {
 											}
 											x++;
 										}
+										if (displayName.length() > 0) {
+											displayName = displayName
+													.substring(0, displayName
+															.length() - 2);
+										}
 										groupChat.setDisplayName(displayName);
 										groupChat.setSkypeName(skypeName);
 									}
@@ -2830,24 +2845,37 @@ public class MainForm extends JFrame {
 												"?", timestamp, groupChat);
 									} else {
 										String displayName = "";
-										for (String participantId2 : this
+										int x = 0;
+										List<String> names = new ArrayList<>();
+										for (String name : this
 												.getParticipants()) {
-											if (participantId2
-													.equals(loggedInUser
-															.getSkypeName())) {
+											if (name.equals(loggedInUser
+													.getSkypeName())) {
 												continue;
 											}
+											names.add(name);
+										}
+										for (String participantId2 : names) {
 											Optional<Conversation> userLookup = lookupUser(Skype
 													.getPlugin().getUniqueId(
 															participantId2));
 											if (userLookup.isPresent()) {
-												displayName += userLookup.get()
-														.getDisplayName()
-														+ ", ";
+												if (x == names.size() - 2) {
+													displayName += userLookup
+															.get()
+															.getDisplayName()
+															+ ", and ";
+												} else {
+													displayName += userLookup
+															.get()
+															.getDisplayName()
+															+ ", ";
+												}
 											} else {
 												displayName += participantId2
 														.toString() + ", ";
 											}
+											x++;
 										}
 										if (displayName.length() > 0) {
 											displayName = displayName

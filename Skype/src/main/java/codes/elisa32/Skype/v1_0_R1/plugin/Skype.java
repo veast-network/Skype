@@ -36,7 +36,7 @@ public class Skype {
 
 	private ArrayList<SocketHandlerContext> handles = new ArrayList<>();
 
-	private String hostname = "eu-frankfurt-1.elisa32.codes";
+	private String hostname = "localhost";
 
 	static {
 		plugin = new Skype();
