@@ -3,6 +3,7 @@ package codes.elisa32.Skype.v1_0_R1.cipher;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -66,6 +67,14 @@ public class CipherUtilities {
 		return createCipher(password, Cipher.ENCRYPT_MODE);
 	}
 
+	public static byte[] decodeBase64(String encodedStr) {
+		return java.util.Base64.getDecoder().decode(encodedStr);
+	}
+
+	public static String encodeBase64(byte[] decodedByteArr) {
+		return java.util.Base64.getEncoder().encodeToString(decodedByteArr);
+	}
+
 	public static byte[] randomCipher() throws InvalidKeyException,
 			NoSuchPaddingException, NoSuchAlgorithmException,
 			InvalidAlgorithmParameterException, UnsupportedEncodingException {
@@ -77,7 +86,8 @@ public class CipherUtilities {
 	public static byte[] encryptData(byte[] cipher, byte[] data)
 			throws IOException, InvalidKeyException, NoSuchPaddingException,
 			NoSuchAlgorithmException, InvalidAlgorithmParameterException {
-		javax.crypto.Cipher arg0 = CipherUtilities.createEncryptionCipher(cipher);
+		javax.crypto.Cipher arg0 = CipherUtilities
+				.createEncryptionCipher(cipher);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		javax.crypto.CipherOutputStream cipherOutputStream = new javax.crypto.CipherOutputStream(
 				baos, arg0);

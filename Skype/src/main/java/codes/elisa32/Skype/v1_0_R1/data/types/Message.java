@@ -118,8 +118,8 @@ public class Message implements Comparable<Message> {
 			}
 		}
 		if (message.startsWith("-----BEGIN PGP MESSAGE-----")) {
-			DecryptionResult result = PGPUtilities.decryptAndVerify(this,
-					sender);
+			DecryptionResult result = PGPUtilities.decryptAndVerify(
+					message, sender);
 			decryptionSuccessful = result.isSuccessful();
 			signatureVerified = result.isSignatureVerified();
 			decryptedMessage = result.getMessage();

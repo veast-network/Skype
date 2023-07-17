@@ -83,8 +83,7 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 								.currentTimeMillis();
 						MainForm.get().refreshWindow();
 						JFrame mainForm = MainForm.get();
-						byte[] cipher = new byte[] { 76, 75, 88, 69, 82, 73,
-								87, 55, 71, 83, 66, 73, 70, 88, 76, 75 };
+						byte[] cipher = MainForm.get().ongoingCallCipher;
 						CipherInputStream cis = new CipherInputStream(socket
 								.getInputStream(), cipher);
 						while (mainForm.isVisible()) {
@@ -124,6 +123,7 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 							MainForm.get().ongoingCallConversation = null;
 							MainForm.get().ongoingCallParticipants.clear();
 							MainForm.get().ongoingCallId = null;
+							MainForm.get().ongoingCallCipher = null;
 							MainForm.get().rightPanelPage = "Conversation";
 							MainForm.get().ongoingCallStartTime = 0L;
 							MainForm.get().refreshWindow(

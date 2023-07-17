@@ -14,9 +14,12 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.cipher.CipherOutputStream;
+import codes.elisa32.Skype.v1_0_R1.cipher.CipherUtilities;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
 import codes.elisa32.Skype.v1_0_R1.forms.IncomingCallForm;
 import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
+import codes.elisa32.Skype.v1_0_R1.pgp.PGPUtilities;
+import codes.elisa32.Skype.v1_0_R1.pgp.PGPUtilities.DecryptionResult;
 import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
 
 public class CallRequestCmd extends CommandExecutor {
@@ -44,6 +47,24 @@ public class CallRequestCmd extends CommandExecutor {
 		authCode = UUID.fromString(reply.get().getText());
 		UUID conversationId = packet.getConversationId();
 		UUID participantId = packet.getParticipantId();
+
+		final byte[] cipher;
+
+		{
+			String pgp = packet.getCipher();
+			Optional<Conversation> userLookup = MainForm.get().lookupUser(
+					participantId);
+			if (!userLookup.isPresent()) {
+				return PacketPlayInReply.empty();
+			}
+			DecryptionResult result = PGPUtilities.decryptAndVerify(pgp,
+					userLookup.get());
+			if (!result.isSuccessful() || !result.isSignatureVerified()) {
+				return PacketPlayInReply.empty();
+			}
+			cipher = CipherUtilities.decodeBase64(result.getMessage());
+		}
+
 		Conversation personWhoIsCalling = null;
 		for (Conversation conversation : MainForm.get().getConversations()) {
 			if (conversation.getUniqueId().equals(conversationId)) {
@@ -51,7 +72,8 @@ public class CallRequestCmd extends CommandExecutor {
 			}
 		}
 		if (personWhoIsCalling == null) {
-			Optional<Conversation> userLookup = MainForm.get().lookupUser(conversationId);
+			Optional<Conversation> userLookup = MainForm.get().lookupUser(
+					conversationId);
 			if (userLookup.isPresent()) {
 				personWhoIsCalling = userLookup.get();
 				MainForm.get().getConversations().add(personWhoIsCalling);
@@ -59,6 +81,7 @@ public class CallRequestCmd extends CommandExecutor {
 		}
 		if (participantId.equals(loggedInUser)) {
 			MainForm.get().ongoingCallId = callId;
+			MainForm.get().ongoingCallCipher = cipher;
 			reply = ctx2
 					.get()
 					.getOutboundHandler()
@@ -82,9 +105,9 @@ public class CallRequestCmd extends CommandExecutor {
 							MainForm.get().callOutgoingAudioSockets.add(ctx2
 									.get().getSocket());
 							JFrame mainForm = MainForm.get();
-							byte[] cipher = new byte[] {76, 75, 88, 69, 82, 73, 87, 55, 71, 83, 66, 73, 70, 88, 76, 75};
-							CipherOutputStream cos = new CipherOutputStream(ctx2
-									.get().getSocket().getOutputStream(), cipher);
+							CipherOutputStream cos = new CipherOutputStream(
+									ctx2.get().getSocket().getOutputStream(),
+									cipher);
 							while (mainForm.isVisible()) {
 								try {
 									int count = MainForm.get().mic.read(
@@ -118,6 +141,7 @@ public class CallRequestCmd extends CommandExecutor {
 								MainForm.get().ongoingCallConversation = null;
 								MainForm.get().ongoingCallParticipants.clear();
 								MainForm.get().ongoingCallId = null;
+								MainForm.get().ongoingCallCipher = null;
 								MainForm.get().rightPanelPage = "Conversation";
 								MainForm.get().ongoingCallStartTime = 0L;
 								MainForm.get().refreshWindow(
@@ -141,7 +165,7 @@ public class CallRequestCmd extends CommandExecutor {
 			thread.start();
 		} else {
 			IncomingCallForm incomingCallForm = new IncomingCallForm(packet,
-					personWhoIsCalling, true);
+					personWhoIsCalling, true, cipher);
 			incomingCallForm.show();
 		}
 		return PacketPlayInReply.empty();

@@ -137,33 +137,20 @@ public class PGPUtilities {
 		return arg0;
 	}
 
-	public static DecryptionResult decryptAndVerify(Message arg0,
+	public static DecryptionResult decryptAndVerify(String arg0,
 			Conversation arg1) {
 		try {
 			PGPSecretKeyRing secretKey = createOrLookupPrivateKey(MainForm
 					.get().getLoggedInUser().getSkypeName());
-			if (arg1.isGroupChat()) {
-				Optional<Conversation> userLookup = MainForm.get().lookupUser(
-						arg0.getSender());
-				if (userLookup.isPresent()) {
-					Optional<PGPPublicKeyRing> pubKey = userLookup.get()
-							.getPubKey();
-					if (pubKey.isPresent()) {
-						return decryptAndVerify(arg0.getMessage(), secretKey,
-								pubKey.get());
-					}
-				}
-			} else {
-				Optional<PGPPublicKeyRing> pubKey = arg1.getPubKey();
-				if (pubKey.isPresent()) {
-					return decryptAndVerify(arg0.getMessage(), secretKey,
-							pubKey.get());
-				}
+			Optional<PGPPublicKeyRing> pubKey = arg1.getPubKey();
+			if (pubKey.isPresent()) {
+				return decryptAndVerify(arg0, secretKey,
+						pubKey.get());
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return new DecryptionResult(arg0.getMessage(), false, false);
+		return new DecryptionResult(arg0, false, false);
 	}
 
 	public static String encryptAndSign(String arg0,

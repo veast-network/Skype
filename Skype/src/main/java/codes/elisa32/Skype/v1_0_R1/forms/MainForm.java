@@ -36,9 +36,11 @@ import java.beans.PropertyChangeListener;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -52,6 +54,7 @@ import java.util.Optional;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
+import javax.crypto.NoSuchPaddingException;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
@@ -117,6 +120,7 @@ import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.Utils;
 import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
+import codes.elisa32.Skype.v1_0_R1.cipher.CipherUtilities;
 import codes.elisa32.Skype.v1_0_R1.data.types.Contact;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
 import codes.elisa32.Skype.v1_0_R1.data.types.Message;
@@ -288,6 +292,7 @@ public class MainForm extends JFrame {
 	public Conversation ongoingCallConversation = null;
 	public List<UUID> ongoingCallParticipants = new ArrayList<>();
 	public UUID ongoingCallId = null;
+	public byte[] ongoingCallCipher = null;
 	public List<Socket> callOutgoingAudioSockets = new ArrayList<Socket>();
 	public List<Socket> callIncomingAudioSockets = new ArrayList<Socket>();
 
@@ -2409,6 +2414,19 @@ public class MainForm extends JFrame {
 						if (!ctx.isPresent()) {
 							return;
 						}
+						byte[] cipher;
+						try {
+							cipher = CipherUtilities.randomCipher();
+						} catch (InvalidKeyException | NoSuchPaddingException
+								| NoSuchAlgorithmException
+								| InvalidAlgorithmParameterException
+								| UnsupportedEncodingException e) {
+							e.printStackTrace();
+							return;
+						}
+						String base64 = CipherUtilities.encodeBase64(cipher);
+						String message = PGPUtilities.encryptAndSign(base64,
+								selectedConversation);
 						Optional<PacketPlayInReply> reply = ctx
 								.get()
 								.getOutboundHandler()
@@ -2416,7 +2434,7 @@ public class MainForm extends JFrame {
 										ctx.get(),
 										new PacketPlayOutSendCallRequest(
 												authCode, selectedConversation
-														.getUniqueId()));
+														.getUniqueId(), message));
 						if (!reply.isPresent()) {
 							return;
 						}
@@ -2768,6 +2786,7 @@ public class MainForm extends JFrame {
 							ongoingCallConversation = null;
 							MainForm.get().ongoingCallParticipants.clear();
 							ongoingCallId = null;
+							ongoingCallCipher = null;
 							ongoingCallStartTime = 0L;
 							rightPanelPage = "Conversation";
 							refreshWindow(SCROLL_TO_BOTTOM);

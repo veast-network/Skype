@@ -50,17 +50,22 @@ public class IncomingCallForm extends JDialog {
 
 	private UUID authCode = MainForm.get().getAuthCode();
 
+	private byte[] cipher;
+
 	public void answerCall() {
 		UUID callId = packet.getCallId();
+		MainForm.get().ongoingCallCipher = cipher;
 		Optional<PacketPlayInReply> reply = ctx2
 				.get()
 				.getOutboundHandler()
 				.dispatch(ctx2.get(),
 						new PacketPlayOutAcceptCallRequest(authCode, callId));
 		if (!reply.isPresent()) {
+			MainForm.get().ongoingCallCipher = null;
 			return;
 		}
 		if (reply.get().getStatusCode() != 200) {
+			MainForm.get().ongoingCallCipher = null;
 			return;
 		}
 		MainForm.get().mic.stop();
@@ -73,8 +78,6 @@ public class IncomingCallForm extends JDialog {
 						MainForm.get().mic.start();
 						MainForm.get().callOutgoingAudioSockets.add(ctx2.get()
 								.getSocket());
-						byte[] cipher = new byte[] { 76, 75, 88, 69, 82, 73,
-								87, 55, 71, 83, 66, 73, 70, 88, 76, 75 };
 						CipherOutputStream cos = new CipherOutputStream(ctx2
 								.get().getSocket().getOutputStream(), cipher);
 						while (MainForm.get().isVisible()) {
@@ -138,10 +141,11 @@ public class IncomingCallForm extends JDialog {
 	}
 
 	public IncomingCallForm(PacketPlayInCallRequest packet,
-			Conversation conversation, boolean playSound) {
+			Conversation conversation, boolean playSound, byte[] cipher) {
 		this.conversation = conversation;
 		this.ctx2 = Skype.getPlugin().createHandle();
 		this.packet = packet;
+		this.cipher = cipher;
 
 		setTitle("Incoming Call");
 
