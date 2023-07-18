@@ -1,6 +1,8 @@
 package codes.elisa32.Skype.v1_0_R1.command;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.Optional;
@@ -11,6 +13,8 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
 import javax.swing.JFrame;
+
+import org.bouncycastle.util.io.Streams;
 
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
@@ -25,6 +29,18 @@ import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
 import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
 
 public class CallDataStreamRequestCmd extends CommandExecutor {
+
+	public void run2(SourceDataLine speaker, AudioFormat format, byte[] b,
+			int len) throws IOException {
+		ByteArrayInputStream bais = new ByteArrayInputStream(b);
+		AudioInputStream ais = new AudioInputStream(bais, format, len);
+		int bytesRead = 0;
+		byte[] data = new byte[1616];
+		bytesRead = ais.read(data);
+		speaker.write(data, 0, bytesRead);
+		ais.close();
+		bais.close();
+	}
 
 	@Override
 	public PacketPlayInReply onCommand(SocketHandlerContext ctx, Object msg) {
@@ -84,30 +100,31 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 						MainForm.get().refreshWindow();
 						JFrame mainForm = MainForm.get();
 						byte[] cipher = MainForm.get().ongoingCallCipher;
-						/*CipherInputStream cis = new CipherInputStream(socket
-								.getInputStream(), cipher);*/
-						while (mainForm.isVisible()) {
+						outerLoop: while (mainForm.isVisible()) {
 							try {
-								byte[] b = new byte[1616];
-								int len = socket
-										.getInputStream().read(b, 0, b.length);
-								if (len == -1 || len == 0) {
-									break;
-								}
-								b = Arrays.copyOf(b, len);
-								ByteArrayInputStream bais = new ByteArrayInputStream(
-										b);
-								AudioInputStream ais = new AudioInputStream(
-										bais, format, len);
-								int bytesRead = 0;
-								byte[] data = new byte[1616];
-								bytesRead = ais.read(data);
-								if (bytesRead == -1) {
-									break;
-								}
-								speaker.write(data, 0, bytesRead);
-								ais.close();
-								bais.close();
+								ByteArrayOutputStream baos = new ByteArrayOutputStream();
+								do {
+									byte[] b = new byte[1616 - baos.size()];
+									int len = socket.getInputStream().read(b,
+											0, b.length);
+									if (len == -1) {
+										break outerLoop;
+									}
+									if (len == 0) {
+										Thread.sleep(100);
+										continue;
+									}
+									baos.write(Arrays.copyOf(b, len));
+								} while (baos.size() != 1616);
+								CipherInputStream cis = new CipherInputStream(
+										new ByteArrayInputStream(baos
+												.toByteArray()), cipher);
+								ByteArrayOutputStream bos = new ByteArrayOutputStream();
+								Streams.pipeAll(cis, bos);
+								cis.close();
+								run2(speaker, format, bos.toByteArray(),
+										bos.size());
+								bos.close();
 							} catch (Exception e) {
 								e.printStackTrace();
 								break;

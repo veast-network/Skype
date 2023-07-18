@@ -1,5 +1,6 @@
 package codes.elisa32.Skype.server.v1_0_R1.socket;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
@@ -32,6 +33,47 @@ public class CallingInboundHandler implements Runnable {
 		this.socket = ctx.getSocket();
 	}
 
+	public void run2(byte[] b, int len) {
+		for (UUID callParticipant : call.getParticipants().toArray(new UUID[0])
+				.clone()) {
+			if (callParticipant.equals(loggedInUser)) {
+				continue;
+			}
+			for (Connection con : Skype
+					.getPlugin()
+					.getUserManager()
+					.getDataStreamConnectionsInCall(callParticipant,
+							call.getCallId()).toArray(new Connection[0])
+					.clone()) {
+				if (!con.getCallId().isPresent()) {
+					continue;
+				}
+				if (!con.getParticipantId().isPresent()) {
+					continue;
+				}
+				UUID receivingCallId = con.getCallId().get();
+				UUID receivingCallDataStreamParticipantId = con
+						.getParticipantId().get();
+				if (receivingCallId.equals(call.getCallId())) {
+					if (receivingCallDataStreamParticipantId
+							.equals(this.loggedInUser)) {
+						try {
+							b = Arrays.copyOf(b, len);
+							con.getSocketHandlerContext().getSocket()
+									.getOutputStream().write(b, 0, len);
+							con.getSocketHandlerContext().getSocket()
+									.getOutputStream().flush();
+						} catch (Exception e) {
+							e.printStackTrace();
+							call.removeParticipant(callParticipant);
+							con.setCallDataStream(null, null);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	@Override
 	public void run() {
 		try {
@@ -39,51 +81,18 @@ public class CallingInboundHandler implements Runnable {
 		} catch (SocketException e1) {
 			e1.printStackTrace();
 		}
-		while (true) {
+		outerLoop: while (true) {
 			try {
-				byte[] b = new byte[16384];
-				int len = socket.getInputStream().read(b, 0, b.length);
-				if (len == -1 || len == 0) {
-					break;
-				}
-				for (UUID callParticipant : call.getParticipants()
-						.toArray(new UUID[0]).clone()) {
-					if (callParticipant.equals(loggedInUser)) {
-						continue;
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				do {
+					byte[] b = new byte[1616 - baos.size()];
+					int len = socket.getInputStream().read(b, 0, b.length);
+					if (len == -1 || len == 0) {
+						break outerLoop;
 					}
-					for (Connection con : Skype
-							.getPlugin()
-							.getUserManager()
-							.getDataStreamConnectionsInCall(callParticipant,
-									call.getCallId())
-							.toArray(new Connection[0]).clone()) {
-						if (!con.getCallId().isPresent()) {
-							continue;
-						}
-						if (!con.getParticipantId().isPresent()) {
-							continue;
-						}
-						UUID receivingCallId = con.getCallId().get();
-						UUID receivingCallDataStreamParticipantId = con
-								.getParticipantId().get();
-						if (receivingCallId.equals(call.getCallId())) {
-							if (receivingCallDataStreamParticipantId
-									.equals(this.loggedInUser)) {
-								try {
-									b = Arrays.copyOf(b, len);
-									con.getSocketHandlerContext().getSocket()
-											.getOutputStream().write(b, 0, len);
-									con.getSocketHandlerContext().getSocket()
-											.getOutputStream().flush();
-								} catch (Exception e) {
-									e.printStackTrace();
-									call.removeParticipant(callParticipant);
-									con.setCallDataStream(null, null);
-								}
-							}
-						}
-					}
-				}
+					baos.write(Arrays.copyOf(b, len));
+				} while (baos.size() != 1616);
+				run2(baos.toByteArray(), baos.size());
 			} catch (Exception e) {
 				e.printStackTrace();
 				break;

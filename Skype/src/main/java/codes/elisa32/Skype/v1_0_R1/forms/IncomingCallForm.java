@@ -78,15 +78,14 @@ public class IncomingCallForm extends JDialog {
 						MainForm.get().mic.start();
 						MainForm.get().callOutgoingAudioSockets.add(ctx2.get()
 								.getSocket());
-						/*CipherOutputStream cos = new CipherOutputStream(ctx2
-								.get().getSocket().getOutputStream(), cipher);*/
+						CipherOutputStream cos = new CipherOutputStream(ctx2
+								.get().getSocket().getOutputStream(), cipher);
 						while (MainForm.get().isVisible()) {
 							try {
 								int count = MainForm.get().mic.read(tmpBuff, 0,
 										tmpBuff.length);
 								if (count > 0) {
-									ctx2
-									.get().getSocket().getOutputStream().write(tmpBuff, 0, count);
+									cos.write(tmpBuff, 0, count);
 								} else {
 									Thread.sleep(100);
 								}
