@@ -18,13 +18,27 @@ public class Connection {
 
 	private boolean isListening = false;
 
+	/**
+	 * Call
+	 */
 	private boolean isReceivingCallDataStream = false;
 
 	private UUID receivingCallId;
 
 	private UUID receivingCallDataStreamParticipantId;
-	
+
 	private boolean isCallDataStreamEnded = false;
+
+	/**
+	 * File transfer
+	 */
+	private boolean isReceivingFileDataStream = false;
+
+	private UUID receivingFileTransferId;
+
+	private UUID receivingFileDataStreamParticipantId;
+
+	private boolean isFileDataStreamEnded = false;
 
 	public Connection(UUID authCode, long expiryTime, String skypeName,
 			SocketHandlerContext ctx) {
@@ -78,6 +92,9 @@ public class Connection {
 		this.isListening = isListening;
 	}
 
+	/*
+	 * Call
+	 */
 	public void setCallDataStream(UUID callId, UUID participantId) {
 		if (callId == null) {
 			this.isReceivingCallDataStream = false;
@@ -122,11 +139,60 @@ public class Connection {
 	 * active audio stream from. This is used in other parts of the program to
 	 * be able to replicate the audio stream over other network connections.
 	 */
-	public Optional<UUID> getParticipantId() {
+	public Optional<UUID> getReceivingCallDataStreamParticipantId() {
 		if (this.receivingCallDataStreamParticipantId == null) {
 			return Optional.empty();
 		}
 		return Optional.of(this.receivingCallDataStreamParticipantId);
+	}
+
+	/*
+	 * File transfer
+	 */
+	public void setFileDataStream(UUID fileTransferId, UUID participantId) {
+		if (fileTransferId == null) {
+			this.isReceivingFileDataStream = false;
+			this.receivingFileTransferId = null;
+			this.receivingFileDataStreamParticipantId = null;
+		} else {
+			this.isReceivingFileDataStream = true;
+			this.receivingFileTransferId = fileTransferId;
+			this.receivingFileDataStreamParticipantId = participantId;
+		}
+	}
+
+	public boolean isInFileTransfer() {
+		return this.receivingFileTransferId != null;
+	}
+
+	public boolean isFileDataStream() {
+		return isReceivingFileDataStream;
+	}
+
+	public boolean isFileDataStreamEnded() {
+		return isFileDataStreamEnded;
+	}
+
+	public void setFileDataStreamEnded(boolean isFileDataStreamEnded) {
+		this.isFileDataStreamEnded = isFileDataStreamEnded;
+	}
+
+	public void setFileTransferId(UUID fileTransferId) {
+		this.receivingFileTransferId = fileTransferId;
+	}
+
+	public Optional<UUID> getFileTransferId() {
+		if (this.receivingFileTransferId == null) {
+			return Optional.empty();
+		}
+		return Optional.of(this.receivingFileTransferId);
+	}
+
+	public Optional<UUID> getReceivingFileDataStreamParticipantId() {
+		if (this.receivingFileDataStreamParticipantId == null) {
+			return Optional.empty();
+		}
+		return Optional.of(this.receivingFileDataStreamParticipantId);
 	}
 
 }

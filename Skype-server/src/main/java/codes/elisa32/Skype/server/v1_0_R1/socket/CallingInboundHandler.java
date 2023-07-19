@@ -48,12 +48,12 @@ public class CallingInboundHandler implements Runnable {
 				if (!con.getCallId().isPresent()) {
 					continue;
 				}
-				if (!con.getParticipantId().isPresent()) {
+				if (!con.getReceivingCallDataStreamParticipantId().isPresent()) {
 					continue;
 				}
 				UUID receivingCallId = con.getCallId().get();
 				UUID receivingCallDataStreamParticipantId = con
-						.getParticipantId().get();
+						.getReceivingCallDataStreamParticipantId().get();
 				if (receivingCallId.equals(call.getCallId())) {
 					if (receivingCallDataStreamParticipantId
 							.equals(this.loggedInUser)) {
@@ -115,12 +115,12 @@ public class CallingInboundHandler implements Runnable {
 				if (!con.getCallId().isPresent()) {
 					continue;
 				}
-				if (!con.getParticipantId().isPresent()) {
+				if (!con.getReceivingCallDataStreamParticipantId().isPresent()) {
 					continue;
 				}
 				UUID receivingCallId = con.getCallId().get();
 				UUID receivingCallDataStreamParticipantId = con
-						.getParticipantId().get();
+						.getReceivingCallDataStreamParticipantId().get();
 				if (receivingCallId.equals(call.getCallId())) {
 					if (!con.isCallDataStreamEnded()) {
 						if (!skypeNames.contains(con.getSkypeName())) {
@@ -184,7 +184,7 @@ public class CallingInboundHandler implements Runnable {
 					if (!con.getCallId().isPresent()) {
 						continue;
 					}
-					if (!con.getParticipantId().isPresent()) {
+					if (!con.getReceivingCallDataStreamParticipantId().isPresent()) {
 						continue;
 					}
 					UUID receivingCallId = con.getCallId().get();
@@ -207,7 +207,7 @@ public class CallingInboundHandler implements Runnable {
 					if (!con.getCallId().isPresent()) {
 						continue;
 					}
-					if (!con.getParticipantId().isPresent()) {
+					if (!con.getReceivingCallDataStreamParticipantId().isPresent()) {
 						continue;
 					}
 					UUID receivingCallId = con.getCallId().get();

@@ -33,12 +33,14 @@ import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.file.Files;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -113,6 +115,7 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRegister;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutRemoveMessage;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendContactRequest;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendFileTransferRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendMessage;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateGroupChatParticipants;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
@@ -120,6 +123,7 @@ import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.Utils;
 import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
+import codes.elisa32.Skype.v1_0_R1.cipher.CipherOutputStream;
 import codes.elisa32.Skype.v1_0_R1.cipher.CipherUtilities;
 import codes.elisa32.Skype.v1_0_R1.data.types.Contact;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
@@ -295,6 +299,21 @@ public class MainForm extends JFrame {
 	public byte[] ongoingCallCipher = null;
 	public List<Socket> callOutgoingAudioSockets = new ArrayList<Socket>();
 	public List<Socket> callIncomingAudioSockets = new ArrayList<Socket>();
+
+	/*
+	 * File transfer variables
+	 */
+	public byte[] ongoingFileTransferData = null;
+	public boolean ongoingFileTransfer = false;
+	public Conversation ongoingFileTransferConversation = null;
+	public List<UUID> ongoingFileTransferParticipants = new ArrayList<>();
+	public UUID ongoingFileTransferId = null;
+	public String ongoingFileTransferFileName = null;
+	public long ongoingFileTransferLength = 0L;
+	public byte[] ongoingFileTransferCipher = null;
+	public boolean fileTransferDataTransferFinished = false;
+	public List<Socket> fileTransferOutgoingAudioSockets = new ArrayList<Socket>();
+	public List<Socket> fileTransferIncomingAudioSockets = new ArrayList<Socket>();
 
 	/*
 	 * User lookup
@@ -6696,6 +6715,91 @@ public class MainForm extends JFrame {
 		addWindowListener(windowAdapter);
 
 		JMenuBar menuBar = new JMenuBar();
+
+		/**
+		 * Experimental
+		 */
+		{
+			JMenu experimentalMenu = new JMenu("Experimental");
+
+			JMenuItem sendFile = new JMenuItem("Send File");
+			sendFile.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					UUID fileTransferId = UUID.randomUUID();
+					Optional<SocketHandlerContext> ctx = Skype.getPlugin()
+							.createHandle();
+					if (!ctx.isPresent()) {
+						return;
+					}
+					byte[] cipher;
+					try {
+						cipher = CipherUtilities.randomCipher();
+					} catch (InvalidKeyException | NoSuchPaddingException
+							| NoSuchAlgorithmException
+							| InvalidAlgorithmParameterException
+							| UnsupportedEncodingException e) {
+						e.printStackTrace();
+						return;
+					}
+					String base64 = CipherUtilities.encodeBase64(cipher);
+					String message = PGPUtilities.encryptAndSign(base64,
+							selectedConversation);
+					long timestamp = System.currentTimeMillis();
+					UUID conversationId = selectedConversation.getUniqueId();
+					try {
+						JFileChooser fc = new JFileChooser();
+						fc.setCurrentDirectory(new java.io.File("."));
+						fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+						int returnVal = fc.showOpenDialog(null);
+						if (returnVal != JFileChooser.APPROVE_OPTION) {
+							return;
+						}
+						File file = fc.getSelectedFile();
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						CipherOutputStream cos = new CipherOutputStream(baos,
+								cipher);
+						cos.write(Files.readAllBytes(file.toPath()));
+						cos.flush();
+						cos.close();
+						byte[] b3 = baos.toByteArray();
+						long length = b3.length;
+						ongoingFileTransferData = b3;
+						Optional<PacketPlayInReply> replyPacket = ctx
+								.get()
+								.getOutboundHandler()
+								.dispatch(
+										ctx.get(),
+										new PacketPlayOutSendFileTransferRequest(
+												authCode, conversationId,
+												fileTransferId, file.getName(),
+												length, message));
+						if (!replyPacket.isPresent()) {
+							return;
+						}
+						if (replyPacket.get().getStatusCode() != 200) {
+							return;
+						}
+						UUID messageId = UUID.randomUUID();
+						Message message2 = new Message(messageId, loggedInUser
+								.getUniqueId(),
+								MessageType.FILE_TRANSFER_REQUEST_OUT,
+								fileTransferId.toString(), timestamp,
+								selectedConversation);
+						selectedConversation.getMessages().add(message2);
+						selectedConversation.setLastModified(new Date());
+						AudioIO.IM_SENT.playSound();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+
+			});
+			experimentalMenu.add(sendFile);
+
+			menuBar.add(experimentalMenu);
+		}
 
 		JMenu skypeMenu = new JMenu("Skype");
 		if (getProperty("os.name").startsWith("Windows")) {

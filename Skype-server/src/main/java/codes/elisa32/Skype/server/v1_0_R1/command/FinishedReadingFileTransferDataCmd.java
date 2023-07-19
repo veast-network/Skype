@@ -4,23 +4,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
-import codes.elisa32.Skype.api.v1_0_R1.data.types.Call;
+import codes.elisa32.Skype.api.v1_0_R1.data.types.FileTransfer;
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
-import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInCallParticipantsChanged;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInFileTransferParticipantsChanged;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
-import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptCallDataStreamRequest;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutFinishedReadingFileTransferData;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.server.v1_0_R1.Skype;
 import codes.elisa32.Skype.server.v1_0_R1.data.types.Connection;
 
-public class AcceptCallDataStreamRequestCmd extends CommandExecutor {
+public class FinishedReadingFileTransferDataCmd extends CommandExecutor {
 
 	@Override
 	public PacketPlayInReply onCommand(SocketHandlerContext ctx, Object msg) {
-		PacketPlayOutAcceptCallDataStreamRequest packet = Packet.fromJson(
-				msg.toString(), PacketPlayOutAcceptCallDataStreamRequest.class);
+		PacketPlayOutFinishedReadingFileTransferData packet = Packet.fromJson(
+				msg.toString(),
+				PacketPlayOutFinishedReadingFileTransferData.class);
 		UUID authCode = packet.getAuthCode();
 		Connection con = Skype.getPlugin().getUserManager()
 				.getConnection(authCode);
@@ -30,22 +31,17 @@ public class AcceptCallDataStreamRequestCmd extends CommandExecutor {
 							+ " failed");
 			return replyPacket;
 		}
-		UUID callId = packet.getCallId();
-		UUID participantId = packet.getParticipantId();
-		Call call = Skype.getPlugin().getCallMap().getOrDefault(callId, null);
-		if (call == null) {
+		UUID fileTransferId = packet.getFileTransferId();
+		UUID participantId = con.getUniqueId();
+		FileTransfer fileTransfer = Skype.getPlugin().getFileTransferMap()
+				.getOrDefault(fileTransferId, null);
+		if (fileTransfer == null) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
 							+ " failed");
 			return replyPacket;
 		}
-		if (!call.isParticipant(participantId)) {
-			PacketPlayInReply replyPacket = new PacketPlayInReply(
-					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
-							+ " failed");
-			return replyPacket;
-		}
-		if (!call.isParticipant(con.getUniqueId())) {
+		if (!fileTransfer.isParticipant(participantId)) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
 							+ " failed");
@@ -57,26 +53,28 @@ public class AcceptCallDataStreamRequestCmd extends CommandExecutor {
 							+ " failed");
 			return replyPacket;
 		}
-		ctx.fireInboundHandlerInactive();
-		con.setCallDataStream(callId, participantId);
+		con.setFileDataStream(null, null);
+		con.setFileDataStreamEnded(true);
 		List<String> skypeNames = new ArrayList<>();
-		for (UUID callParticipant : call.getParticipants().toArray(new UUID[0])
-				.clone()) {
+		for (UUID fileTransferParticipant : fileTransfer.getParticipants()
+				.toArray(new UUID[0]).clone()) {
 			for (Connection con2 : Skype
 					.getPlugin()
 					.getUserManager()
-					.getDataStreamConnectionsInCall(callParticipant,
-							call.getCallId()).toArray(new Connection[0])
-					.clone()) {
-				if (!con2.getCallId().isPresent()) {
+					.getDataStreamConnectionsInFileTransfer(
+							fileTransferParticipant,
+							fileTransfer.getFileTransferId())
+					.toArray(new Connection[0]).clone()) {
+				if (!con2.getFileTransferId().isPresent()) {
 					continue;
 				}
-				if (!con2.getReceivingCallDataStreamParticipantId().isPresent()) {
+				if (!con2.getReceivingFileDataStreamParticipantId().isPresent()) {
 					continue;
 				}
-				UUID receivingCallId = con2.getCallId().get();
-				if (receivingCallId.equals(call.getCallId())) {
-					if (!con2.isCallDataStreamEnded()) {
+				UUID receivingFileTransferId = con2.getFileTransferId().get();
+				if (receivingFileTransferId.equals(fileTransfer
+						.getFileTransferId())) {
+					if (!con2.isFileDataStreamEnded()) {
 						if (!skypeNames.contains(con2.getSkypeName())) {
 							skypeNames.add(con2.getSkypeName());
 						}
@@ -90,31 +88,35 @@ public class AcceptCallDataStreamRequestCmd extends CommandExecutor {
 					.getUniqueId(skypeName).toString());
 		}
 		Object payload = GsonBuilder.create().toJson(participantIds);
-		for (UUID callParticipant : call.getParticipants()) {
-			boolean hasParticipantAnsweredCall = Skype.getPlugin()
+		for (UUID fileTransferParticipant : fileTransfer.getParticipants()) {
+			boolean hasParticipantAnsweredFileTransfer = Skype
+					.getPlugin()
 					.getUserManager()
-					.getConnectionsInCall(callParticipant, callId).size() > 0;
-			if (!hasParticipantAnsweredCall) {
+					.getConnectionsInFileTransfer(fileTransferParticipant,
+							fileTransferId).size() > 0;
+			if (!hasParticipantAnsweredFileTransfer) {
 				continue;
 			}
-			PacketPlayInCallParticipantsChanged callParticipantsChangedPacket = new PacketPlayInCallParticipantsChanged(
-					callId, payload);
+			PacketPlayInFileTransferParticipantsChanged fileTransferParticipantsChangedPacket = new PacketPlayInFileTransferParticipantsChanged(
+					fileTransferId, payload);
 			for (Connection listeningParticipant : Skype.getPlugin()
-					.getUserManager().getListeningConnections(callParticipant)) {
+					.getUserManager()
+					.getListeningConnections(fileTransferParticipant)) {
 				Thread thread = new Thread(
 						() -> {
 							listeningParticipant
 									.getSocketHandlerContext()
 									.getOutboundHandler()
-									.write(
-											listeningParticipant
-													.getSocketHandlerContext(),
-											callParticipantsChangedPacket);
+									.write(listeningParticipant
+											.getSocketHandlerContext(),
+											fileTransferParticipantsChangedPacket);
 						});
 				thread.start();
 			}
 		}
-		return PacketPlayInReply.empty();
+		PacketPlayInReply replyPacket = new PacketPlayInReply(
+				PacketPlayInReply.OK, packet.getType().name() + " success");
+		return replyPacket;
 	}
 
 }
