@@ -123,8 +123,9 @@ public class FileDataStreamRequestCmd extends CommandExecutor {
 								ByteArrayInputStream in = new ByteArrayInputStream(
 										baos.toByteArray());
 								File file = new File(System
-										.getProperty("java.io.tmpdir"),
-										fileName);
+										.getProperty("java.io.tmpdir"), "Skype");
+								file.mkdirs();
+								file = new File(file, fileName);
 								FileOutputStream out = new FileOutputStream(
 										file);
 								CipherOutputStream cipherOutputStream = new CipherOutputStream(
@@ -138,7 +139,7 @@ public class FileDataStreamRequestCmd extends CommandExecutor {
 								cipherOutputStream.flush();
 								cipherOutputStream.close();
 								Desktop desktop = Desktop.getDesktop();
-								desktop.open(file);
+								desktop.open(new File(file.getParent()));
 							}
 						} catch (Exception e1) {
 							e1.printStackTrace();

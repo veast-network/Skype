@@ -5,6 +5,7 @@ import static java.lang.System.getProperty;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -39,6 +40,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -408,6 +410,89 @@ public class MainForm extends JFrame {
 
 	public static MainForm get() {
 		return instance;
+	}
+
+	public void run2(File file) {
+		UUID fileTransferId = UUID.randomUUID();
+		Optional<SocketHandlerContext> ctx = Skype.getPlugin().createHandle();
+		if (!ctx.isPresent()) {
+			return;
+		}
+		byte[] cipher;
+		try {
+			cipher = CipherUtilities.randomCipher();
+		} catch (InvalidKeyException | NoSuchPaddingException
+				| NoSuchAlgorithmException | InvalidAlgorithmParameterException
+				| UnsupportedEncodingException e) {
+			e.printStackTrace();
+			return;
+		}
+		String base64 = CipherUtilities.encodeBase64(cipher);
+		String message = PGPUtilities.encryptAndSign(base64,
+				selectedConversation);
+		UUID conversationId = selectedConversation.getUniqueId();
+		try {
+			String header = "Send file?";
+			String text = "This file is to be encrypted, do you want to send this file?";
+			boolean hit = false;
+			if (file.length() >= Integer.MAX_VALUE) {
+				header = "Send file? The file is too large to be sent!";
+				text = "This file can not be sent, since it is larger than "
+						+ (int) Math
+								.floor(((Integer.MAX_VALUE / 1000.0) / 1000.0))
+						+ " MB!"
+						+ '\n'
+						+ "https://en.wikipedia.org/wiki/2,147,483,647"
+						+ '\n'
+						+ " "
+						+ '\n'
+						+ "You can help contribute to our project by making a pr"
+						+ '\n'
+						+ "to our project to add support for larger file uploads!";
+				hit = true;
+			}
+			DialogForm form = new DialogForm(null, "Skype™ - Send file?",
+					header, text, hit == false ? "Send" : null, new Runnable() {
+
+						@Override
+						public void run() {
+							try {
+								ByteArrayOutputStream baos = new ByteArrayOutputStream();
+								CipherOutputStream cos = new CipherOutputStream(
+										baos, cipher);
+								cos.write(Files.readAllBytes(file.toPath()));
+								cos.flush();
+								cos.close();
+								byte[] b3 = baos.toByteArray();
+								long length = b3.length;
+								ongoingFileTransferData = b3;
+								Optional<PacketPlayInReply> replyPacket = ctx
+										.get()
+										.getOutboundHandler()
+										.dispatch(
+												ctx.get(),
+												new PacketPlayOutSendFileTransferRequest(
+														authCode,
+														conversationId,
+														fileTransferId, file
+																.getName(),
+														length, message));
+								if (!replyPacket.isPresent()) {
+									return;
+								}
+								if (replyPacket.get().getStatusCode() != 200) {
+									return;
+								}
+								AudioIO.IM_SENT.playSound();
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+					});
+			form.show();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	public String getDateLabelInReferenceToToday(Date date) {
@@ -5254,6 +5339,9 @@ public class MainForm extends JFrame {
 											.replace("<", "&lt;")
 											.replace(">", "&gt;")));
 
+							boolean img = false;
+							String imgurl = null;
+
 							if (message.getDecryptedMessage().startsWith(
 									"<img src=\"https://i.imgur.com/")) {
 								if (message.getDecryptedMessage().endsWith(
@@ -5263,6 +5351,12 @@ public class MainForm extends JFrame {
 													.length() == 45) {
 										label = new JLabel(String.format(html,
 												message.getDecryptedMessage()));
+										img = true;
+										imgurl = message.getDecryptedMessage()
+												.substring(
+														"<img src=\"".length());
+										imgurl = imgurl.substring(0,
+												imgurl.indexOf("\""));
 									}
 								}
 							}
@@ -5387,12 +5481,24 @@ public class MainForm extends JFrame {
 							}
 							label.setComponentPopupMenu(popUp);
 
+							final boolean fimg = img;
+							final String fimgurl = imgurl;
+
 							MouseAdapter mouseAdapter = new MouseAdapter() {
 
 								@Override
 								public void mousePressed(MouseEvent evt) {
 									super.mousePressed(evt);
 									if (evt.getButton() != MouseEvent.BUTTON1) {
+										return;
+									}
+									if (fimg) {
+										Desktop desktop = Desktop.getDesktop();
+										try {
+											desktop.browse(URI.create(fimgurl));
+										} catch (IOException e) {
+											e.printStackTrace();
+										}
 										return;
 									}
 									String dialogMessage = message.getMessage();
@@ -5516,6 +5622,9 @@ public class MainForm extends JFrame {
 											.replace("<", "&lt;")
 											.replace(">", "&gt;")));
 
+							boolean img = false;
+							String imgurl = null;
+
 							if (message.getDecryptedMessage().startsWith(
 									"<img src=\"https://i.imgur.com/")) {
 								if (message.getDecryptedMessage().endsWith(
@@ -5525,6 +5634,12 @@ public class MainForm extends JFrame {
 													.length() == 45) {
 										label = new JLabel(String.format(html,
 												message.getDecryptedMessage()));
+										img = true;
+										imgurl = message.getDecryptedMessage()
+												.substring(
+														"<img src=\"".length());
+										imgurl = imgurl.substring(0,
+												imgurl.indexOf("\""));
 									}
 								}
 							}
@@ -5649,12 +5764,24 @@ public class MainForm extends JFrame {
 							}
 							label.setComponentPopupMenu(popUp);
 
+							final boolean fimg = img;
+							final String fimgurl = imgurl;
+
 							MouseAdapter mouseAdapter = new MouseAdapter() {
 
 								@Override
 								public void mousePressed(MouseEvent evt) {
 									super.mousePressed(evt);
 									if (evt.getButton() != MouseEvent.BUTTON1) {
+										return;
+									}
+									if (fimg) {
+										Desktop desktop = Desktop.getDesktop();
+										try {
+											desktop.browse(URI.create(fimgurl));
+										} catch (IOException e) {
+											e.printStackTrace();
+										}
 										return;
 									}
 									String dialogMessage = message.getMessage();
@@ -5814,84 +5941,143 @@ public class MainForm extends JFrame {
 					fc.setFileFilter(filter);
 					int returnVal = fc.showSaveDialog(null);
 					if (returnVal == JFileChooser.APPROVE_OPTION) {
-						DialogForm form = new DialogForm(
-								frame,
-								"Skype™ - Upload image?",
-								"Upload image?",
-								"Are you sure you want to upload this image? The"
-										+ '\r'
-										+ '\n'
-										+ "image will first be uploaded to Imgur and then sent"
-										+ '\r'
-										+ '\n'
-										+ "in the chat. Please check out https://imgur.com/rules to"
-										+ '\r'
-										+ '\n'
-										+ "see what kind of content is not legal to be uploaded.",
-								"Upload", new Runnable() {
+						String ext = fc.getSelectedFile().getName();
+						if (ext.contains(".")) {
+							ext = ext.substring(ext.lastIndexOf(".") + 1);
+						}
+						if (ext.equals("png") || ext.equals("jpeg")
+								|| ext.equals("jpg") || ext.equals("gif")
+								|| ext.equals("bmp")) {
+							DialogForm form = new DialogForm(
+									null,
+									"Skype™ - Encrypt image?",
+									"Encrypt image?",
+									"Do you want to encrypt and send this image as a file?"
+											+ '\n'
+											+ " "
+											+ '\n'
+											+ "If you encrypt and send this image as a file, it will not"
+											+ '\n'
+											+ "not appear in the chat window. If you hit no it will be"
+											+ '\n'
+											+ "sent unencrypted to Imgur and shown in the chat window.",
+									"Yes", new Runnable() {
 
-									@Override
-									public void run() {
-										File pathToData = fc.getSelectedFile();
-										ImgurUploader imgurUploader = new ImgurUploader();
-										Optional<String> url = imgurUploader
-												.uploadFile(pathToData);
-										if (!url.isPresent()) {
-											return;
+										@Override
+										public void run() {
+											run2(fc.getSelectedFile());
 										}
-										Optional<SocketHandlerContext> ctx = Skype
-												.getPlugin().createHandle();
-										if (!ctx.isPresent()) {
-											return;
+
+									});
+
+							form.cancelButton.setText("No");
+
+							form.cancelButton
+									.addActionListener(new ActionListener() {
+
+										@Override
+										public void actionPerformed(
+												ActionEvent arg0) {
+											form.dispatchEvent(new WindowEvent(
+													form,
+													WindowEvent.WINDOW_CLOSING));
+											DialogForm form = new DialogForm(
+													frame,
+													"Skype™ - Upload image?",
+													"Upload image?",
+													"Are you sure you want to upload this image? The"
+															+ '\r'
+															+ '\n'
+															+ "image will first be uploaded to Imgur and then sent"
+															+ '\r'
+															+ '\n'
+															+ "in the chat. Please check out https://imgur.com/rules to"
+															+ '\r'
+															+ '\n'
+															+ "see what kind of content is not legal to be uploaded.",
+													"Upload", new Runnable() {
+
+														@Override
+														public void run() {
+															File pathToData = fc
+																	.getSelectedFile();
+															ImgurUploader imgurUploader = new ImgurUploader();
+															Optional<String> url = imgurUploader
+																	.uploadFile(pathToData);
+															if (!url.isPresent()) {
+																return;
+															}
+															Optional<SocketHandlerContext> ctx = Skype
+																	.getPlugin()
+																	.createHandle();
+															if (!ctx.isPresent()) {
+																return;
+															}
+															UUID messageId = UUID
+																	.randomUUID();
+															long timestamp = System
+																	.currentTimeMillis();
+															Message message = new Message(
+																	messageId,
+																	loggedInUser
+																			.getUniqueId(),
+																	PGPUtilities
+																			.encryptAndSign(
+																					"<img src=\""
+																							+ url.get()
+																							+ "\" />",
+																					selectedConversation),
+																	timestamp,
+																	selectedConversation);
+															if (!conversations
+																	.contains(selectedConversation)) {
+																conversations
+																		.add(selectedConversation);
+															}
+															UUID conversationId = selectedConversation
+																	.getUniqueId();
+															Optional<PacketPlayInReply> replyPacket = ctx
+																	.get()
+																	.getOutboundHandler()
+																	.dispatch(
+																			ctx.get(),
+																			new PacketPlayOutSendMessage(
+																					authCode,
+																					conversationId,
+																					messageId,
+																					message.toString(),
+																					timestamp));
+															if (!replyPacket
+																	.isPresent()) {
+																return;
+															}
+															if (replyPacket
+																	.get()
+																	.getStatusCode() == 200) {
+																if (!selectedConversation
+																		.isGroupChat()) {
+																	selectedConversation
+																			.getMessages()
+																			.add(message);
+																	selectedConversation
+																			.setLastModified(new Date());
+																	refreshWindow();
+																}
+																AudioIO.IM_SENT
+																		.playSound();
+															}
+														}
+													});
+											form.show();
 										}
-										UUID messageId = UUID.randomUUID();
-										long timestamp = System
-												.currentTimeMillis();
-										Message message = new Message(
-												messageId, loggedInUser
-														.getUniqueId(),
-												PGPUtilities.encryptAndSign(
-														"<img src=\""
-																+ url.get()
-																+ "\" />",
-														selectedConversation),
-												timestamp, selectedConversation);
-										if (!conversations
-												.contains(selectedConversation)) {
-											conversations
-													.add(selectedConversation);
-										}
-										UUID conversationId = selectedConversation
-												.getUniqueId();
-										Optional<PacketPlayInReply> replyPacket = ctx
-												.get()
-												.getOutboundHandler()
-												.dispatch(
-														ctx.get(),
-														new PacketPlayOutSendMessage(
-																authCode,
-																conversationId,
-																messageId,
-																message.toString(),
-																timestamp));
-										if (!replyPacket.isPresent()) {
-											return;
-										}
-										if (replyPacket.get().getStatusCode() == 200) {
-											if (!selectedConversation
-													.isGroupChat()) {
-												selectedConversation
-														.getMessages().add(
-																message);
-												selectedConversation
-														.setLastModified(new Date());
-												refreshWindow();
-											}
-											AudioIO.IM_SENT.playSound();
-										}
-									}
-								});
-						form.show();
+
+									});
+
+							form.show();
+
+						} else {
+							run2(fc.getSelectedFile());
+						}
 					}
 				}
 
@@ -6714,119 +6900,6 @@ public class MainForm extends JFrame {
 		addWindowListener(windowAdapter);
 
 		JMenuBar menuBar = new JMenuBar();
-
-		/**
-		 * Experimental
-		 */
-		{
-			JMenu experimentalMenu = new JMenu("Experimental");
-
-			JMenuItem sendFile = new JMenuItem("Send File");
-			sendFile.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent arg0) {
-					UUID fileTransferId = UUID.randomUUID();
-					Optional<SocketHandlerContext> ctx = Skype.getPlugin()
-							.createHandle();
-					if (!ctx.isPresent()) {
-						return;
-					}
-					byte[] cipher;
-					try {
-						cipher = CipherUtilities.randomCipher();
-					} catch (InvalidKeyException | NoSuchPaddingException
-							| NoSuchAlgorithmException
-							| InvalidAlgorithmParameterException
-							| UnsupportedEncodingException e) {
-						e.printStackTrace();
-						return;
-					}
-					String base64 = CipherUtilities.encodeBase64(cipher);
-					String message = PGPUtilities.encryptAndSign(base64,
-							selectedConversation);
-					long timestamp = System.currentTimeMillis();
-					UUID conversationId = selectedConversation.getUniqueId();
-					try {
-						JFileChooser fc = new JFileChooser();
-						fc.setCurrentDirectory(new java.io.File("."));
-						fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-						int returnVal = fc.showOpenDialog(null);
-						if (returnVal != JFileChooser.APPROVE_OPTION) {
-							return;
-						}
-						File file = fc.getSelectedFile();
-						String header = "Send file?";
-						String text = "This file is to be encrypted, do you want to send this file?";
-						if (file.length() >= Integer.MAX_VALUE) {
-							header = "Send file? The file is greater than 2048 MiB in size?!";
-							text = "This file can not be encrypted, do you want to send it as is?";
-						}
-						DialogForm form = new DialogForm(null,
-								"Skype™ - Send file?", header, text, "Send",
-								new Runnable() {
-
-									@Override
-									public void run() {
-										try {
-											ByteArrayOutputStream baos = new ByteArrayOutputStream();
-											CipherOutputStream cos = new CipherOutputStream(
-													baos, cipher);
-											cos.write(Files.readAllBytes(file
-													.toPath()));
-											cos.flush();
-											cos.close();
-											byte[] b3 = baos.toByteArray();
-											long length = b3.length;
-											ongoingFileTransferData = b3;
-											Optional<PacketPlayInReply> replyPacket = ctx
-													.get()
-													.getOutboundHandler()
-													.dispatch(
-															ctx.get(),
-															new PacketPlayOutSendFileTransferRequest(
-																	authCode,
-																	conversationId,
-																	fileTransferId,
-																	file.getName(),
-																	length,
-																	message));
-											if (!replyPacket.isPresent()) {
-												return;
-											}
-											if (replyPacket.get()
-													.getStatusCode() != 200) {
-												return;
-											}
-											UUID messageId = UUID.randomUUID();
-											Message message2 = new Message(
-													messageId,
-													loggedInUser.getUniqueId(),
-													MessageType.FILE_TRANSFER_REQUEST_OUT,
-													fileTransferId.toString(),
-													timestamp,
-													selectedConversation);
-											selectedConversation.getMessages()
-													.add(message2);
-											selectedConversation
-													.setLastModified(new Date());
-											AudioIO.IM_SENT.playSound();
-										} catch (Exception e) {
-											e.printStackTrace();
-										}
-									}
-								});
-						form.show();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-
-			});
-			experimentalMenu.add(sendFile);
-
-			menuBar.add(experimentalMenu);
-		}
 
 		JMenu skypeMenu = new JMenu("Skype");
 		if (getProperty("os.name").startsWith("Windows")) {
