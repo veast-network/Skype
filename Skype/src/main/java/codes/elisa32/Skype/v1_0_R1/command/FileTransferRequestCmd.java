@@ -69,49 +69,40 @@ public class FileTransferRequestCmd extends CommandExecutor {
 				personWhoIsCalling = conversation;
 			}
 		}
+		boolean hit = false;
 		if (personWhoIsCalling == null) {
 			Optional<Conversation> userLookup = MainForm.get().lookupUser(
 					conversationId);
 			if (userLookup.isPresent()) {
 				personWhoIsCalling = userLookup.get();
-				MainForm.get().getConversations().add(personWhoIsCalling);
+				hit = true;
 			}
 		}
 		MainForm.get().ongoingFileTransferConversation = personWhoIsCalling;
-		//if (participantId.equals(loggedInUser)) {
-			MainForm.get().ongoingFileTransferId = fileTransferId;
-			MainForm.get().ongoingFileTransferCipher = cipher;
-			MainForm.get().ongoingFileTransferFileName = fileName;
-			MainForm.get().ongoingFileTransferLength = length;
-			MainForm.get().fileTransferDataTransferFinished = false;
-			reply = ctx2
-					.get()
-					.getOutboundHandler()
-					.dispatch(
-							ctx2.get(),
-							new PacketPlayOutAcceptFileTransferRequest(authCode,
-									fileTransferId));
-			if (!reply.isPresent()) {
-				return PacketPlayInReply.empty();
-			}
-			if (reply.get().getStatusCode() != 200) {
-				return PacketPlayInReply.empty();
-			}
-			if (participantId.equals(loggedInUser)) {
+		MainForm.get().ongoingFileTransferId = fileTransferId;
+		MainForm.get().ongoingFileTransferCipher = cipher;
+		MainForm.get().ongoingFileTransferFileName = fileName;
+		MainForm.get().ongoingFileTransferLength = length;
+		MainForm.get().fileTransferDataTransferFinished = false;
+		reply = ctx2
+				.get()
+				.getOutboundHandler()
+				.dispatch(
+						ctx2.get(),
+						new PacketPlayOutAcceptFileTransferRequest(authCode,
+								fileTransferId));
+		if (!reply.isPresent()) {
+			return PacketPlayInReply.empty();
+		}
+		if (reply.get().getStatusCode() != 200) {
+			return PacketPlayInReply.empty();
+		}
+		if (participantId.equals(loggedInUser)) {
 			MainForm.get().fileTransferOutgoingAudioSockets.add(ctx2.get()
 					.getSocket());
-			}
-		/*} else {
-			UUID messageId = UUID.randomUUID();
-			Message message2 = new Message(messageId, participantId,
-					MessageType.FILE_TRANSFER_REQUEST_IN,
-					fileTransferId.toString(), timestamp, personWhoIsCalling);
-			personWhoIsCalling.getMessages().add(message2);
-			NotificationForm notif = new NotificationForm(personWhoIsCalling,
-					message2, true);
-			notif.show();
-			MainForm.get().refreshWindow();
-		}*/
+		} else if (hit) {
+			MainForm.get().getConversations().add(personWhoIsCalling);
+		}
 		return PacketPlayInReply.empty();
 	}
 }

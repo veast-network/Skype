@@ -71,12 +71,13 @@ public class CallRequestCmd extends CommandExecutor {
 				personWhoIsCalling = conversation;
 			}
 		}
+		boolean hit = false;
 		if (personWhoIsCalling == null) {
 			Optional<Conversation> userLookup = MainForm.get().lookupUser(
 					conversationId);
 			if (userLookup.isPresent()) {
 				personWhoIsCalling = userLookup.get();
-				MainForm.get().getConversations().add(personWhoIsCalling);
+				hit = true;
 			}
 		}
 		if (participantId.equals(loggedInUser)) {
@@ -164,6 +165,9 @@ public class CallRequestCmd extends CommandExecutor {
 					});
 			thread.start();
 		} else {
+			if (hit) {
+				MainForm.get().getConversations().add(personWhoIsCalling);
+			}
 			IncomingCallForm incomingCallForm = new IncomingCallForm(packet,
 					personWhoIsCalling, true, cipher);
 			incomingCallForm.show();
