@@ -33,7 +33,6 @@ import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -6757,39 +6756,67 @@ public class MainForm extends JFrame {
 							return;
 						}
 						File file = fc.getSelectedFile();
-						ByteArrayOutputStream baos = new ByteArrayOutputStream();
-						CipherOutputStream cos = new CipherOutputStream(baos,
-								cipher);
-						cos.write(Files.readAllBytes(file.toPath()));
-						cos.flush();
-						cos.close();
-						byte[] b3 = baos.toByteArray();
-						long length = b3.length;
-						ongoingFileTransferData = b3;
-						Optional<PacketPlayInReply> replyPacket = ctx
-								.get()
-								.getOutboundHandler()
-								.dispatch(
-										ctx.get(),
-										new PacketPlayOutSendFileTransferRequest(
-												authCode, conversationId,
-												fileTransferId, file.getName(),
-												length, message));
-						if (!replyPacket.isPresent()) {
-							return;
+						String header = "Send file?";
+						String text = "This file is to be encrypted, do you want to send this file?";
+						if (file.length() >= Integer.MAX_VALUE) {
+							header = "Send file? The file is greater than 2048 MiB in size?!";
+							text = "This file can not be encrypted, do you want to send it as is?";
 						}
-						if (replyPacket.get().getStatusCode() != 200) {
-							return;
-						}
-						UUID messageId = UUID.randomUUID();
-						Message message2 = new Message(messageId, loggedInUser
-								.getUniqueId(),
-								MessageType.FILE_TRANSFER_REQUEST_OUT,
-								fileTransferId.toString(), timestamp,
-								selectedConversation);
-						selectedConversation.getMessages().add(message2);
-						selectedConversation.setLastModified(new Date());
-						AudioIO.IM_SENT.playSound();
+						DialogForm form = new DialogForm(null,
+								"Skype™ - Send file?", header, text, "Send",
+								new Runnable() {
+
+									@Override
+									public void run() {
+										try {
+											ByteArrayOutputStream baos = new ByteArrayOutputStream();
+											CipherOutputStream cos = new CipherOutputStream(
+													baos, cipher);
+											cos.write(Files.readAllBytes(file
+													.toPath()));
+											cos.flush();
+											cos.close();
+											byte[] b3 = baos.toByteArray();
+											long length = b3.length;
+											ongoingFileTransferData = b3;
+											Optional<PacketPlayInReply> replyPacket = ctx
+													.get()
+													.getOutboundHandler()
+													.dispatch(
+															ctx.get(),
+															new PacketPlayOutSendFileTransferRequest(
+																	authCode,
+																	conversationId,
+																	fileTransferId,
+																	file.getName(),
+																	length,
+																	message));
+											if (!replyPacket.isPresent()) {
+												return;
+											}
+											if (replyPacket.get()
+													.getStatusCode() != 200) {
+												return;
+											}
+											UUID messageId = UUID.randomUUID();
+											Message message2 = new Message(
+													messageId,
+													loggedInUser.getUniqueId(),
+													MessageType.FILE_TRANSFER_REQUEST_OUT,
+													fileTransferId.toString(),
+													timestamp,
+													selectedConversation);
+											selectedConversation.getMessages()
+													.add(message2);
+											selectedConversation
+													.setLastModified(new Date());
+											AudioIO.IM_SENT.playSound();
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+									}
+								});
+						form.show();
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
