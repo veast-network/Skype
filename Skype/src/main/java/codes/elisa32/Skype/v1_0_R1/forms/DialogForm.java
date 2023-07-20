@@ -27,7 +27,7 @@ import codes.elisa32.Skype.v1_0_R1.uicommon.JVerticalLayout;
 
 public class DialogForm extends JDialog {
 
-	private JButton cancelButton = new JButton("Cancel");
+	public JButton cancelButton = new JButton("Cancel");
 
 	public DialogForm(JFrame parent, String windowTitle, String dialogTitle,
 			String message, String primaryButtonText, Runnable callback) {
@@ -133,23 +133,25 @@ public class DialogForm extends JDialog {
 		/**
 		 * Construct primary action button
 		 */
-		JPanel primaryButtonPanel = new JPanel();
-		primaryButtonPanel.setBounds(223, 158, 78, 39);
-		primaryButtonPanel.setOpaque(false);
-		JButton primaryButton = new JButton(primaryButtonText);
-		primaryButton.setPreferredSize(new Dimension(78, 23));
-		primaryButton.addActionListener(new ActionListener() {
+		if (primaryButtonText != null) {
+			JPanel primaryButtonPanel = new JPanel();
+			primaryButtonPanel.setBounds(223, 158, 78, 39);
+			primaryButtonPanel.setOpaque(false);
+			JButton primaryButton = new JButton(primaryButtonText);
+			primaryButton.setPreferredSize(new Dimension(78, 23));
+			primaryButton.addActionListener(new ActionListener() {
 
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				dialog.dispatchEvent(new WindowEvent(dialog,
-						WindowEvent.WINDOW_CLOSING));
-				callback.run();
-			}
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					dialog.dispatchEvent(new WindowEvent(dialog,
+							WindowEvent.WINDOW_CLOSING));
+					callback.run();
+				}
 
-		});
-		primaryButtonPanel.add(primaryButton);
-		layeredPane.add(primaryButtonPanel, new Integer(2), 0);
+			});
+			primaryButtonPanel.add(primaryButton);
+			layeredPane.add(primaryButtonPanel, new Integer(2), 0);
+		}
 
 		/**
 		 * Construct cancel button

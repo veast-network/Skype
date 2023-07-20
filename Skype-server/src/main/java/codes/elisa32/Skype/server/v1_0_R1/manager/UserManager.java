@@ -144,7 +144,8 @@ public class UserManager {
 
 	public List<Connection> getConnectionsInCall(UUID participantId, UUID callId) {
 		List<Connection> cons = new ArrayList<>();
-		for (Connection con : Skype.getPlugin().getConnectionMap().values()) {
+		for (Connection con : Skype.getPlugin().getConnectionMap().values()
+				.toArray(new Connection[0]).clone()) {
 			if (con.getExpiryTime() < System.currentTimeMillis()) {
 				continue;
 			}
@@ -155,6 +156,31 @@ public class UserManager {
 				continue;
 			}
 			if (!con.getCallId().get().equals(callId)) {
+				continue;
+			}
+			if (!con.getSocketHandlerContext().isOutboundHandlerAdded()) {
+				continue;
+			}
+			cons.add(con);
+		}
+		return cons;
+	}
+
+	public List<Connection> getConnectionsInFileTransfer(UUID participantId,
+			UUID fileTransferId) {
+		List<Connection> cons = new ArrayList<>();
+		for (Connection con : Skype.getPlugin().getConnectionMap().values()
+				.toArray(new Connection[0]).clone()) {
+			if (con.getExpiryTime() < System.currentTimeMillis()) {
+				continue;
+			}
+			if (!con.getUniqueId().equals(participantId)) {
+				continue;
+			}
+			if (!con.isInFileTransfer()) {
+				continue;
+			}
+			if (!con.getFileTransferId().get().equals(fileTransferId)) {
 				continue;
 			}
 			if (!con.getSocketHandlerContext().isOutboundHandlerAdded()) {
@@ -180,6 +206,31 @@ public class UserManager {
 				continue;
 			}
 			if (!con.getCallId().get().equals(callId)) {
+				continue;
+			}
+			if (!con.getSocketHandlerContext().isOutboundHandlerAdded()) {
+				continue;
+			}
+			cons.add(con);
+		}
+		return cons;
+	}
+
+	public List<Connection> getDataStreamConnectionsInFileTransfer(
+			UUID participantId, UUID fileTransferId) {
+		List<Connection> cons = new ArrayList<>();
+		for (Connection con : Skype.getPlugin().getConnectionMap().values()
+				.toArray(new Connection[0]).clone()) {
+			if (con.getExpiryTime() < System.currentTimeMillis()) {
+				continue;
+			}
+			if (!con.getUniqueId().equals(participantId)) {
+				continue;
+			}
+			if (!con.isFileDataStream()) {
+				continue;
+			}
+			if (!con.getFileTransferId().get().equals(fileTransferId)) {
 				continue;
 			}
 			if (!con.getSocketHandlerContext().isOutboundHandlerAdded()) {

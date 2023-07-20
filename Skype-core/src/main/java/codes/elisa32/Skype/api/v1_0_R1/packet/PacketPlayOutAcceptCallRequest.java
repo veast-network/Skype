@@ -9,7 +9,7 @@ public class PacketPlayOutAcceptCallRequest extends Packet {
 	private UUID callId;
 
 	public PacketPlayOutAcceptCallRequest(UUID authCode, UUID callId) {
-		super(PacketType.ACCEPT_CALL_REQUEST_OUT);
+		super(PacketType.ACCEPT_CALL_REQUEST);
 		this.setAuthCode(authCode);
 		this.setCallId(callId);
 	}

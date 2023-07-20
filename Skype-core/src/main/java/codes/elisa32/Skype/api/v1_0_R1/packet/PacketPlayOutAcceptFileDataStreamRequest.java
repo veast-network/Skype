@@ -2,20 +2,20 @@ package codes.elisa32.Skype.api.v1_0_R1.packet;
 
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 
-public class PacketPlayOutAcceptCallDataStreamRequest extends Packet {
+public class PacketPlayOutAcceptFileDataStreamRequest extends Packet {
 
 	private UUID authCode;
 
 	private UUID participantId;
 
-	private UUID callId;
+	private UUID fileTransferId;
 
-	public PacketPlayOutAcceptCallDataStreamRequest(UUID authCode,
-			UUID participantId, UUID callId) {
-		super(PacketType.ACCEPT_CALL_DATA_STREAM_REQUEST);
+	public PacketPlayOutAcceptFileDataStreamRequest(UUID authCode,
+			UUID participantId, UUID fileTransferId) {
+		super(PacketType.ACCEPT_FILE_DATA_STREAM_REQUEST);
 		this.setAuthCode(authCode);
 		this.setParticipantId(participantId);
-		this.setCallId(callId);
+		this.setFileTransferId(fileTransferId);
 	}
 
 	public UUID getAuthCode() {
@@ -34,12 +34,12 @@ public class PacketPlayOutAcceptCallDataStreamRequest extends Packet {
 		this.participantId = participantId;
 	}
 
-	public UUID getCallId() {
-		return callId;
+	public UUID getFileTransferId() {
+		return fileTransferId;
 	}
 
-	public void setCallId(UUID callId) {
-		this.callId = callId;
+	public void setFileTransferId(UUID fileTransferId) {
+		this.fileTransferId = fileTransferId;
 	}
 
 }

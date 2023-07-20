@@ -9,7 +9,7 @@ public class PacketPlayOutDeclineCallRequest extends Packet {
 	private UUID callId;
 
 	public PacketPlayOutDeclineCallRequest(UUID authCode, UUID callId) {
-		super(PacketType.DECLINE_CALL_REQUEST_OUT);
+		super(PacketType.DECLINE_CALL_REQUEST);
 		this.setAuthCode(authCode);
 		this.setCallId(callId);
 	}
