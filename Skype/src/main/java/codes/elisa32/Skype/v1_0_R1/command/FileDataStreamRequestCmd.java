@@ -26,7 +26,6 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutFinishedReadingFileTr
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
-import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
 import codes.elisa32.Skype.v1_0_R1.cipher.CipherUtilities;
 import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
 import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
@@ -90,7 +89,7 @@ public class FileDataStreamRequestCmd extends CommandExecutor {
 								progressMonitor.setMaximum((int) length);
 								progressMonitor.setMillisToDecideToPopup(100);
 								progressMonitor.setMillisToPopup(100);
-								byte[] b = new byte[2048];
+								byte[] b = new byte[8192];
 								int len;
 								while ((len = bufferedInputStream.read(b)) != -1) {
 									bytesRead += len;
@@ -107,6 +106,16 @@ public class FileDataStreamRequestCmd extends CommandExecutor {
 								throw e;
 							} finally {
 								parent.setEnabled(true);
+								if (parent instanceof JFrame) {
+									java.awt.EventQueue
+											.invokeLater(new Runnable() {
+												@Override
+												public void run() {
+													((JFrame) parent).toFront();
+													parent.repaint();
+												}
+											});
+								}
 							}
 							if (bytesRead > 0) {
 								Cipher cipher2 = CipherUtilities
