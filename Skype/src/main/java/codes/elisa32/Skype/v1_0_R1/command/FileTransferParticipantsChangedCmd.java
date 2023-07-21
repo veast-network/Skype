@@ -43,12 +43,22 @@ public class FileTransferParticipantsChangedCmd extends CommandExecutor {
 			socket2.setSoTimeout(2000);
 			InputStream dis = socket2.getInputStream();
 			OutputStream dos = socket2.getOutputStream();
-			dos.write("200 OK".getBytes());
-			dos.flush();
-			byte[] b2 = new byte[1024];
-			int bytesRead2 = dis.read(b2);
-			int port = Integer.parseInt(new String(Arrays
-					.copyOf(b2, bytesRead2)));
+			boolean err = false;
+			int port = 0;
+			do {
+				try {
+					dos.write("200 OK".getBytes());
+					dos.flush();
+					byte[] b2 = new byte[1024];
+					int bytesRead2 = dis.read(b2);
+					port = Integer.parseInt(new String(Arrays.copyOf(b2,
+							bytesRead2)));
+					err = false;
+				} catch (Exception e) {
+					e.printStackTrace();
+					err = true;
+				}
+			} while (err == true);
 			String hostname = Skype.getPlugin().getHostname();
 			Socket socket = new Socket(hostname, port);
 			JFrame mainForm = MainForm.get();

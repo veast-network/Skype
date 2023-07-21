@@ -106,6 +106,7 @@ public class FileTransferringInboundHandler implements Runnable {
 					Socket socket = null;
 					try {
 						socket = server.accept();
+						dos.close();
 						InputStream is = socket.getInputStream();
 						int bytesRead;
 						byte[] b = new byte[8192];
@@ -289,10 +290,11 @@ public class FileTransferringInboundHandler implements Runnable {
 
 			});
 			thread.start();
-			dis.read(new byte[1024]);
-			dos.write((port + "").getBytes());
-			dos.flush();
-			dos.close();
+			while (true) {
+				dis.read(new byte[1024]);
+				dos.write((port + "").getBytes());
+				dos.flush();
+			}
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			return;
