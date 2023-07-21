@@ -160,6 +160,8 @@ public class MainForm extends JFrame {
 
 	public List<String> registry = new ArrayList<String>();
 
+	private JTextField conversationTextField = new JTextField();
+
 	private WindowAdapter windowAdapter = new WindowAdapter() {
 		@Override
 		public void windowClosing(WindowEvent e) {
@@ -389,6 +391,7 @@ public class MainForm extends JFrame {
 	}
 
 	public void setSelectedConversation(Conversation conversation) {
+		conversationTextField.setText("");
 		this.selectedConversation = conversation;
 	}
 
@@ -6270,176 +6273,8 @@ public class MainForm extends JFrame {
 					1, new Color(102, 207, 246)));
 			iconLabelPanel.add(Box.createRigidArea(new Dimension(15, 15)));
 
-			JTextField conversationTextField = new JTextField();
-			conversationTextField.setBorder(BorderFactory.createEmptyBorder());
 			conversationTextField.setPreferredSize(new Dimension(
 					panelWidth - 180, 36));
-			conversationTextField.setOpaque(false);
-			conversationTextField.setFont(font);
-			KeyStroke enterKeyStroke = KeyStroke.getKeyStroke(
-					KeyEvent.VK_ENTER, 0);
-			conversationTextField.getKeymap().removeKeyStrokeBinding(
-					enterKeyStroke);
-			conversationTextField.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent arg0) {
-					if (conversationTextField.getText().trim().length() == 0) {
-						return;
-					}
-					Optional<SocketHandlerContext> ctx = Skype.getPlugin()
-							.createHandle();
-					if (!ctx.isPresent()) {
-						return;
-					}
-					UUID messageId = UUID.randomUUID();
-					long timestamp = System.currentTimeMillis();
-					Message message = new Message(messageId, loggedInUser
-							.getUniqueId(), PGPUtilities.encryptAndSign(
-							conversationTextField.getText().trim(),
-							selectedConversation), timestamp,
-							selectedConversation);
-					if (!conversations.contains(selectedConversation)) {
-						conversations.add(selectedConversation);
-					}
-					UUID conversationId = selectedConversation.getUniqueId();
-					Optional<PacketPlayInReply> replyPacket = ctx
-							.get()
-							.getOutboundHandler()
-							.dispatch(
-									ctx.get(),
-									new PacketPlayOutSendMessage(authCode,
-											conversationId, messageId, message
-													.toString(), timestamp));
-					if (!replyPacket.isPresent()) {
-						return;
-					}
-					if (replyPacket.get().getStatusCode() == 200) {
-						if (!selectedConversation.isGroupChat()) {
-							selectedConversation.getMessages().add(message);
-							selectedConversation.setLastModified(new Date());
-							refreshWindow();
-						}
-						AudioIO.IM_SENT.playSound();
-					}
-				}
-
-			});
-
-			KeyStroke ctrlV = KeyStroke.getKeyStroke(KeyEvent.VK_V,
-					KeyEvent.CTRL_DOWN_MASK);
-			final ActionListener ctrlVAction = conversationTextField
-					.getActionForKeyStroke(ctrlV);
-			conversationTextField.registerKeyboardAction(new CombinedAction(
-					ctrlVAction, new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							Transferable transferable = Toolkit
-									.getDefaultToolkit().getSystemClipboard()
-									.getContents(null);
-							if (transferable != null
-									&& transferable
-											.isDataFlavorSupported(DataFlavor.imageFlavor)) {
-								try {
-									BufferedImage bufferedImage = (BufferedImage) transferable
-											.getTransferData(DataFlavor.imageFlavor);
-									ByteArrayOutputStream baos = new ByteArrayOutputStream();
-									javax.imageio.ImageIO.write(bufferedImage,
-											"jpg", baos);
-									DialogForm form = new DialogForm(
-											frame,
-											"Skype™ - Upload image?",
-											"Upload image?",
-											"Are you sure you want to upload this image? The"
-													+ '\r'
-													+ '\n'
-													+ "image will first be uploaded to Imgur and then sent"
-													+ '\r'
-													+ '\n'
-													+ "in the chat. Please check out https://imgur.com/rules to"
-													+ '\r'
-													+ '\n'
-													+ "see what kind of content is not legal to be uploaded.",
-											"Upload", new Runnable() {
-
-												@Override
-												public void run() {
-													ImgurUploader imgurUploader = new ImgurUploader();
-													Optional<String> url = imgurUploader.uploadImg(baos
-															.toByteArray());
-													if (!url.isPresent()) {
-														return;
-													}
-													Optional<SocketHandlerContext> ctx = Skype
-															.getPlugin()
-															.createHandle();
-													if (!ctx.isPresent()) {
-														return;
-													}
-													UUID messageId = UUID
-															.randomUUID();
-													long timestamp = System
-															.currentTimeMillis();
-													Message message = new Message(
-															messageId,
-															loggedInUser
-																	.getUniqueId(),
-															PGPUtilities
-																	.encryptAndSign(
-																			"<img src=\""
-																					+ url.get()
-																					+ "\" />",
-																			selectedConversation),
-															timestamp,
-															selectedConversation);
-													if (!conversations
-															.contains(selectedConversation)) {
-														conversations
-																.add(selectedConversation);
-													}
-													UUID conversationId = selectedConversation
-															.getUniqueId();
-													Optional<PacketPlayInReply> replyPacket = ctx
-															.get()
-															.getOutboundHandler()
-															.dispatch(
-																	ctx.get(),
-																	new PacketPlayOutSendMessage(
-																			authCode,
-																			conversationId,
-																			messageId,
-																			message.toString(),
-																			timestamp));
-													if (!replyPacket
-															.isPresent()) {
-														return;
-													}
-													if (replyPacket.get()
-															.getStatusCode() == 200) {
-														if (!selectedConversation
-																.isGroupChat()) {
-															selectedConversation
-																	.getMessages()
-																	.add(message);
-															selectedConversation
-																	.setLastModified(new Date());
-															refreshWindow();
-														}
-														AudioIO.IM_SENT
-																.playSound();
-													}
-												}
-											});
-									form.show();
-								} catch (UnsupportedFlavorException e1) {
-									e1.printStackTrace();
-								} catch (IOException e1) {
-									e1.printStackTrace();
-								}
-							}
-						}
-					}), ctrlV, JComponent.WHEN_FOCUSED);
 
 			iconLabelPanel.add(conversationTextField);
 
@@ -6497,6 +6332,7 @@ public class MainForm extends JFrame {
 	}
 
 	private void selectConversation(Conversation conversation) {
+		conversationTextField.setText("");
 		if (conversation == null) {
 			rightPanelPage = "";
 			selectedConversation = null;
@@ -6529,9 +6365,25 @@ public class MainForm extends JFrame {
 			selectedConversation.setNotificationCount(0);
 		}
 
+		boolean searchTextFieldFocus = false;
+
+		if (searchTextField.hasFocus()) {
+			searchTextFieldFocus = true;
+		}
+
 		refreshLeftBottomPanel();
 		refreshLeftTopPanel();
 		refreshRightTopPanel();
+
+		if (rightPanelPage.equals("Conversation")) {
+			if (searchTextFieldFocus) {
+				searchTextField.requestFocusInWindow();
+			} else {
+				conversationTextField.requestFocusInWindow();
+			}
+		}
+
+		final boolean fsearchTextFieldFocus = searchTextFieldFocus;
 
 		/*
 		 * We need to add a 100ms delay to refresh the right bottom panel
@@ -6542,6 +6394,11 @@ public class MainForm extends JFrame {
 			public void actionPerformed(ActionEvent evt) {
 				((Timer) evt.getSource()).stop();
 				refreshRightBottomPanel(flag);
+				if (fsearchTextFieldFocus) {
+					searchTextField.requestFocusInWindow();
+				} else {
+					conversationTextField.requestFocusInWindow();
+				}
 			}
 
 		});
@@ -6957,6 +6814,171 @@ public class MainForm extends JFrame {
 		this.loggedInUser = loggedInUser;
 
 		loggedInUser.setOnlineStatus(Status.OFFLINE);
+
+		conversationTextField.setBorder(BorderFactory.createEmptyBorder());
+		conversationTextField.setOpaque(false);
+		conversationTextField.setFont(font);
+		KeyStroke enterKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0);
+		conversationTextField.getKeymap()
+				.removeKeyStrokeBinding(enterKeyStroke);
+		conversationTextField.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				if (conversationTextField.getText().trim().length() == 0) {
+					return;
+				}
+				Optional<SocketHandlerContext> ctx = Skype.getPlugin()
+						.createHandle();
+				if (!ctx.isPresent()) {
+					return;
+				}
+				UUID messageId = UUID.randomUUID();
+				long timestamp = System.currentTimeMillis();
+				Message message = new Message(messageId, loggedInUser
+						.getUniqueId(), PGPUtilities.encryptAndSign(
+						conversationTextField.getText().trim(),
+						selectedConversation), timestamp, selectedConversation);
+				if (!conversations.contains(selectedConversation)) {
+					conversations.add(selectedConversation);
+				}
+				UUID conversationId = selectedConversation.getUniqueId();
+				Optional<PacketPlayInReply> replyPacket = ctx
+						.get()
+						.getOutboundHandler()
+						.dispatch(
+								ctx.get(),
+								new PacketPlayOutSendMessage(authCode,
+										conversationId, messageId, message
+												.toString(), timestamp));
+				if (!replyPacket.isPresent()) {
+					return;
+				}
+				if (replyPacket.get().getStatusCode() == 200) {
+					if (!selectedConversation.isGroupChat()) {
+						selectedConversation.getMessages().add(message);
+						selectedConversation.setLastModified(new Date());
+						refreshWindow();
+					}
+					conversationTextField.setText("");
+					AudioIO.IM_SENT.playSound();
+				}
+			}
+
+		});
+
+		KeyStroke ctrlV = KeyStroke.getKeyStroke(KeyEvent.VK_V,
+				KeyEvent.CTRL_DOWN_MASK);
+		final ActionListener ctrlVAction = conversationTextField
+				.getActionForKeyStroke(ctrlV);
+		conversationTextField.registerKeyboardAction(new CombinedAction(
+				ctrlVAction, new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						Transferable transferable = Toolkit.getDefaultToolkit()
+								.getSystemClipboard().getContents(null);
+						if (transferable != null
+								&& transferable
+										.isDataFlavorSupported(DataFlavor.imageFlavor)) {
+							try {
+								BufferedImage bufferedImage = (BufferedImage) transferable
+										.getTransferData(DataFlavor.imageFlavor);
+								ByteArrayOutputStream baos = new ByteArrayOutputStream();
+								javax.imageio.ImageIO.write(bufferedImage,
+										"jpg", baos);
+								DialogForm form = new DialogForm(
+										frame,
+										"Skype™ - Upload image?",
+										"Upload image?",
+										"Are you sure you want to upload this image? The"
+												+ '\r'
+												+ '\n'
+												+ "image will first be uploaded to Imgur and then sent"
+												+ '\r'
+												+ '\n'
+												+ "in the chat. Please check out https://imgur.com/rules to"
+												+ '\r'
+												+ '\n'
+												+ "see what kind of content is not legal to be uploaded.",
+										"Upload", new Runnable() {
+
+											@Override
+											public void run() {
+												ImgurUploader imgurUploader = new ImgurUploader();
+												Optional<String> url = imgurUploader
+														.uploadImg(baos
+																.toByteArray());
+												if (!url.isPresent()) {
+													return;
+												}
+												Optional<SocketHandlerContext> ctx = Skype
+														.getPlugin()
+														.createHandle();
+												if (!ctx.isPresent()) {
+													return;
+												}
+												UUID messageId = UUID
+														.randomUUID();
+												long timestamp = System
+														.currentTimeMillis();
+												Message message = new Message(
+														messageId,
+														loggedInUser
+																.getUniqueId(),
+														PGPUtilities
+																.encryptAndSign(
+																		"<img src=\""
+																				+ url.get()
+																				+ "\" />",
+																		selectedConversation),
+														timestamp,
+														selectedConversation);
+												if (!conversations
+														.contains(selectedConversation)) {
+													conversations
+															.add(selectedConversation);
+												}
+												UUID conversationId = selectedConversation
+														.getUniqueId();
+												Optional<PacketPlayInReply> replyPacket = ctx
+														.get()
+														.getOutboundHandler()
+														.dispatch(
+																ctx.get(),
+																new PacketPlayOutSendMessage(
+																		authCode,
+																		conversationId,
+																		messageId,
+																		message.toString(),
+																		timestamp));
+												if (!replyPacket.isPresent()) {
+													return;
+												}
+												if (replyPacket.get()
+														.getStatusCode() == 200) {
+													if (!selectedConversation
+															.isGroupChat()) {
+														selectedConversation
+																.getMessages()
+																.add(message);
+														selectedConversation
+																.setLastModified(new Date());
+														refreshWindow();
+													}
+													AudioIO.IM_SENT.playSound();
+												}
+											}
+										});
+								form.show();
+							} catch (UnsupportedFlavorException e1) {
+								e1.printStackTrace();
+							} catch (IOException e1) {
+								e1.printStackTrace();
+							}
+						}
+					}
+				}), ctrlV, JComponent.WHEN_FOCUSED);
 
 		{
 

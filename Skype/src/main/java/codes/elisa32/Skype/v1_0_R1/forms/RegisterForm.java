@@ -871,7 +871,9 @@ public class RegisterForm extends JDialog {
 						return;
 					}
 				}
-				if (!createSkypeNameTextField.getText().chars()
+				if (!createSkypeNameTextField.getText().replace(".", "")
+						.replace(":", "").replace("_", "").replace("-", "")
+						.replace(",", "").chars()
 						.allMatch(Character::isLetterOrDigit)) {
 					createSkypeNameTextField.grabFocus();
 					Toolkit.getDefaultToolkit().beep();
