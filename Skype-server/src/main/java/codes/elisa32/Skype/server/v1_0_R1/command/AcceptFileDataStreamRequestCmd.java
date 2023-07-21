@@ -93,6 +93,9 @@ public class AcceptFileDataStreamRequestCmd extends CommandExecutor {
 					.getUniqueId(skypeName).toString());
 		}
 		Object payload = GsonBuilder.create().toJson(participantIds);
+		if (participantIds.size() == 1) {
+			return PacketPlayInReply.empty();
+		}
 		for (UUID fileTransferParticipant : fileTransfer.getParticipants()) {
 			boolean hasParticipantAnsweredFileTransfer = Skype
 					.getPlugin()

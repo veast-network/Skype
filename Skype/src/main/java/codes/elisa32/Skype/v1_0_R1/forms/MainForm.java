@@ -7860,7 +7860,9 @@ public class MainForm extends JFrame {
 									}
 									UUID authCode2 = UUID.fromString(reply
 											.get().getText());
-									for (Conversation conversation : conversations) {
+									for (Conversation conversation : conversations
+											.toArray(new Conversation[0])
+											.clone()) {
 										if (conversation instanceof Contact) {
 											Contact contact = (Contact) conversation;
 											Status onlineStatus = Status.OFFLINE;

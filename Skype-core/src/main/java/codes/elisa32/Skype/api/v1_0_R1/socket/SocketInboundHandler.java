@@ -129,7 +129,7 @@ public class SocketInboundHandler extends SocketHandler {
 		}
 	}
 
-	public void socketRead(SocketHandlerContext ctx, Object msg) {
+	private void socketRead(SocketHandlerContext ctx, Object msg) {
 		System.out.println(Optional.of(msg.toString()));
 		PacketPlayInReply replyPacket = CommandMap.dispatch(ctx, msg);
 		if (replyPacket == null) {
