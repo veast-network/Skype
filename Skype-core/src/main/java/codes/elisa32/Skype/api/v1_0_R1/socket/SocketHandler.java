@@ -4,7 +4,7 @@ public abstract class SocketHandler {
 
 	public abstract void exceptionCaught(SocketHandlerContext ctx, Throwable cause);
 	
-	public abstract void handlerAdded(SocketHandlerContext ctx);
+	public abstract void handlerAdded(SocketHandlerContext ctx, Runnable callback);
 	
 	public abstract void handlerRemoved(SocketHandlerContext ctx);
 	

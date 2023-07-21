@@ -76,10 +76,10 @@ public class SocketHandlerContext {
 		return jsonManipulator;
 	}
 
-	public SocketHandlerContext fireInboundHandlerActive() {
+	public SocketHandlerContext fireInboundHandlerActive(Runnable callback) {
 		SocketHandlerContext ctx = this;
 		if (!inboundHandlerAdded) {
-			inboundHandler.handlerAdded(ctx);
+			inboundHandler.handlerAdded(ctx, callback);
 			inboundHandlerAdded = true;
 		}
 		return ctx;
@@ -96,14 +96,14 @@ public class SocketHandlerContext {
 	}
 
 	@Deprecated
-	public SocketHandlerContext fireSocketActive() {
+	public SocketHandlerContext fireSocketActive(Runnable callback) {
 		SocketHandlerContext ctx = this;
 		if (!outboundHandlerAdded) {
 			outboundHandler.handlerAdded(ctx);
 			outboundHandlerAdded = true;
 		}
 		if (!inboundHandlerAdded) {
-			inboundHandler.handlerAdded(ctx);
+			inboundHandler.handlerAdded(ctx, callback);
 			inboundHandlerAdded = true;
 		}
 		return ctx;
@@ -143,8 +143,8 @@ public class SocketHandlerContext {
 	}
 
 	@Deprecated
-	public void start() {
-		fireSocketActive();
+	public void start(Runnable callback) {
+		fireSocketActive(callback);
 	}
 
 	@Deprecated

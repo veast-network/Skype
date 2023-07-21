@@ -186,7 +186,16 @@ public class Skype {
 			try {
 				Socket socket = serverSocket.accept();
 				SocketHandlerContext ctx = new SocketHandlerContext(socket);
-				ctx.fireInboundHandlerActive();
+				ctx.fireInboundHandlerActive(new Runnable() {
+
+					@Override
+					public void run() {
+						/*
+						 * incoming data stream got closed
+						 */
+					}
+
+				});
 			} catch (IOException e) {
 				e.printStackTrace();
 				break;

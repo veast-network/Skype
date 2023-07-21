@@ -17,6 +17,8 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 public class SocketInboundHandler extends SocketHandler {
 
 	protected Thread thread;
+	
+	protected Runnable callback;
 
 	@Override
 	public void exceptionCaught(SocketHandlerContext ctx, Throwable cause) {
@@ -24,13 +26,14 @@ public class SocketInboundHandler extends SocketHandler {
 	}
 
 	@Override
-	public void handlerAdded(SocketHandlerContext ctx) {
+	public void handlerAdded(SocketHandlerContext ctx, Runnable callback) {
 		if (thread != null) {
 			/**
 			 * Handler was added previously, we do not need to add it again
 			 */
 			return;
 		}
+		this.callback = callback;
 		thread = new Thread(
 				() -> {
 					Socket socket = ctx.getSocket();
@@ -121,6 +124,9 @@ public class SocketInboundHandler extends SocketHandler {
 	@Override
 	public void handlerRemoved(SocketHandlerContext ctx) {
 		thread.stop();
+		if (callback != null) {
+			callback.run();
+		}
 	}
 
 	public void socketRead(SocketHandlerContext ctx, Object msg) {

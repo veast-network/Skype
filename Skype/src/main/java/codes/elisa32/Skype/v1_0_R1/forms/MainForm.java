@@ -7867,7 +7867,17 @@ public class MainForm extends JFrame {
 
 			ctx.fireOutboundHandlerInactive();
 
-			ctx.fireInboundHandlerActive();
+			ctx.fireInboundHandlerActive(new Runnable() {
+
+				@Override
+				public void run() {
+					/*
+					 * incoming data stream got closed
+					 */
+					logOut();
+				}
+
+			});
 
 			AudioIO.LOGIN.playSound();
 

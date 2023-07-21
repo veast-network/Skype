@@ -16,9 +16,13 @@ public class SocketOutboundHandler extends SocketHandler {
 	public void exceptionCaught(SocketHandlerContext ctx, Throwable cause) {
 		cause.printStackTrace();
 	}
+	
+	public void handlerAdded(SocketHandlerContext ctx) {
+		handlerAdded(ctx, null);
+	}
 
 	@Override
-	public void handlerAdded(SocketHandlerContext ctx) {
+	public void handlerAdded(SocketHandlerContext ctx, java.lang.Runnable callback) {
 	}
 
 	@Override
