@@ -2,6 +2,7 @@ package codes.elisa32.Skype.api.v1_0_R1.socket;
 
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.UUID;
 
 import codes.elisa32.Skype.api.v1_0_R1.cryptography.CryptographicContext;
 import codes.elisa32.Skype.api.v1_0_R1.cryptography.SimpleCryptographicContext;
@@ -23,6 +24,8 @@ public class SocketHandlerContext {
 	private CryptographicContext cryptographicContext;
 
 	private JsonManipulator jsonManipulator;
+
+	private final UUID uniqueId = UUID.randomUUID();
 
 	public SocketHandlerContext(Socket socket) {
 		this.setSocket(socket);
@@ -132,12 +135,12 @@ public class SocketHandlerContext {
 	public SocketHandlerContext fireSocketInactive() {
 		SocketHandlerContext ctx = this;
 		if (outboundHandlerAdded) {
-			outboundHandler.handlerRemoved(ctx);
 			outboundHandlerAdded = false;
+			outboundHandler.handlerRemoved(ctx);
 		}
 		if (inboundHandlerAdded) {
-			inboundHandler.handlerRemoved(ctx);
 			inboundHandlerAdded = false;
+			inboundHandler.handlerRemoved(ctx);
 		}
 		return ctx;
 	}
@@ -150,6 +153,11 @@ public class SocketHandlerContext {
 	@Deprecated
 	public void stop() {
 		fireSocketInactive();
+	}
+
+	@Deprecated
+	public UUID getUniqueId() {
+		return uniqueId;
 	}
 
 }

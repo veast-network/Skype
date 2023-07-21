@@ -60,15 +60,13 @@ public class Contact extends Conversation {
 		this.uuid = clazz.uuid;
 		this.skypeName = clazz.skypeName;
 		this.name = clazz.name;
-		this.lastModified = clazz.lastModified;
-		this.notificationCount = clazz.notificationCount;
 		this.groupChat = clazz.groupChat;
 		/**
 		 * Contact
 		 */
 		this.favorite = clazz.favorite;
 		this.mood = clazz.mood;
-		this.onlineStatus = clazz.onlineStatus;
+		/* this.onlineStatus = clazz.onlineStatus; */
 		this.mobilePhone = clazz.mobilePhone;
 		this.homePhone = clazz.homePhone;
 		this.officePhone = clazz.officePhone;

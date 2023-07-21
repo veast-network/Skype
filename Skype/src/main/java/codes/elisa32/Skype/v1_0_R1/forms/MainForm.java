@@ -451,6 +451,92 @@ public class MainForm extends JFrame {
 						+ "to our project to add support for larger file uploads!";
 				hit = true;
 			}
+			if (selectedConversation.isGroupChat()) {
+				Optional<SocketHandlerContext> ctx2 = Skype.getPlugin()
+						.createHandle();
+				if (!ctx2.isPresent()) {
+					return;
+				}
+				UUID authCode = UUID.fromString(ctx2
+						.get()
+						.getOutboundHandler()
+						.dispatch(ctx2.get(),
+								new PacketPlayOutLogin(this.authCode)).get()
+						.getText());
+				boolean hit2 = false;
+				for (UUID participantId : selectedConversation
+						.getParticipants()) {
+					Status onlineStatus = Status.OFFLINE;
+					{
+						PacketPlayOutLookupOnlineStatus onlineStatusLookup = new PacketPlayOutLookupOnlineStatus(
+								authCode, participantId);
+						Optional<PacketPlayInReply> replyPacket = ctx2.get()
+								.getOutboundHandler()
+								.dispatch(ctx2.get(), onlineStatusLookup);
+						onlineStatus = Status.valueOf(replyPacket.get()
+								.getText());
+					}
+					if (onlineStatus == Status.OFFLINE) {
+						hit2 = true;
+						break;
+					}
+				}
+				if (hit2) {
+					header = "Send file?";
+					text = "This file can not be sent since not all participants are online,"
+							+ '\n'
+							+ "since every group participant must be online to send a file."
+							+ '\n'
+							+ " "
+							+ '\n'
+							+ "You can send this file to the participants that are online"
+							+ '\n'
+							+ "by adding them as contact and sending it to them in dm.";
+					hit = true;
+				}
+			} else {
+				Optional<SocketHandlerContext> ctx2 = Skype.getPlugin()
+						.createHandle();
+				if (!ctx2.isPresent()) {
+					return;
+				}
+				UUID authCode = UUID.fromString(ctx2
+						.get()
+						.getOutboundHandler()
+						.dispatch(ctx2.get(),
+								new PacketPlayOutLogin(this.authCode)).get()
+						.getText());
+				boolean hit2 = false;
+				Status onlineStatus = Status.OFFLINE;
+				{
+					PacketPlayOutLookupOnlineStatus onlineStatusLookup = new PacketPlayOutLookupOnlineStatus(
+							authCode, selectedConversation.getUniqueId());
+					Optional<PacketPlayInReply> replyPacket = ctx2.get()
+							.getOutboundHandler()
+							.dispatch(ctx2.get(), onlineStatusLookup);
+					onlineStatus = Status.valueOf(replyPacket.get().getText());
+				}
+				if (selectedConversation instanceof Contact) {
+					((Contact) selectedConversation)
+							.setOnlineStatus(onlineStatus);
+				}
+				if (onlineStatus == Status.OFFLINE) {
+					hit2 = true;
+				}
+				if (hit2) {
+					header = "Send file?";
+					text = "This file can not be sent to them since they are not online,"
+							+ '\n'
+							+ "since both of you have to be online in order to send a file."
+							+ '\n'
+							+ " "
+							+ '\n'
+							+ "You can send this file to them once they are online, maybe"
+							+ '\n'
+							+ "you should send them a ping on discord to let them know.";
+					hit = true;
+				}
+			}
 			DialogForm form = new DialogForm(null, "Skype™ - Send file?",
 					header, text, hit == false ? "Send" : null, new Runnable() {
 
@@ -7796,18 +7882,19 @@ public class MainForm extends JFrame {
 	}
 
 	public void logOut() {
+		try {
+			Optional<SocketHandlerContext> ctx = Skype.getPlugin()
+					.createHandle();
+			if (ctx.isPresent()) {
+				loggedInUser.setOnlineStatus(Status.OFFLINE);
+				PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+						authCode, loggedInUser.getUniqueId(), loggedInUser);
+				ctx.get().getOutboundHandler().dispatch(ctx.get(), msg);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		Skype.getPlugin().onDisable();
-		timer1.stop();
-		timer2.stop();
-		timer3.stop();
-		mic.stop();
-		mic.close();
-		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		frame.removeWindowListener(windowAdapter);
-		frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
-		AudioIO.LOGOUT.playSound();
-		LoginForm loginForm = new LoginForm();
-		loginForm.show();
 	}
 
 	private boolean shown = false;
@@ -7875,9 +7962,40 @@ public class MainForm extends JFrame {
 					 * incoming data stream got closed
 					 */
 					logOut();
+					try {
+						timer1.stop();
+						timer2.stop();
+						timer3.stop();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					try {
+						mic.stop();
+						mic.close();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+					frame.removeWindowListener(windowAdapter);
+					frame.dispatchEvent(new WindowEvent(frame,
+							WindowEvent.WINDOW_CLOSING));
+					AudioIO.LOGOUT.playSound();
+					LoginForm loginForm = new LoginForm();
+					loginForm.show();
 				}
 
 			});
+
+			{
+				Optional<SocketHandlerContext> ctx2 = Skype.getPlugin()
+						.createHandle();
+				if (!ctx2.isPresent()) {
+					return;
+				}
+				PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+						authCode, loggedInUser.getUniqueId(), loggedInUser);
+				ctx2.get().getOutboundHandler().write(ctx2.get(), msg);
+			}
 
 			AudioIO.LOGIN.playSound();
 

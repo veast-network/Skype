@@ -80,9 +80,6 @@ public class FileDataStreamRequestCmd extends CommandExecutor {
 									progressMonitorInputStream = new ProgressMonitorInputStream(
 											parent, "Retrieving " + fileName,
 											socket.getInputStream()))) {
-								if (parent instanceof JFrame) {
-									parent.setEnabled(false);
-								}
 								ProgressMonitor progressMonitor = progressMonitorInputStream
 										.getProgressMonitor();
 								progressMonitor.setMinimum(0);
@@ -92,6 +89,11 @@ public class FileDataStreamRequestCmd extends CommandExecutor {
 								byte[] b = new byte[8192];
 								int len;
 								while ((len = bufferedInputStream.read(b)) != -1) {
+									if (parent instanceof JFrame) {
+										if (parent.isEnabled()) {
+											parent.setEnabled(false);
+										}
+									}
 									bytesRead += len;
 									baos.write(Arrays.copyOf(b, len));
 									progressMonitor

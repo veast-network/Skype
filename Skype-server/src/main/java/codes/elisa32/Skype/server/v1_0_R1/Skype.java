@@ -5,6 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandMap;
@@ -56,7 +57,7 @@ public class Skype {
 
 	private ServerSocket serverSocket;
 
-	private HashMap<UUID, Connection> connectionMap = new HashMap<>();
+	private ConcurrentHashMap<UUID, Connection> connectionMap = new ConcurrentHashMap<>();
 
 	private ConcurrentHashMap<UUID, Call> callMap = new ConcurrentHashMap<>();
 
@@ -96,7 +97,7 @@ public class Skype {
 		return config;
 	}
 
-	public HashMap<UUID, Connection> getConnectionMap() {
+	public ConcurrentHashMap<UUID, Connection> getConnectionMap() {
 		return connectionMap;
 	}
 

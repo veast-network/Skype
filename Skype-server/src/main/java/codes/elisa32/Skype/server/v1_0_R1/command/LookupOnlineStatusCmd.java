@@ -2,6 +2,7 @@ package codes.elisa32.Skype.server.v1_0_R1.command;
 
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInPing;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLookupOnlineStatus;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
@@ -13,8 +14,8 @@ public class LookupOnlineStatusCmd extends CommandExecutor {
 
 	@Override
 	public PacketPlayInReply onCommand(SocketHandlerContext ctx, Object msg) {
-		PacketPlayOutLookupOnlineStatus packet = Packet.fromJson(msg.toString(),
-				PacketPlayOutLookupOnlineStatus.class);
+		PacketPlayOutLookupOnlineStatus packet = Packet.fromJson(
+				msg.toString(), PacketPlayOutLookupOnlineStatus.class);
 		UUID authCode = packet.getAuthCode();
 		UUID conversationId = packet.getConversationId();
 		Connection con = Skype.getPlugin().getUserManager()
@@ -32,6 +33,9 @@ public class LookupOnlineStatusCmd extends CommandExecutor {
 			if (con2 == null) {
 				continue;
 			}
+			if (con2.isListening() == false) {
+				continue;
+			}
 			if (!con2.getUniqueId().equals(conversationId)) {
 				continue;
 			}
@@ -39,8 +43,21 @@ public class LookupOnlineStatusCmd extends CommandExecutor {
 				/**
 				 * We want to set the online status to offline after 1.5 minutes
 				 * 
-				 * If they refresh the token before 1.5 minutes it does not go offline
+				 * If they refresh the token before 1.5 minutes it does not go
+				 * offline
 				 */
+				continue;
+			}
+			try {
+				con2.getSocketHandlerContext()
+						.getSocket()
+						.getOutputStream()
+						.write(new PacketPlayInPing().toString().getBytes(
+								"UTF-8"));
+				con2.getSocketHandlerContext().getSocket().getOutputStream()
+						.flush();
+			} catch (Exception e) {
+				Skype.getPlugin().getConnectionMap().remove(authCode2);
 				continue;
 			}
 			PacketPlayInReply replyPacket = new PacketPlayInReply(

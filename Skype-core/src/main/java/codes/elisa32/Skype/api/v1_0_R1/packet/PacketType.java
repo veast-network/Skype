@@ -67,6 +67,8 @@ public enum PacketType {
 	REPLY,
 
 	MESSAGE_IN,
+	
+	PING_IN,
 
 	REMOVE_MESSAGE_IN,
 
