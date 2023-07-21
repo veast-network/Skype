@@ -1,11 +1,6 @@
 package codes.elisa32.Skype.server.v1_0_R1.command;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
-import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInUserRegistryChanged;
@@ -95,27 +90,6 @@ public class RegisterCmd extends CommandExecutor {
 		long expiryTime = System.currentTimeMillis() + (30 * (60 * 1000L));
 
 		if (packet.isSilent() == false) {
-
-			List<String> skypeNames = new ArrayList<String>();
-			for (String key : Skype.getPlugin().getConfig()
-					.getConfigurationSection("registry").getKeys(false)) {
-				UUID participantId = UUID.fromString(key);
-				Optional<String> skypeName2 = Skype.getPlugin()
-						.getUserManager().getSkypeName(participantId);
-				if (skypeName2.isPresent()) {
-					if (skypeName2.get().startsWith("guest:")) {
-						if (Skype.getPlugin().getUserManager()
-								.isGroupChat(skypeName2.get())) {
-							continue;
-						}
-					}
-					if (!skypeNames.contains(skypeName2.get())) {
-						skypeNames.add(skypeName2.get());
-					}
-				}
-			}
-			Object payload = GsonBuilder.create().toJson(skypeNames);
-
 			for (UUID authCode2 : Skype.getPlugin().getConnectionMap().keySet()
 					.toArray(new UUID[0]).clone()) {
 				Connection con = Skype.getPlugin().getUserManager()
@@ -129,14 +103,12 @@ public class RegisterCmd extends CommandExecutor {
 						con.getSocketHandlerContext()
 								.getOutboundHandler()
 								.write(con.getSocketHandlerContext(),
-										new PacketPlayInUserRegistryChanged(
-												payload));
+										new PacketPlayInUserRegistryChanged());
 					} catch (IllegalArgumentException e) {
 						e.printStackTrace();
 					}
 				}
 			}
-
 		}
 
 		if (packet.isGroupChat()) {
