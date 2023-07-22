@@ -27,6 +27,7 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -205,6 +206,8 @@ public class MainForm extends JFrame {
 	private static List<Conversation> conversations = new ArrayList<Conversation>();
 
 	private Conversation selectedConversation;
+
+	private Message selectedMessage;
 
 	/**
 	 * UI Defaults
@@ -775,10 +778,53 @@ public class MainForm extends JFrame {
 			/**
 			 * Capitalize only the first letter of the online status
 			 */
-			JLabel statusLabel = new JLabel(WordUtils.capitalize(loggedInUser
-					.getOnlineStatus().name().toLowerCase()));
+			JLabel statusLabel = new JLabel(
+					loggedInUser.getMood() == null ? WordUtils
+							.capitalize(loggedInUser.getOnlineStatus().name()
+									.toLowerCase()) : Utils
+							.concatStringEllipses(fm, panelWidth - 73
+									- this.scrollBarWidth,
+									loggedInUser.getMood()));
 
 			statusLabel.setFont(font);
+
+			/**
+			 * Reserved for future use
+			 */
+			statusLabel.setCursor(Cursor
+					.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+			MouseAdapter mouseAdapter = new MouseAdapter() {
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					if (loggedInUser.getPubKey().isPresent()) {
+						String res2 = (String) JOptionPane.showInputDialog(
+								frame,
+								"Enter new mood for "
+										+ loggedInUser.getSkypeName(),
+								frame.getTitle(), JOptionPane.PLAIN_MESSAGE,
+								null, null, loggedInUser.getMood());
+						if (res2 != null) {
+							if (res2.trim().equals("")) {
+								res2 = null;
+							}
+							loggedInUser.setMood(res2);
+							Optional<UUID> authCode2 = registerUser(
+									loggedInUser, password);
+							if (authCode2.isPresent()) {
+								refreshWindow(SCROLL_TO_BOTTOM);
+							}
+						}
+					} else {
+						JOptionPane.showMessageDialog(frame, loggedInUser);
+					}
+				}
+
+			};
+
+			statusLabel.addMouseListener(mouseAdapter);
 
 			int width = statusLabel.getPreferredSize().width;
 			int height = statusLabel.getPreferredSize().height;
@@ -5410,6 +5456,13 @@ public class MainForm extends JFrame {
 									FlowLayout.CENTER, 0, 0));
 							backgroundPanel.setBackground(new Color(229, 247,
 									253));
+							if (selectedMessage != null
+									&& selectedMessage.getUniqueId() == message
+											.getUniqueId()) {
+								backgroundPanel.setBorder(BorderFactory
+										.createMatteBorder(2, 2, 2, 2,
+												new Color(0, 175, 240)));
+							}
 						}
 
 						{
@@ -5487,7 +5540,23 @@ public class MainForm extends JFrame {
 							{
 								JMenuItem menuItem = new JMenuItem(
 										"Edit Message");
-								menuItem.setEnabled(false);
+								if (message.isDeleted()) {
+									menuItem.setEnabled(false);
+								} else {
+									menuItem.setEnabled(true);
+									menuItem.addActionListener(new ActionListener() {
+
+										@Override
+										public void actionPerformed(
+												ActionEvent arg0) {
+											selectedMessage = message;
+											conversationTextField.setText(message
+													.getDecryptedMessage());
+											refreshWindow(RETAIN_SCROLL_POSITION);
+										}
+
+									});
+								}
 								popUp.add(menuItem);
 							}
 							{
@@ -5693,6 +5762,13 @@ public class MainForm extends JFrame {
 									FlowLayout.CENTER, 0, 0));
 							backgroundPanel.setBackground(new Color(199, 237,
 									252));
+							if (selectedMessage != null
+									&& selectedMessage.getUniqueId() == message
+											.getUniqueId()) {
+								backgroundPanel.setBorder(BorderFactory
+										.createMatteBorder(2, 2, 2, 2,
+												new Color(0, 175, 240)));
+							}
 						}
 
 						{
@@ -5776,72 +5852,81 @@ public class MainForm extends JFrame {
 							{
 								JMenuItem menuItem = new JMenuItem(
 										"Remove Message");
-								if (message.isDeleted()) {
-									menuItem.setEnabled(false);
-								} else {
-									menuItem.addActionListener(new ActionListener() {
+								if (selectedConversation.isGroupChat()
+										&& selectedConversation
+												.getGroupChatAdmins().contains(
+														loggedInUser
+																.getUniqueId())) {
+									if (message.isDeleted()) {
+										menuItem.setEnabled(false);
+									} else {
+										menuItem.addActionListener(new ActionListener() {
 
-										@Override
-										public void actionPerformed(
-												ActionEvent arg0) {
-											DialogForm form = new DialogForm(
-													null,
-													"Skype™ - Remove message?",
-													"Remove message?",
-													"Are you sure you want to remove this message?",
-													"Remove", new Runnable() {
+											@Override
+											public void actionPerformed(
+													ActionEvent arg0) {
+												DialogForm form = new DialogForm(
+														null,
+														"Skype™ - Remove message?",
+														"Remove message?",
+														"Are you sure you want to remove this message?",
+														"Remove",
+														new Runnable() {
 
-														@Override
-														public void run() {
-															Optional<SocketHandlerContext> ctx = Skype
-																	.getPlugin()
-																	.createHandle();
-															if (ctx.isPresent()) {
-																Optional<PacketPlayInReply> reply = ctx
-																		.get()
-																		.getOutboundHandler()
-																		.dispatch(
-																				ctx.get(),
-																				new PacketPlayOutLogin(
-																						authCode));
-																if (!reply
-																		.isPresent()
-																		|| reply.get()
-																				.getStatusCode() != 200) {
-																	return;
-																}
-																UUID authCode = UUID
-																		.fromString(reply
-																				.get()
-																				.getText());
-																PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
-																		authCode,
-																		selectedConversation
-																				.getUniqueId(),
-																		message.getUniqueId(),
-																		message.getTimestamp());
-																Optional<PacketPlayInReply> replyPacket2 = ctx
-																		.get()
-																		.getOutboundHandler()
-																		.dispatch(
-																				ctx.get(),
-																				removeMessage);
-																if (!replyPacket2
-																		.isPresent()) {
-																	return;
-																}
-																if (replyPacket2
-																		.get()
-																		.getStatusCode() != 200) {
-																	return;
+															@Override
+															public void run() {
+																Optional<SocketHandlerContext> ctx = Skype
+																		.getPlugin()
+																		.createHandle();
+																if (ctx.isPresent()) {
+																	Optional<PacketPlayInReply> reply = ctx
+																			.get()
+																			.getOutboundHandler()
+																			.dispatch(
+																					ctx.get(),
+																					new PacketPlayOutLogin(
+																							authCode));
+																	if (!reply
+																			.isPresent()
+																			|| reply.get()
+																					.getStatusCode() != 200) {
+																		return;
+																	}
+																	UUID authCode = UUID
+																			.fromString(reply
+																					.get()
+																					.getText());
+																	PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																			authCode,
+																			selectedConversation
+																					.getUniqueId(),
+																			message.getUniqueId(),
+																			message.getTimestamp());
+																	Optional<PacketPlayInReply> replyPacket2 = ctx
+																			.get()
+																			.getOutboundHandler()
+																			.dispatch(
+																					ctx.get(),
+																					removeMessage);
+																	if (!replyPacket2
+																			.isPresent()) {
+																		return;
+																	}
+																	if (replyPacket2
+																			.get()
+																			.getStatusCode() != 200) {
+																		return;
+																	}
 																}
 															}
-														}
 
-													});
-											form.show();
-										}
-									});
+														});
+												form.show();
+											}
+										});
+									}
+								} else {
+									menuItem.setEnabled(false);
 								}
 								popUp.add(menuItem);
 							}
@@ -6333,6 +6418,7 @@ public class MainForm extends JFrame {
 
 	private void selectConversation(Conversation conversation) {
 		conversationTextField.setText("");
+		selectedMessage = null;
 		if (conversation == null) {
 			rightPanelPage = "";
 			selectedConversation = null;
@@ -6350,6 +6436,14 @@ public class MainForm extends JFrame {
 		refreshWindow(SCROLL_TO_BOTTOM);
 		rightBottomTopPanel.getVerticalScrollBar().setValue(
 				rightBottomTopPanel.getVerticalScrollBar().getMaximum());
+		Optional<SocketHandlerContext> ctx2 = Skype.getPlugin().createHandle();
+		if (!ctx2.isPresent()) {
+			return;
+		}
+		loggedInUser.setLastLogin(System.currentTimeMillis());
+		PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(authCode,
+				loggedInUser.getUniqueId(), loggedInUser);
+		ctx2.get().getOutboundHandler().write(ctx2.get(), msg);
 	}
 
 	public final int RETAIN_SCROLL_POSITION = 0;
@@ -6371,6 +6465,9 @@ public class MainForm extends JFrame {
 			searchTextFieldFocus = true;
 		}
 
+		String searchTextFieldText = searchTextField.getText();
+		String conversationTextFieldText = conversationTextField.getText();
+
 		refreshLeftBottomPanel();
 		refreshLeftTopPanel();
 		refreshRightTopPanel();
@@ -6378,8 +6475,10 @@ public class MainForm extends JFrame {
 		if (rightPanelPage.equals("Conversation")) {
 			if (searchTextFieldFocus) {
 				searchTextField.requestFocusInWindow();
+				searchTextField.setText(searchTextFieldText);
 			} else {
 				conversationTextField.requestFocusInWindow();
+				conversationTextField.setText(conversationTextFieldText);
 			}
 		}
 
@@ -6393,11 +6492,16 @@ public class MainForm extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
 				((Timer) evt.getSource()).stop();
+				String searchTextFieldText = searchTextField.getText();
+				String conversationTextFieldText = conversationTextField
+						.getText();
 				refreshRightBottomPanel(flag);
 				if (fsearchTextFieldFocus) {
 					searchTextField.requestFocusInWindow();
+					searchTextField.setText(searchTextFieldText);
 				} else {
 					conversationTextField.requestFocusInWindow();
+					conversationTextField.setText(conversationTextFieldText);
 				}
 			}
 
@@ -6640,10 +6744,16 @@ public class MainForm extends JFrame {
 				}
 				List<String> messages = gson.fromJson(replyPacket.get()
 						.getText(), List.class);
+				Collections.sort(messages);
+				int unread = 0;
 				for (String message : messages) {
-					contact.getMessages().add(new Message(message, contact));
+					Message msg = new Message(message, contact);
+					contact.getMessages().add(msg);
+					if (msg.getTimestamp() > loggedInUser.getLastLogin()) {
+						unread++;
+					}
 				}
-				Collections.sort(contact.getMessages());
+				contact.setNotificationCount(unread);
 				if (contact.getMessages().size() > 0) {
 					contact.setLastModified(new Date(contact.getMessages()
 							.get(contact.getMessages().size() - 1)
@@ -6668,11 +6778,16 @@ public class MainForm extends JFrame {
 				}
 				List<String> messages = gson.fromJson(replyPacket.get()
 						.getText(), List.class);
+				Collections.sort(messages);
+				int unread = 0;
 				for (String message : messages) {
-					conversation.getMessages().add(
-							new Message(message, conversation));
+					Message msg = new Message(message, conversation);
+					conversation.getMessages().add(msg);
+					if (msg.getTimestamp() > loggedInUser.getLastLogin()) {
+						unread++;
+					}
 				}
-				Collections.sort(conversation.getMessages());
+				conversation.setNotificationCount(unread);
 				for (Message message : conversation.getMessages()) {
 					if (message.getMessageType() == null) {
 						continue;
@@ -6783,6 +6898,9 @@ public class MainForm extends JFrame {
 		contact.setDisplayName(conversation.getDisplayName());
 		contact.setOnlineStatus(Status.OFFLINE);
 		contact.setGroupChat(conversation.isGroupChat());
+		if (conversation instanceof Contact) {
+			contact.setMood(((Contact) conversation).getMood());
+		}
 		ctx.get()
 				.getOutboundHandler()
 				.dispatch(
@@ -6821,6 +6939,33 @@ public class MainForm extends JFrame {
 		KeyStroke enterKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0);
 		conversationTextField.getKeymap()
 				.removeKeyStrokeBinding(enterKeyStroke);
+		conversationTextField.addKeyListener(new KeyListener() {
+
+			@Override
+			public void keyPressed(KeyEvent arg0) {
+				if (arg0.getKeyCode() == KeyEvent.VK_ESCAPE) {
+					if (selectedMessage != null) {
+						selectedMessage = null;
+						conversationTextField.setText("");
+						refreshWindow(RETAIN_SCROLL_POSITION);
+					}
+				}
+
+			}
+
+			@Override
+			public void keyReleased(KeyEvent arg0) {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void keyTyped(KeyEvent arg0) {
+				// TODO Auto-generated method stub
+
+			}
+
+		});
 		conversationTextField.addActionListener(new ActionListener() {
 
 			@Override
@@ -6833,14 +6978,49 @@ public class MainForm extends JFrame {
 				if (!ctx.isPresent()) {
 					return;
 				}
+				if (conversationTextField.getText().trim().startsWith("s/")) {
+					String oldtext = conversationTextField
+							.getText()
+							.trim()
+							.substring(
+									conversationTextField.getText().trim()
+											.indexOf("/") + 1);
+					if (oldtext.indexOf("/") != -1) {
+						String newtext = oldtext.substring(oldtext.indexOf("/") + 1);
+						oldtext = oldtext.substring(0, oldtext.indexOf("/"));
+						Message lastMessageFromLoggedInUser = null;
+						for (Message msg : selectedConversation.getMessages()
+								.toArray(new Message[0]).clone()) {
+							if (msg.sender.equals(loggedInUser.getUniqueId())) {
+								if (lastMessageFromLoggedInUser != null) {
+									if (msg.timestamp > lastMessageFromLoggedInUser.timestamp) {
+										lastMessageFromLoggedInUser = msg;
+									}
+								} else {
+									lastMessageFromLoggedInUser = msg;
+								}
+							}
+						}
+						selectedMessage = lastMessageFromLoggedInUser;
+						conversationTextField.setText(selectedMessage
+								.getDecryptedMessage()
+								.replace(oldtext, newtext));
+					}
+				}
+				String txt = PGPUtilities.encryptAndSign(conversationTextField
+						.getText().trim(), selectedConversation);
 				UUID messageId = UUID.randomUUID();
 				long timestamp = System.currentTimeMillis();
 				Message message = new Message(messageId, loggedInUser
-						.getUniqueId(), PGPUtilities.encryptAndSign(
-						conversationTextField.getText().trim(),
-						selectedConversation), timestamp, selectedConversation);
+						.getUniqueId(), txt, timestamp, selectedConversation);
 				if (!conversations.contains(selectedConversation)) {
 					conversations.add(selectedConversation);
+				}
+				if (selectedMessage != null) {
+					message = selectedMessage;
+					message.setMessage(txt);
+					message.setDecryptedMessage(conversationTextField.getText()
+							.trim());
 				}
 				UUID conversationId = selectedConversation.getUniqueId();
 				Optional<PacketPlayInReply> replyPacket = ctx
@@ -6849,16 +7029,22 @@ public class MainForm extends JFrame {
 						.dispatch(
 								ctx.get(),
 								new PacketPlayOutSendMessage(authCode,
-										conversationId, messageId, message
-												.toString(), timestamp));
+										conversationId, message.getUniqueId(),
+										message.toString(), message
+												.getTimestamp()));
 				if (!replyPacket.isPresent()) {
 					return;
 				}
 				if (replyPacket.get().getStatusCode() == 200) {
 					if (!selectedConversation.isGroupChat()) {
-						selectedConversation.getMessages().add(message);
+						if (selectedMessage == null) {
+							selectedConversation.getMessages().add(message);
+						}
 						selectedConversation.setLastModified(new Date());
 						refreshWindow();
+					}
+					if (selectedMessage != null) {
+						selectedMessage = null;
 					}
 					conversationTextField.setText("");
 					AudioIO.IM_SENT.playSound();
@@ -7911,6 +8097,7 @@ public class MainForm extends JFrame {
 					.createHandle();
 			if (ctx.isPresent()) {
 				loggedInUser.setOnlineStatus(Status.OFFLINE);
+				loggedInUser.setLastLogin(System.currentTimeMillis());
 				PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
 						authCode, loggedInUser.getUniqueId(), loggedInUser);
 				ctx.get().getOutboundHandler().dispatch(ctx.get(), msg);
@@ -8016,6 +8203,7 @@ public class MainForm extends JFrame {
 				if (!ctx2.isPresent()) {
 					return;
 				}
+				loggedInUser.setLastLogin(System.currentTimeMillis());
 				PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
 						authCode, loggedInUser.getUniqueId(), loggedInUser);
 				ctx2.get().getOutboundHandler().write(ctx2.get(), msg);

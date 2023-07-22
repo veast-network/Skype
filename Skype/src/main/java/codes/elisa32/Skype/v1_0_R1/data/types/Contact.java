@@ -40,6 +40,7 @@ public class Contact extends Conversation {
 	public volatile String language;
 	public volatile int numberOfContacts;
 	public volatile String aboutMe;
+	public volatile long lastLogin;
 
 	public Contact() {
 
@@ -81,6 +82,7 @@ public class Contact extends Conversation {
 		this.language = clazz.language;
 		this.numberOfContacts = clazz.numberOfContacts;
 		this.aboutMe = clazz.aboutMe;
+		this.lastLogin = clazz.lastLogin;
 	}
 
 	@Override
@@ -229,6 +231,14 @@ public class Contact extends Conversation {
 
 	public void setAboutMe(String aboutMe) {
 		this.aboutMe = aboutMe;
+	}
+	
+	public long getLastLogin() {
+		return lastLogin;
+	}
+	
+	public void setLastLogin(long lastLogin) {
+		this.lastLogin = lastLogin;
 	}
 
 }

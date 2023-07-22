@@ -1,7 +1,15 @@
 package codes.elisa32.Skype.v1_0_R1;
 
-import java.awt.Font;
+import static java.lang.System.getProperty;
 
+import java.awt.Font;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.Scanner;
+
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.plaf.FontUIResource;
@@ -10,6 +18,8 @@ import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
 import codes.elisa32.Skype.v1_0_R1.forms.LoginForm;
 
 public class AppDelegate {
+
+	public static final long VERSION = 3401;
 
 	public static void main(String[] args) {
 		try {
@@ -157,7 +167,41 @@ public class AppDelegate {
 				new FontUIResource(FontIO.TAHOMA.deriveFont(Font.TRUETYPE_FONT,
 						11)));
 
-		LoginForm loginForm = new LoginForm();
-		loginForm.show();
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				// HealthMonitor.start();
+				if (getProperty("os.name").startsWith("Windows")) {
+					try {
+						URL url = new URL(
+								"https://raw.skypeusercontent.com/elisa322008/elisa322008.github.io/main/skype/version_client.txt");
+						URLConnection con = url.openConnection();
+						con.setReadTimeout(4000);
+						con.setRequestProperty("User-Agent",
+								"Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0");
+						Scanner s = new Scanner(con.getInputStream());
+						String nextLine = s.nextLine();
+						if (Long.parseLong(nextLine) > VERSION) {
+							File file = new File("Updater.exe");
+							if (file.exists()) {
+								ProcessBuilder pb = new ProcessBuilder(
+										"Updater.exe");
+								try {
+									pb.start();
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+							}
+							s.close();
+							System.exit(-1);
+						}
+						s.close();
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					}
+				}
+				LoginForm loginForm = new LoginForm();
+				loginForm.show();
+			}
+		});
 	}
 }

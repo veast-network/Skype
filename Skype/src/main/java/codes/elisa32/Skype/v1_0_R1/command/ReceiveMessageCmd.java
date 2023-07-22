@@ -35,7 +35,19 @@ public class ReceiveMessageCmd extends CommandExecutor {
 		for (Conversation conversation : MainForm.get().getConversations()) {
 			if (conversation.getUniqueId().equals(conversationId)) {
 				message.setConversation(conversation);
-				conversation.getMessages().add(message);
+				boolean hit2 = false;
+				for (Message message2 : conversation.getMessages()
+						.toArray(new Message[0]).clone()) {
+					if (message2.getUniqueId().equals(message.getUniqueId())) {
+						message2.setMessage(message.getMessage());
+						message2.setDecryptedMessage(null);
+						hit2 = true;
+						break;
+					}
+				}
+				if (!hit2) {
+					conversation.getMessages().add(message);
+				}
 				conversation.setNotificationCount(conversation
 						.getNotificationCount() + 1);
 				conversation.setLastModified(new Date());
@@ -70,7 +82,20 @@ public class ReceiveMessageCmd extends CommandExecutor {
 			if (conversation != null) {
 				if (conversation.getUniqueId().equals(conversationId)) {
 					message.setConversation(conversation);
-					conversation.getMessages().add(message);
+					boolean hit2 = false;
+					for (Message message2 : conversation.getMessages()
+							.toArray(new Message[0]).clone()) {
+						if (message2.getUniqueId()
+								.equals(message.getUniqueId())) {
+							message2.setMessage(message.getMessage());
+							message2.setDecryptedMessage(null);
+							hit2 = true;
+							break;
+						}
+					}
+					if (!hit2) {
+						conversation.getMessages().add(message);
+					}
 					conversation.setNotificationCount(conversation
 							.getNotificationCount() + 1);
 					conversation.setLastModified(new Date());
