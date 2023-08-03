@@ -121,6 +121,26 @@ public class IncomingCallForm extends JDialog {
 							}
 							MainForm.get().ongoingCall = false;
 							MainForm.get().rightPanelPage = "Conversation";
+							MainForm.get().ongoingVideoCall = false;
+							MainForm.get().ongoingVideoCallParticipants.clear();
+							MainForm.get().ongoingVideoCallId = null;
+							MainForm.get().ongoingVideoCallCipher = null;
+							try {
+								for (Socket socket : MainForm.get().videoCallIncomingAudioSockets) {
+									socket.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							try {
+								for (Socket socket : MainForm.get().videoCallOutgoingAudioSockets) {
+									socket.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							MainForm.get().videoEnabled = false;
+							MainForm.get().microphoneEnabled = true;
 							MainForm.get().refreshWindow();
 						}
 				});

@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandMap;
@@ -22,9 +20,12 @@ import codes.elisa32.Skype.server.v1_0_R1.command.AcceptCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.AcceptContactRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.AcceptFileDataStreamRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.AcceptFileTransferRequestCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.AcceptVideoCallDataStreamRequestCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.AcceptVideoCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.DeclineCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.DeclineContactRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.DeclineFileTransferRequestCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.DeclineVideoCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.EnteringListeningModeCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.FinishedReadingFileTransferDataCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.LoginCmd;
@@ -43,6 +44,7 @@ import codes.elisa32.Skype.server.v1_0_R1.command.SendCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendContactRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendFileTransferRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendMessageCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.SendVideoCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.UpdateGroupChatParticipantsCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.UpdateUserCmd;
 import codes.elisa32.Skype.server.v1_0_R1.data.types.Connection;
@@ -181,6 +183,17 @@ public class Skype {
 				new DeclineFileTransferRequestCmd());
 		CommandMap.register(PacketType.FINISHED_READING_FILE_TRANSFER_DATA,
 				new FinishedReadingFileTransferDataCmd());
+		/**
+		 * Experimental
+		 */
+		CommandMap.register(PacketType.SEND_VIDEO_CALL_REQUEST,
+				new SendVideoCallRequestCmd());
+		CommandMap.register(PacketType.ACCEPT_VIDEO_CALL_REQUEST,
+				new AcceptVideoCallRequestCmd());
+		CommandMap.register(PacketType.DECLINE_VIDEO_CALL_REQUEST,
+				new DeclineVideoCallRequestCmd());
+		CommandMap.register(PacketType.ACCEPT_VIDEO_CALL_DATA_STREAM_REQUEST,
+				new AcceptVideoCallDataStreamRequestCmd());
 
 		serverSocket = new ServerSocket(28109);
 		while (true) {

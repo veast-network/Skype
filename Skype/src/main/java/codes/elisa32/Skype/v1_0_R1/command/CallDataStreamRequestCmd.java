@@ -160,6 +160,26 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 							} catch (Exception e) {
 								e.printStackTrace();
 							}
+							MainForm.get().ongoingVideoCall = false;
+							MainForm.get().ongoingVideoCallParticipants.clear();
+							MainForm.get().ongoingVideoCallId = null;
+							MainForm.get().ongoingVideoCallCipher = null;
+							try {
+								for (Socket socket2 : MainForm.get().videoCallIncomingAudioSockets) {
+									socket2.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							try {
+								for (Socket socket2 : MainForm.get().videoCallOutgoingAudioSockets) {
+									socket2.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							MainForm.get().videoEnabled = false;
+							MainForm.get().microphoneEnabled = true;
 						}
 				});
 		thread.start();

@@ -13,6 +13,7 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
+import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
 import codes.elisa32.Skype.v1_0_R1.cipher.CipherOutputStream;
 import codes.elisa32.Skype.v1_0_R1.cipher.CipherUtilities;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
@@ -161,6 +162,26 @@ public class CallRequestCmd extends CommandExecutor {
 								} catch (Exception e) {
 									e.printStackTrace();
 								}
+								MainForm.get().ongoingVideoCall = false;
+								MainForm.get().ongoingVideoCallParticipants.clear();
+								MainForm.get().ongoingVideoCallId = null;
+								MainForm.get().ongoingVideoCallCipher = null;
+								try {
+									for (Socket socket : MainForm.get().videoCallIncomingAudioSockets) {
+										socket.close();
+									}
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+								try {
+									for (Socket socket : MainForm.get().videoCallOutgoingAudioSockets) {
+										socket.close();
+									}
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+								MainForm.get().videoEnabled = false;
+								MainForm.get().microphoneEnabled = true;
 							}
 					});
 			thread.start();

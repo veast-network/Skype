@@ -1,5 +1,6 @@
 package codes.elisa32.Skype.v1_0_R1.forms;
 
+import static codes.elisa32.Skype.api.v1_0_R1.capture.Capture.captureRegion;
 import static java.lang.System.getProperty;
 
 import java.awt.BorderLayout;
@@ -36,6 +37,7 @@ import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -119,6 +121,7 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendContactRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendFileTransferRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendMessage;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendVideoCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateGroupChatParticipants;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
@@ -295,7 +298,7 @@ public class MainForm extends JFrame {
 	 * Call variables
 	 */
 	public boolean microphoneEnabled = true;
-	private boolean videoEnabled = false;
+	public boolean videoEnabled = false;
 	public boolean ongoingCall = false;
 	public JLabel ongoingCallTimeLabel = new JLabel();
 	public long ongoingCallStartTime = 0L;
@@ -305,6 +308,19 @@ public class MainForm extends JFrame {
 	public byte[] ongoingCallCipher = null;
 	public List<Socket> callOutgoingAudioSockets = new ArrayList<Socket>();
 	public List<Socket> callIncomingAudioSockets = new ArrayList<Socket>();
+	public JLabel ongoingCallProfilePictureImageLabel;
+	public static volatile int ongoingCallProfilePictureImageLabelWidth = 256;
+	public static volatile int ongoingCallProfilePictureImageLabelHeight = 256;
+
+	/*
+	 * Video call variables
+	 */
+	public boolean ongoingVideoCall = false;
+	public List<UUID> ongoingVideoCallParticipants = new ArrayList<>();
+	public UUID ongoingVideoCallId = null;
+	public byte[] ongoingVideoCallCipher = null;
+	public List<Socket> videoCallOutgoingAudioSockets = new ArrayList<Socket>();
+	public List<Socket> videoCallIncomingAudioSockets = new ArrayList<Socket>();
 
 	/*
 	 * File transfer variables
@@ -3457,6 +3473,147 @@ public class MainForm extends JFrame {
 						@Override
 						public void mousePressed(MouseEvent evt) {
 							videoEnabled = !videoEnabled;
+							if (videoEnabled) {
+								if (ongoingVideoCall) {
+									Thread thread = new Thread(
+											() -> {
+												byte[] cipher = ongoingVideoCallCipher;
+												UUID callId = ongoingVideoCallId;
+												Socket socket = videoCallOutgoingAudioSockets
+														.get(1);
+												ByteArrayOutputStream baos = new ByteArrayOutputStream();
+												CipherOutputStream cos = new CipherOutputStream(
+														baos, cipher);
+												try {
+													if (socket != null) {
+														JFrame mainForm = MainForm
+																.get();
+														DataOutputStream dos = new DataOutputStream(
+																socket.getOutputStream());
+														Rectangle screenRect = new Rectangle(
+																Toolkit.getDefaultToolkit()
+																		.getScreenSize());
+														while (mainForm
+																.isVisible()) {
+															byte[] b2 = captureRegion(
+																	screenRect.x,
+																	screenRect.y,
+																	screenRect.width,
+																	screenRect.height)
+																	.get();
+															baos.reset();
+															cos.write(b2);
+															byte[] b = baos
+																	.toByteArray();
+															dos.writeInt(b.length);
+															dos.flush();
+															dos.write(b);
+															dos.flush();
+															System.gc();
+														}
+													}
+												} catch (Exception e) {
+													e.printStackTrace();
+												}
+												try {
+													cos.close();
+												} catch (Exception e1) {
+													e1.printStackTrace();
+												}
+												if (MainForm.get().ongoingVideoCallId != null)
+													if (callId.equals(MainForm
+															.get().ongoingVideoCallId)) {
+														MainForm.get().ongoingVideoCall = false;
+														MainForm.get().ongoingVideoCallParticipants
+																.clear();
+														MainForm.get().ongoingVideoCallId = null;
+														MainForm.get().ongoingVideoCallCipher = null;
+														MainForm.get()
+																.refreshWindow(
+																		MainForm.get().SCROLL_TO_BOTTOM);
+														try {
+															for (Socket socket2 : MainForm
+																	.get().videoCallIncomingAudioSockets) {
+																socket2.close();
+															}
+														} catch (Exception e) {
+															e.printStackTrace();
+														}
+														try {
+															for (Socket socket2 : MainForm
+																	.get().videoCallOutgoingAudioSockets) {
+																socket2.close();
+															}
+														} catch (Exception e) {
+															e.printStackTrace();
+														}
+														MainForm.get().videoEnabled = false;
+													}
+											});
+									thread.start();
+									refreshWindow();
+									return;
+								}
+								Optional<SocketHandlerContext> ctx = Skype
+										.getPlugin().createHandle();
+								if (!ctx.isPresent()) {
+									return;
+								}
+								byte[] cipher;
+								try {
+									cipher = CipherUtilities.randomCipher();
+								} catch (InvalidKeyException
+										| NoSuchPaddingException
+										| NoSuchAlgorithmException
+										| InvalidAlgorithmParameterException
+										| UnsupportedEncodingException e) {
+									e.printStackTrace();
+									return;
+								}
+								String base64 = CipherUtilities
+										.encodeBase64(cipher);
+								String message = PGPUtilities.encryptAndSign(
+										base64, selectedConversation);
+								Optional<PacketPlayInReply> reply = ctx
+										.get()
+										.getOutboundHandler()
+										.dispatch(
+												ctx.get(),
+												new PacketPlayOutSendVideoCallRequest(
+														authCode,
+														selectedConversation
+																.getUniqueId(),
+														message));
+								if (!reply.isPresent()) {
+									return;
+								}
+								if (reply.get().getStatusCode() != 200) {
+									return;
+								}
+								AudioIO.CALL_INIT.playSound();
+								rightPanelPage = "OngoingCall";
+								ongoingVideoCall = true;
+							} else {
+								ongoingVideoCall = false;
+								MainForm.get().ongoingVideoCallParticipants
+										.clear();
+								ongoingVideoCallId = null;
+								ongoingVideoCallCipher = null;
+								try {
+									for (Socket socket : videoCallIncomingAudioSockets) {
+										socket.close();
+									}
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+								try {
+									for (Socket socket : videoCallOutgoingAudioSockets) {
+										socket.close();
+									}
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							}
 							refreshWindow();
 						}
 					};
@@ -3557,6 +3714,26 @@ public class MainForm extends JFrame {
 							} catch (Exception e) {
 								e.printStackTrace();
 							}
+							ongoingVideoCall = false;
+							MainForm.get().ongoingVideoCallParticipants.clear();
+							ongoingVideoCallId = null;
+							ongoingVideoCallCipher = null;
+							try {
+								for (Socket socket : videoCallIncomingAudioSockets) {
+									socket.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							try {
+								for (Socket socket : videoCallOutgoingAudioSockets) {
+									socket.close();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							videoEnabled = false;
+							microphoneEnabled = true;
 							AudioIO.HANGUP.playSound();
 						}
 					};
@@ -3630,12 +3807,37 @@ public class MainForm extends JFrame {
 					ImageIcon imageIcon = ongoingCallConversation
 							.getImageIcon();
 
-					JLabel iconLabel = new JLabel(imageIcon);
+					if (ongoingVideoCall == false
+							|| videoCallIncomingAudioSockets.size() == 0) {
+						ongoingCallProfilePictureImageLabel.setIcon(imageIcon);
+						ongoingCallProfilePictureImageLabel.repaint();
+						double width = 256;
+						double height = 256;
+						ongoingCallProfilePictureImageLabelWidth = (int) width;
+						ongoingCallProfilePictureImageLabelHeight = (int) height;
+						iconLabelPanel.setPreferredSize(new Dimension(
+								(int) width, (int) height));
+						iconLabelPanel.setSize((int) width, (int) height);
+						iconLabelPanel
+								.setBounds(panelWidth / 2 - ((int) width / 2),
+										panelHeight / 2 - ((int) height / 2),
+										(int) width, (int) height);
+					} else {
+						double width = panelWidth - 80;
+						double height = 0.5625 * width;
+						ongoingCallProfilePictureImageLabelWidth = (int) width;
+						ongoingCallProfilePictureImageLabelHeight = (int) height;
+						iconLabelPanel.setPreferredSize(new Dimension(
+								(int) width, (int) height));
+						iconLabelPanel.setSize((int) width, (int) height);
+						iconLabelPanel
+								.setBounds(panelWidth / 2 - ((int) width / 2),
+										panelHeight / 2 - ((int) height / 2),
+										(int) width, (int) height);
+					}
 
-					iconLabelPanel.setBounds(panelWidth / 2 - (256 / 2),
-							panelHeight / 2 - (256 / 2), 256, 256);
 					iconLabelPanel.setOpaque(false);
-					iconLabelPanel.add(iconLabel);
+					iconLabelPanel.add(ongoingCallProfilePictureImageLabel);
 
 					MouseAdapter mouseAdapter = new MouseAdapter() {
 						@Override
@@ -3644,10 +3846,11 @@ public class MainForm extends JFrame {
 						}
 					};
 
-					iconLabel.addMouseListener(mouseAdapter);
+					ongoingCallProfilePictureImageLabel
+							.addMouseListener(mouseAdapter);
 					iconLabelPanel.addMouseListener(mouseAdapter);
 
-					iconLabel.setCursor(Cursor
+					ongoingCallProfilePictureImageLabel.setCursor(Cursor
 							.getPredefinedCursor(Cursor.HAND_CURSOR));
 					iconLabelPanel.setCursor(Cursor
 							.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -6913,6 +7116,9 @@ public class MainForm extends JFrame {
 
 	public MainForm(UUID authCode, String password, Contact loggedInUser) {
 		super("Skype\u2122 - " + loggedInUser.getSkypeName());
+
+		ongoingCallProfilePictureImageLabel = new JLabel(
+				ImageIO.getResourceAsImageIcon("/1595064335.png"));
 
 		this.password = password;
 
