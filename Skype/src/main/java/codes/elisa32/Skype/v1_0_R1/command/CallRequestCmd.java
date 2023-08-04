@@ -13,7 +13,6 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
-import codes.elisa32.Skype.v1_0_R1.audioio.AudioIO;
 import codes.elisa32.Skype.v1_0_R1.cipher.CipherOutputStream;
 import codes.elisa32.Skype.v1_0_R1.cipher.CipherUtilities;
 import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;

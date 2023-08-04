@@ -46,8 +46,8 @@ public class CallPopupMenuForm extends JDialog implements FocusListener,
 		return labelPanel;
 	}
 
-	public CallPopupMenuForm(JFrame parent) {
-		super(parent, "Add to Contacts", false);
+	public CallPopupMenuForm(JFrame parent, Runnable callback) {
+		super(parent, "Call Popout Menu", false);
 		JDialog dialog = this;
 		setResizable(false);
 		setUndecorated(true);
@@ -106,6 +106,14 @@ public class CallPopupMenuForm extends JDialog implements FocusListener,
 						hoverPanel = null;
 					}
 				}
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					dispatchEvent(new WindowEvent(dialog,
+							WindowEvent.WINDOW_CLOSING));
+					callback.input = label.getText();
+					callback.run();
+				}
 			};
 
 			label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -153,6 +161,14 @@ public class CallPopupMenuForm extends JDialog implements FocusListener,
 						hoverPanel = null;
 					}
 				}
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					dispatchEvent(new WindowEvent(dialog,
+							WindowEvent.WINDOW_CLOSING));
+					callback.input = label.getText();
+					callback.run();
+				}
 			};
 
 			label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -178,6 +194,9 @@ public class CallPopupMenuForm extends JDialog implements FocusListener,
 			labelPanel.setOpaque(false);
 
 			JLabel label = new JLabel("Share screens...");
+			if (MainForm.get().videoMode != MainForm.get().WEBCAM_CAPTURE_MODE) {
+				label.setText("Stop sharing");
+			}
 			label.setFont(font);
 			label.setForeground(Color.white);
 
@@ -199,6 +218,14 @@ public class CallPopupMenuForm extends JDialog implements FocusListener,
 						repaint();
 						hoverPanel = null;
 					}
+				}
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					dispatchEvent(new WindowEvent(dialog,
+							WindowEvent.WINDOW_CLOSING));
+					callback.input = label.getText();
+					callback.run();
 				}
 			};
 
@@ -261,6 +288,14 @@ public class CallPopupMenuForm extends JDialog implements FocusListener,
 						hoverPanel = null;
 					}
 				}
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					dispatchEvent(new WindowEvent(dialog,
+							WindowEvent.WINDOW_CLOSING));
+					callback.input = label.getText();
+					callback.run();
+				}
 			};
 
 			label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -307,6 +342,14 @@ public class CallPopupMenuForm extends JDialog implements FocusListener,
 						repaint();
 						hoverPanel = null;
 					}
+				}
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					dispatchEvent(new WindowEvent(dialog,
+							WindowEvent.WINDOW_CLOSING));
+					callback.input = label.getText();
+					callback.run();
 				}
 			};
 

@@ -3766,6 +3766,11 @@ public class MainForm extends JFrame {
 								} catch (Exception e) {
 									e.printStackTrace();
 								}
+								MainForm.get().videoEnabled = false;
+								MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
+								MainForm.ongoingVideoCallWidth = 0;
+								MainForm.ongoingVideoCallHeight = 0;
+								MainForm.webcam.close();
 							}
 							refreshWindow();
 						}
@@ -3802,15 +3807,294 @@ public class MainForm extends JFrame {
 					MouseAdapter mouseAdapter = new MouseAdapter() {
 						@Override
 						public void mousePressed(MouseEvent evt) {
-							CallPopupMenuForm form = new CallPopupMenuForm(
-									frame);
-							form.setLocationRelativeTo(iconLabelPanel);
-							int x = form.getLocation().x;
-							int y = form.getLocation().y
-									- (form.getContentPane().getHeight() / 2)
+							CallPopupMenuForm form2 = new CallPopupMenuForm(
+									frame, new CallPopupMenuForm.Runnable() {
+
+										@Override
+										public void run() {
+											String input = getInput();
+											if (input
+													.equals("Share screens...")
+													|| input.equals("Stop sharing")) {
+												if (videoEnabled) {
+													if (videoMode == WEBCAM_CAPTURE_MODE) {
+														videoMode = SCREEN_CAPTURE_MODE;
+														Rectangle screenRect = new Rectangle(
+																Toolkit.getDefaultToolkit()
+																		.getScreenSize());
+														Optional<SocketHandlerContext> ctx2 = Skype
+																.getPlugin()
+																.createHandle();
+														if (!ctx2.isPresent()) {
+															return;
+														}
+														Optional<PacketPlayInReply> reply = ctx2
+																.get()
+																.getOutboundHandler()
+																.dispatch(
+																		ctx2.get(),
+																		new PacketPlayOutLogin(
+																				authCode));
+														if (!reply.isPresent()) {
+															return;
+														}
+														if (reply
+																.get()
+																.getStatusCode() != 200) {
+															return;
+														}
+														UUID authCode = UUID
+																.fromString(reply
+																		.get()
+																		.getText());
+														reply = ctx2
+																.get()
+																.getOutboundHandler()
+																.dispatch(
+																		ctx2.get(),
+																		new PacketPlayOutVideoCallResolutionChanged(
+																				authCode,
+																				ongoingVideoCallId,
+																				screenRect.width,
+																				screenRect.height));
+														if (!reply.isPresent()) {
+															return;
+														}
+														if (reply
+																.get()
+																.getStatusCode() != 200) {
+															return;
+														}
+														AudioIO.CALL_INIT
+																.playSound();
+														return;
+													}
+												}
+												videoEnabled = !videoEnabled;
+												if (videoEnabled) {
+													if (ongoingVideoCall) {
+														videoMode = SCREEN_CAPTURE_MODE;
+														Thread thread = new Thread(
+																() -> {
+																	byte[] cipher = ongoingVideoCallCipher;
+																	UUID callId = ongoingVideoCallId;
+																	Socket socket = videoCallOutgoingAudioSockets
+																			.get(1);
+																	ByteArrayOutputStream baos = new ByteArrayOutputStream();
+																	CipherOutputStream cos = new CipherOutputStream(
+																			baos,
+																			cipher);
+																	Rectangle screenRect = new Rectangle(
+																			Toolkit.getDefaultToolkit()
+																					.getScreenSize());
+																	Optional<SocketHandlerContext> ctx2 = Skype
+																			.getPlugin()
+																			.createHandle();
+																	if (!ctx2
+																			.isPresent()) {
+																		return;
+																	}
+																	Optional<PacketPlayInReply> reply = ctx2
+																			.get()
+																			.getOutboundHandler()
+																			.dispatch(
+																					ctx2.get(),
+																					new PacketPlayOutLogin(
+																							authCode));
+																	if (!reply
+																			.isPresent()) {
+																		return;
+																	}
+																	if (reply
+																			.get()
+																			.getStatusCode() != 200) {
+																		return;
+																	}
+																	UUID authCode = UUID
+																			.fromString(reply
+																					.get()
+																					.getText());
+																	reply = ctx2
+																			.get()
+																			.getOutboundHandler()
+																			.dispatch(
+																					ctx2.get(),
+																					new PacketPlayOutVideoCallResolutionChanged(
+																							authCode,
+																							ongoingVideoCallId,
+																							screenRect.width,
+																							screenRect.height));
+																	if (!reply
+																			.isPresent()) {
+																		return;
+																	}
+																	if (reply
+																			.get()
+																			.getStatusCode() != 200) {
+																		return;
+																	}
+																	try {
+																		if (socket != null) {
+																			JFrame mainForm = MainForm
+																					.get();
+																			DataOutputStream dos = new DataOutputStream(
+																					socket.getOutputStream());
+																			while (mainForm
+																					.isVisible()) {
+																				byte[] b2 = Capture
+																						.captureRegion(
+																								screenRect.x,
+																								screenRect.y,
+																								screenRect.width,
+																								screenRect.height)
+																						.get();
+																				baos.reset();
+																				cos.write(b2);
+																				byte[] b = baos
+																						.toByteArray();
+																				dos.writeInt(b.length);
+																				dos.flush();
+																				dos.write(b);
+																				dos.flush();
+																				System.gc();
+																			}
+																		}
+																	} catch (Exception e) {
+																		e.printStackTrace();
+																	}
+																	try {
+																		cos.close();
+																	} catch (Exception e1) {
+																		e1.printStackTrace();
+																	}
+																	webcam.close();
+																	if (MainForm
+																			.get().ongoingVideoCallId != null)
+																		if (callId
+																				.equals(MainForm
+																						.get().ongoingVideoCallId)) {
+																			MainForm.get().ongoingVideoCall = false;
+																			MainForm.get().ongoingVideoCallParticipants
+																					.clear();
+																			MainForm.get().ongoingVideoCallId = null;
+																			MainForm.get().ongoingVideoCallCipher = null;
+																			MainForm.get()
+																					.refreshWindow(
+																							MainForm.get().SCROLL_TO_BOTTOM);
+																			try {
+																				for (Socket socket2 : MainForm
+																						.get().videoCallIncomingAudioSockets) {
+																					socket2.close();
+																				}
+																			} catch (Exception e) {
+																				e.printStackTrace();
+																			}
+																			try {
+																				for (Socket socket2 : MainForm
+																						.get().videoCallOutgoingAudioSockets) {
+																					socket2.close();
+																				}
+																			} catch (Exception e) {
+																				e.printStackTrace();
+																			}
+																			MainForm.get().videoEnabled = false;
+																			MainForm.get().videoMode = MainForm
+																					.get().WEBCAM_CAPTURE_MODE;
+																			MainForm.ongoingVideoCallWidth = 0;
+																			MainForm.ongoingVideoCallHeight = 0;
+																			MainForm.webcam
+																					.close();
+																		}
+																});
+														thread.start();
+														refreshWindow();
+														return;
+													}
+													videoMode = SCREEN_CAPTURE_MODE;
+													Optional<SocketHandlerContext> ctx = Skype
+															.getPlugin()
+															.createHandle();
+													if (!ctx.isPresent()) {
+														return;
+													}
+													byte[] cipher;
+													try {
+														cipher = CipherUtilities
+																.randomCipher();
+													} catch (
+															InvalidKeyException
+															| NoSuchPaddingException
+															| NoSuchAlgorithmException
+															| InvalidAlgorithmParameterException
+															| UnsupportedEncodingException e) {
+														e.printStackTrace();
+														return;
+													}
+													String base64 = CipherUtilities
+															.encodeBase64(cipher);
+													String message = PGPUtilities
+															.encryptAndSign(
+																	base64,
+																	selectedConversation);
+													Optional<PacketPlayInReply> reply = ctx
+															.get()
+															.getOutboundHandler()
+															.dispatch(
+																	ctx.get(),
+																	new PacketPlayOutSendVideoCallRequest(
+																			authCode,
+																			selectedConversation
+																					.getUniqueId(),
+																			message));
+													if (!reply.isPresent()) {
+														return;
+													}
+													if (reply.get()
+															.getStatusCode() != 200) {
+														return;
+													}
+													AudioIO.CALL_INIT
+															.playSound();
+													rightPanelPage = "OngoingCall";
+													ongoingVideoCall = true;
+												} else {
+													ongoingVideoCall = false;
+													MainForm.get().ongoingVideoCallParticipants
+															.clear();
+													ongoingVideoCallId = null;
+													ongoingVideoCallCipher = null;
+													try {
+														for (Socket socket : videoCallIncomingAudioSockets) {
+															socket.close();
+														}
+													} catch (Exception e) {
+														e.printStackTrace();
+													}
+													try {
+														for (Socket socket : videoCallOutgoingAudioSockets) {
+															socket.close();
+														}
+													} catch (Exception e) {
+														e.printStackTrace();
+													}
+													MainForm.get().videoEnabled = false;
+													MainForm.get().videoMode = MainForm
+															.get().WEBCAM_CAPTURE_MODE;
+													MainForm.ongoingVideoCallWidth = 0;
+													MainForm.ongoingVideoCallHeight = 0;
+													MainForm.webcam.close();
+												}
+												refreshWindow();
+											}
+										}
+									});
+							form2.setLocationRelativeTo(iconLabelPanel);
+							int x = form2.getLocation().x;
+							int y = form2.getLocation().y
+									- (form2.getContentPane().getHeight() / 2)
 									- (iconLabelPanel.getHeight() / 2) - 7;
-							form.setLocation(x, y);
-							form.show();
+							form2.setLocation(x, y);
+							form2.show();
 							refreshWindow();
 						}
 					};
@@ -3971,7 +4255,9 @@ public class MainForm extends JFrame {
 							.getImageIcon();
 
 					if (ongoingVideoCall == false
-							|| videoCallIncomingAudioSockets.size() == 0) {
+							|| videoCallIncomingAudioSockets.size() == 0
+							|| ongoingVideoCallWidth == 0
+							|| ongoingVideoCallHeight == 0) {
 						ongoingCallProfilePictureImageLabel.setIcon(imageIcon);
 						ongoingCallProfilePictureImageLabel.repaint();
 						double width = 256;
@@ -3987,11 +4273,8 @@ public class MainForm extends JFrame {
 										(int) width, (int) height);
 					} else {
 						double width = panelWidth - 80;
-						double height = 0.5625 * width;
-						if (ongoingVideoCallWidth != 0
-								&& ongoingVideoCallHeight != 0) {
-							height = ((ongoingVideoCallHeight / ongoingVideoCallWidth) * width);
-						}
+						double height = (ongoingVideoCallHeight / ongoingVideoCallWidth)
+								* width;
 						ongoingCallProfilePictureImageLabelWidth = (int) width;
 						ongoingCallProfilePictureImageLabelHeight = (int) height;
 						iconLabelPanel.setPreferredSize(new Dimension(
