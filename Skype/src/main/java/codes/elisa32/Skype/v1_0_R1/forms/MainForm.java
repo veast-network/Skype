@@ -3649,9 +3649,15 @@ public class MainForm extends JFrame {
 					MouseAdapter mouseAdapter = new MouseAdapter() {
 						@Override
 						public void mousePressed(MouseEvent evt) {
-							/*
-							 * 
-							 */
+							CallPopupMenuForm form = new CallPopupMenuForm(
+									frame);
+							form.setLocationRelativeTo(iconLabelPanel);
+							int x = form.getLocation().x;
+							int y = form.getLocation().y
+									- (form.getContentPane().getHeight() / 2)
+									- (iconLabelPanel.getHeight() / 2) - 7;
+							form.setLocation(x, y);
+							form.show();
 							refreshWindow();
 						}
 					};

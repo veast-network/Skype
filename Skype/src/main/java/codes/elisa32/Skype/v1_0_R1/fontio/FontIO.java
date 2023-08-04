@@ -11,35 +11,37 @@ import javax.swing.plaf.FontUIResource;
 public class FontIO {
 
 	public static final Font SEGOE_UI_SEMILIGHT = getResourceAsFont(
-			"/Segoe UI Semilight.ttf", 12);
+			"/Segoe UI Semilight.ttf", 12, Font.TRUETYPE_FONT);
 
 	public static final Font SEGOE_UI_SEMIBOLD = getResourceAsFont(
-			"/Segoe UI Semibold.ttf", 12);
+			"/Segoe UI Semibold.ttf", 12, Font.TRUETYPE_FONT);
 
 	public static final Font SEGOE_UI_BOLD = getResourceAsFont(
-			"/Segoe UI Bold.ttf", 12);
+			"/Segoe UI Bold.ttf", 12, Font.TRUETYPE_FONT);
 
-	public static final Font SEGOE_UI = getResourceAsFont("/Segoe UI.ttf", 12);
-
-	public static final Font TAHOMA = getResourceAsFont("/Tahoma.ttf", 11);
+	public static final Font SEGOE_UI = getResourceAsFont("/Segoe UI.ttf", 12, Font.TRUETYPE_FONT);
 	
-	public static final Font TAHOMA_BOLD = getResourceAsFont("/Tahoma Bold.ttf", 11);
+	public static final Font SEGOE_UI_SYMBOL = getResourceAsFont("/Segoe UI Symbol.ttf", 12, Font.TRUETYPE_FONT);
 
-	private static Font getResourceAsFont(String resource, int fontSize) {
+	public static final Font TAHOMA = getResourceAsFont("/Tahoma.ttf", 11, Font.TRUETYPE_FONT);
+	
+	public static final Font TAHOMA_BOLD = getResourceAsFont("/Tahoma Bold.ttf", 11, Font.TRUETYPE_FONT);
+
+	public static Font getResourceAsFont(String resource, float fontSize, int fontType) {
 		if (resource.startsWith("/")) {
 			resource = resource.substring(1);
 		}
 		try {
 			InputStream is = FontIO.class.getResource("/font/" + resource)
 					.openStream();
-			return Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(
-					Font.TRUETYPE_FONT, fontSize);
+			return Font.createFont(fontType, is).deriveFont(
+					fontType, fontSize);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (FontFormatException e) {
 			e.printStackTrace();
 		}
 		return ((FontUIResource) UIManager.get("Label.font")).deriveFont(
-				Font.TRUETYPE_FONT, fontSize);
+				fontType, fontSize);
 	}
 }

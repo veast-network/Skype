@@ -1,7 +1,5 @@
 package codes.elisa32.Skype.v1_0_R1;
 
-import static java.lang.System.getProperty;
-
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
@@ -170,7 +168,7 @@ public class AppDelegate {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				// HealthMonitor.start();
-				if (getProperty("os.name").startsWith("Windows")) {
+				if (System.getProperty("os.name").startsWith("Windows")) {
 					try {
 						URL url = new URL(
 								"https://raw.skypeusercontent.com/elisa322008/elisa322008.github.io/main/skype/version_client.txt");
