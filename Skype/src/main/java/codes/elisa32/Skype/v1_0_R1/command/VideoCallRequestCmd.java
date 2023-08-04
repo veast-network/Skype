@@ -1,8 +1,7 @@
 package codes.elisa32.Skype.v1_0_R1.command;
 
-import static codes.elisa32.Skype.api.v1_0_R1.capture.Capture.captureRegion;
-
 import java.awt.Rectangle;
+import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -234,6 +233,7 @@ public class VideoCallRequestCmd extends CommandExecutor {
 								JFrame mainForm = MainForm.get();
 								DataOutputStream dos = new DataOutputStream(
 										socket.getOutputStream());
+								Robot robot = new Robot();
 								while (mainForm.isVisible()) {
 									if (MainForm.get().videoMode == MainForm
 											.get().WEBCAM_CAPTURE_MODE) {
@@ -253,9 +253,12 @@ public class VideoCallRequestCmd extends CommandExecutor {
 										System.gc();
 									} else if (MainForm.get().videoMode == MainForm
 											.get().SCREEN_CAPTURE_MODE) {
-										byte[] b2 = captureRegion(screenRect.x,
-												screenRect.y, screenRect.width,
-												screenRect.height).get();
+										BufferedImage bi = robot
+												.createScreenCapture(screenRect);
+										ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
+										ImageIO.write(bi, "jpg", baos2);
+										byte[] b2 = baos2.toByteArray();
+										bi.flush();
 										baos.reset();
 										cos.write(b2);
 										byte[] b = baos.toByteArray();
@@ -280,8 +283,6 @@ public class VideoCallRequestCmd extends CommandExecutor {
 						if (MainForm.get().ongoingVideoCallId != null)
 							if (callId.equals(MainForm.get().ongoingVideoCallId)) {
 								MainForm.get().ongoingVideoCall = false;
-								MainForm.get().ongoingVideoCallParticipants
-										.clear();
 								MainForm.get().ongoingVideoCallId = null;
 								MainForm.get().ongoingVideoCallCipher = null;
 								MainForm.get().refreshWindow(

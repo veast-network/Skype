@@ -11,9 +11,11 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.FontMetrics;
+import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
@@ -101,7 +103,6 @@ import org.apache.commons.lang3.text.WordUtils;
 import org.bouncycastle.openpgp.PGPException;
 import org.pgpainless.PGPainless;
 
-import codes.elisa32.Skype.api.v1_0_R1.capture.Capture;
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptContactRequest;
@@ -323,7 +324,6 @@ public class MainForm extends JFrame {
 	 * Video call variables
 	 */
 	public boolean ongoingVideoCall = false;
-	public List<UUID> ongoingVideoCallParticipants = new ArrayList<>();
 	public UUID ongoingVideoCallId = null;
 	public byte[] ongoingVideoCallCipher = null;
 	public List<Socket> videoCallOutgoingAudioSockets = new ArrayList<Socket>();
@@ -3581,6 +3581,7 @@ public class MainForm extends JFrame {
 																.get();
 														DataOutputStream dos = new DataOutputStream(
 																socket.getOutputStream());
+														Robot robot = new Robot();
 														while (mainForm
 																.isVisible()) {
 															if (videoMode == WEBCAM_CAPTURE_MODE) {
@@ -3605,13 +3606,16 @@ public class MainForm extends JFrame {
 																baos2.close();
 																System.gc();
 															} else if (videoMode == SCREEN_CAPTURE_MODE) {
-																byte[] b2 = Capture
-																		.captureRegion(
-																				screenRect.x,
-																				screenRect.y,
-																				screenRect.width,
-																				screenRect.height)
-																		.get();
+																BufferedImage bi = robot
+																		.createScreenCapture(screenRect);
+																ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
+																javax.imageio.ImageIO
+																		.write(bi,
+																				"jpg",
+																				baos2);
+																byte[] b2 = baos2
+																		.toByteArray();
+																bi.flush();
 																baos.reset();
 																cos.write(b2);
 																byte[] b = baos
@@ -3637,8 +3641,6 @@ public class MainForm extends JFrame {
 													if (callId.equals(MainForm
 															.get().ongoingVideoCallId)) {
 														MainForm.get().ongoingVideoCall = false;
-														MainForm.get().ongoingVideoCallParticipants
-																.clear();
 														MainForm.get().ongoingVideoCallId = null;
 														MainForm.get().ongoingVideoCallCipher = null;
 														MainForm.get()
@@ -3748,8 +3750,6 @@ public class MainForm extends JFrame {
 								ongoingVideoCall = true;
 							} else {
 								ongoingVideoCall = false;
-								MainForm.get().ongoingVideoCallParticipants
-										.clear();
 								ongoingVideoCallId = null;
 								ongoingVideoCallCipher = null;
 								try {
@@ -3939,15 +3939,19 @@ public class MainForm extends JFrame {
 																					.get();
 																			DataOutputStream dos = new DataOutputStream(
 																					socket.getOutputStream());
+																			Robot robot = new Robot();
 																			while (mainForm
 																					.isVisible()) {
-																				byte[] b2 = Capture
-																						.captureRegion(
-																								screenRect.x,
-																								screenRect.y,
-																								screenRect.width,
-																								screenRect.height)
-																						.get();
+																				BufferedImage bi = robot
+																						.createScreenCapture(screenRect);
+																				ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
+																				javax.imageio.ImageIO
+																						.write(bi,
+																								"jpg",
+																								baos2);
+																				byte[] b2 = baos2
+																						.toByteArray();
+																				bi.flush();
 																				baos.reset();
 																				cos.write(b2);
 																				byte[] b = baos
@@ -3974,8 +3978,6 @@ public class MainForm extends JFrame {
 																				.equals(MainForm
 																						.get().ongoingVideoCallId)) {
 																			MainForm.get().ongoingVideoCall = false;
-																			MainForm.get().ongoingVideoCallParticipants
-																					.clear();
 																			MainForm.get().ongoingVideoCallId = null;
 																			MainForm.get().ongoingVideoCallCipher = null;
 																			MainForm.get()
@@ -4059,8 +4061,6 @@ public class MainForm extends JFrame {
 													ongoingVideoCall = true;
 												} else {
 													ongoingVideoCall = false;
-													MainForm.get().ongoingVideoCallParticipants
-															.clear();
 													ongoingVideoCallId = null;
 													ongoingVideoCallCipher = null;
 													try {
@@ -4158,7 +4158,6 @@ public class MainForm extends JFrame {
 								e.printStackTrace();
 							}
 							ongoingVideoCall = false;
-							MainForm.get().ongoingVideoCallParticipants.clear();
 							ongoingVideoCallId = null;
 							ongoingVideoCallCipher = null;
 							try {

@@ -32,7 +32,6 @@ import codes.elisa32.Skype.v1_0_R1.command.RemoveMessageCmd;
 import codes.elisa32.Skype.v1_0_R1.command.UpdateUserCmd;
 import codes.elisa32.Skype.v1_0_R1.command.UserRegistryChangedCmd;
 import codes.elisa32.Skype.v1_0_R1.command.VideoCallDataStreamRequestCmd;
-import codes.elisa32.Skype.v1_0_R1.command.VideoCallParticipantsChangedCmd;
 import codes.elisa32.Skype.v1_0_R1.command.VideoCallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.VideoCallResolutionChangedCmd;
 
@@ -85,8 +84,6 @@ public class Skype {
 				new VideoCallRequestCmd());
 		CommandMap.register(PacketType.VIDEO_CALL_DATA_STREAM_REQUEST_IN,
 				new VideoCallDataStreamRequestCmd());
-		CommandMap.register(PacketType.VIDEO_CALL_PARTICIPANTS_CHANGED_IN,
-				new VideoCallParticipantsChangedCmd());
 		CommandMap.register(PacketType.VIDEO_CALL_RESOLUTION_CHANGED_IN,
 				new VideoCallResolutionChangedCmd());
 	}

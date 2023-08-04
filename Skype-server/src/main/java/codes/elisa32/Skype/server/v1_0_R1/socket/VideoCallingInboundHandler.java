@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Random;
 
 import codes.elisa32.Skype.api.v1_0_R1.data.types.Call;
-import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
-import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInVideoCallParticipantsChanged;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.server.v1_0_R1.Skype;
@@ -158,46 +156,6 @@ public class VideoCallingInboundHandler implements Runnable {
 										con.setCallDataStreamEnded(true);
 									}
 								}
-							}
-						}
-						List<String> participantIds = new ArrayList<>();
-						for (String skypeName : skypeNames) {
-							participantIds.add(Skype.getPlugin()
-									.getUserManager().getUniqueId(skypeName)
-									.toString());
-						}
-						Object payload = GsonBuilder.create().toJson(
-								participantIds);
-						for (UUID callParticipant : call.getParticipants()) {
-							boolean hasParticipantAnsweredCall = Skype
-									.getPlugin()
-									.getUserManager()
-									.getConnectionsInCall(callParticipant,
-											call.getCallId()).size() > 0
-									|| Skype.getPlugin()
-											.getUserManager()
-											.getDataStreamConnectionsInCall(
-													callParticipant,
-													call.getCallId()).size() > 0;
-							if (!hasParticipantAnsweredCall) {
-								continue;
-							}
-							PacketPlayInVideoCallParticipantsChanged callParticipantsChangedPacket = new PacketPlayInVideoCallParticipantsChanged(
-									call.getCallId(), payload);
-							for (Connection listeningParticipant : Skype
-									.getPlugin().getUserManager()
-									.getListeningConnections(callParticipant)) {
-								Thread thread = new Thread(
-										() -> {
-											listeningParticipant
-													.getSocketHandlerContext()
-													.getOutboundHandler()
-													.dispatch(
-															listeningParticipant
-																	.getSocketHandlerContext(),
-															callParticipantsChangedPacket);
-										});
-								thread.start();
 							}
 						}
 						if (skypeNames.size() < 2) {

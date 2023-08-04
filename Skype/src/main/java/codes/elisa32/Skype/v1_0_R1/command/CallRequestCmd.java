@@ -162,7 +162,6 @@ public class CallRequestCmd extends CommandExecutor {
 									e.printStackTrace();
 								}
 								MainForm.get().ongoingVideoCall = false;
-								MainForm.get().ongoingVideoCallParticipants.clear();
 								MainForm.get().ongoingVideoCallId = null;
 								MainForm.get().ongoingVideoCallCipher = null;
 								try {

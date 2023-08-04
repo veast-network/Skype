@@ -1,7 +1,12 @@
 package codes.elisa32.Skype.v1_0_R1.command;
 
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Toolkit;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -23,6 +28,8 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.cipher.CipherInputStream;
+import codes.elisa32.Skype.v1_0_R1.data.types.Conversation;
+import codes.elisa32.Skype.v1_0_R1.fontio.FontIO;
 import codes.elisa32.Skype.v1_0_R1.forms.MainForm;
 import codes.elisa32.Skype.v1_0_R1.plugin.Skype;
 
@@ -57,6 +64,8 @@ public class VideoCallDataStreamRequestCmd extends CommandExecutor {
 				.write(ctx2.get(),
 						new PacketPlayOutAcceptVideoCallDataStreamRequest(
 								authCode, participantId, callId));
+		Optional<Conversation> userLookup = MainForm.get().lookupUser(
+				participantId);
 		final Socket socket = ctx2.get().getSocket();
 		Thread thread = new Thread(
 				() -> {
@@ -98,6 +107,28 @@ public class VideoCallDataStreamRequestCmd extends CommandExecutor {
 										b);
 								BufferedImage image = ImageIO.read(bais);
 								g2.drawImage(image, 0, 0, width, height, null);
+								if (userLookup.isPresent()) {
+									String name = userLookup.get()
+											.getDisplayName();
+									Font font = FontIO.SEGOE_UI
+											.deriveFont(15.0f);
+									FontMetrics fm = Toolkit
+											.getDefaultToolkit()
+											.getFontMetrics(font);
+									Rectangle2D rect = fm.getStringBounds(name,
+											g2);
+									g2.setFont(font);
+									g2.setColor(new Color(0, 0, 0, 155));
+									g2.fillRect(
+											(int) rect.getX(),
+											(int) rect.getY()
+													+ (int) rect.getHeight()
+													- 3, (int) rect.getWidth(),
+											(int) rect.getHeight());
+									g2.setColor(new Color(255, 255, 255, 155));
+									g2.drawString(name, 0,
+											(int) rect.getHeight() - 3);
+								}
 								image.flush();
 								bais.close();
 							} catch (Exception e) {
@@ -118,7 +149,6 @@ public class VideoCallDataStreamRequestCmd extends CommandExecutor {
 					if (MainForm.get().ongoingVideoCallId != null)
 						if (callId.equals(MainForm.get().ongoingVideoCallId)) {
 							MainForm.get().ongoingVideoCall = false;
-							MainForm.get().ongoingVideoCallParticipants.clear();
 							MainForm.get().ongoingVideoCallId = null;
 							MainForm.get().ongoingVideoCallCipher = null;
 							MainForm.get().refreshWindow(

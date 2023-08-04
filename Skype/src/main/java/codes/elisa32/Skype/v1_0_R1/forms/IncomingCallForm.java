@@ -122,7 +122,6 @@ public class IncomingCallForm extends JDialog {
 							MainForm.get().ongoingCall = false;
 							MainForm.get().rightPanelPage = "Conversation";
 							MainForm.get().ongoingVideoCall = false;
-							MainForm.get().ongoingVideoCallParticipants.clear();
 							MainForm.get().ongoingVideoCallId = null;
 							MainForm.get().ongoingVideoCallCipher = null;
 							try {
