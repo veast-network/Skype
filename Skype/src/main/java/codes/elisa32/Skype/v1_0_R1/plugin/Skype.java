@@ -18,13 +18,11 @@ import codes.elisa32.Skype.v1_0_R1.command.AcceptCallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.AcceptContactRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.AcceptFileDataStreamRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.AcceptFileTransferRequestCmd;
-import codes.elisa32.Skype.v1_0_R1.command.AcceptVideoCallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.CallDataStreamRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.CallParticipantsChangedCmd;
 import codes.elisa32.Skype.v1_0_R1.command.CallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.DeclineCallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.DeclineFileTransferRequestCmd;
-import codes.elisa32.Skype.v1_0_R1.command.DeclineVideoCallRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.FileDataStreamRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.FileTransferParticipantsChangedCmd;
 import codes.elisa32.Skype.v1_0_R1.command.FileTransferRequestCmd;
@@ -36,6 +34,7 @@ import codes.elisa32.Skype.v1_0_R1.command.UserRegistryChangedCmd;
 import codes.elisa32.Skype.v1_0_R1.command.VideoCallDataStreamRequestCmd;
 import codes.elisa32.Skype.v1_0_R1.command.VideoCallParticipantsChangedCmd;
 import codes.elisa32.Skype.v1_0_R1.command.VideoCallRequestCmd;
+import codes.elisa32.Skype.v1_0_R1.command.VideoCallResolutionChangedCmd;
 
 public class Skype {
 
@@ -70,9 +69,6 @@ public class Skype {
 		CommandMap.register(PacketType.GROUP_CHAT_PARTICIPANTS_CHANGED_IN,
 				new GroupChatParticipantsChangedCmd());
 		CommandMap.register(PacketType.UPDATE_USER_IN, new UpdateUserCmd());
-		/**
-		 * Experimental
-		 */
 		CommandMap.register(PacketType.FILE_TRANSFER_REQUEST_IN,
 				new FileTransferRequestCmd());
 		CommandMap.register(PacketType.FILE_TRANSFER_PARTICIPANTS_CHANGED_IN,
@@ -85,19 +81,14 @@ public class Skype {
 				new AcceptFileDataStreamRequestCmd());
 		CommandMap.register(PacketType.DECLINE_FILE_TRANSFER_REQUEST,
 				new DeclineFileTransferRequestCmd());
-		/**
-		 * Experimental
-		 */
 		CommandMap.register(PacketType.VIDEO_CALL_REQUEST_IN,
 				new VideoCallRequestCmd());
-		CommandMap.register(PacketType.ACCEPT_VIDEO_CALL_REQUEST_IN,
-				new AcceptVideoCallRequestCmd());
-		CommandMap.register(PacketType.DECLINE_VIDEO_CALL_REQUEST_IN,
-				new DeclineVideoCallRequestCmd());
 		CommandMap.register(PacketType.VIDEO_CALL_DATA_STREAM_REQUEST_IN,
 				new VideoCallDataStreamRequestCmd());
 		CommandMap.register(PacketType.VIDEO_CALL_PARTICIPANTS_CHANGED_IN,
 				new VideoCallParticipantsChangedCmd());
+		CommandMap.register(PacketType.VIDEO_CALL_RESOLUTION_CHANGED_IN,
+				new VideoCallResolutionChangedCmd());
 	}
 
 	public Skype() {

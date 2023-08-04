@@ -71,7 +71,6 @@ public class VideoCallDataStreamRequestCmd extends CommandExecutor {
 						DataInputStream dis = new DataInputStream(socket
 								.getInputStream());
 						while (MainForm.get().isVisible()) {
-							long before = System.currentTimeMillis();
 							int length = dis.readInt();
 							if (length == -1) {
 								break;
@@ -112,9 +111,6 @@ public class VideoCallDataStreamRequestCmd extends CommandExecutor {
 							iconLabel.setIcon(imageIcon);
 							iconLabel.validate();
 							iconLabel.repaint();
-							long elapsed = System.currentTimeMillis() - before;
-							System.out.println(String.format("%.2f",
-									(1000.0 / elapsed)) + " fps");
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -142,6 +138,10 @@ public class VideoCallDataStreamRequestCmd extends CommandExecutor {
 								e.printStackTrace();
 							}
 							MainForm.get().videoEnabled = false;
+							MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
+							MainForm.ongoingVideoCallWidth = 0;
+							MainForm.ongoingVideoCallHeight = 0;
+							MainForm.webcam.close();
 						}
 				});
 		thread.start();

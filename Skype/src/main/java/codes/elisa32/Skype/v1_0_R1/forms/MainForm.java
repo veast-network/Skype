@@ -1,6 +1,5 @@
 package codes.elisa32.Skype.v1_0_R1.forms;
 
-import static codes.elisa32.Skype.api.v1_0_R1.capture.Capture.captureRegion;
 import static java.lang.System.getProperty;
 
 import java.awt.BorderLayout;
@@ -102,6 +101,7 @@ import org.apache.commons.lang3.text.WordUtils;
 import org.bouncycastle.openpgp.PGPException;
 import org.pgpainless.PGPainless;
 
+import codes.elisa32.Skype.api.v1_0_R1.capture.Capture;
 import codes.elisa32.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptContactRequest;
@@ -124,6 +124,7 @@ import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendMessage;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutSendVideoCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateGroupChatParticipants;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
+import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutVideoCallResolutionChanged;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.elisa32.Skype.api.v1_0_R1.uuid.UUID;
 import codes.elisa32.Skype.v1_0_R1.Utils;
@@ -147,6 +148,7 @@ import codes.elisa32.Skype.v1_0_R1.uicommon.JRecentConversationGroup;
 import codes.elisa32.Skype.v1_0_R1.uicommon.JVerticalLayout;
 import codes.elisa32.SkypeChatViewer.v1_0_R1.plugin.SkypeChatImporter;
 
+import com.github.sarxos.webcam.Webcam;
 import com.google.gson.Gson;
 import com.ibm.icu.util.Calendar;
 
@@ -165,6 +167,8 @@ public class MainForm extends JFrame {
 	public List<String> registry = new ArrayList<String>();
 
 	private JTextField conversationTextField = new JTextField();
+
+	public static Webcam webcam = Webcam.getDefault();
 
 	private WindowAdapter windowAdapter = new WindowAdapter() {
 		@Override
@@ -297,7 +301,10 @@ public class MainForm extends JFrame {
 	/*
 	 * Call variables
 	 */
+	public final int WEBCAM_CAPTURE_MODE = 0;
+	public final int SCREEN_CAPTURE_MODE = 1;
 	public boolean microphoneEnabled = true;
+	public int videoMode = WEBCAM_CAPTURE_MODE;
 	public boolean videoEnabled = false;
 	public boolean ongoingCall = false;
 	public JLabel ongoingCallTimeLabel = new JLabel();
@@ -321,6 +328,8 @@ public class MainForm extends JFrame {
 	public byte[] ongoingVideoCallCipher = null;
 	public List<Socket> videoCallOutgoingAudioSockets = new ArrayList<Socket>();
 	public List<Socket> videoCallIncomingAudioSockets = new ArrayList<Socket>();
+	public static volatile double ongoingVideoCallWidth = 0;
+	public static volatile double ongoingVideoCallHeight = 0;
 
 	/*
 	 * File transfer variables
@@ -3484,32 +3493,135 @@ public class MainForm extends JFrame {
 												ByteArrayOutputStream baos = new ByteArrayOutputStream();
 												CipherOutputStream cos = new CipherOutputStream(
 														baos, cipher);
+												BufferedImage image = null;
+												boolean err = false;
+												try {
+													if (!webcam.open()
+															|| (image = webcam
+																	.getImage()) == null) {
+														err = true;
+													}
+												} catch (Exception e) {
+													e.printStackTrace();
+													err = true;
+												}
+												if (err) {
+													DialogForm form = new DialogForm(
+															frame,
+															"Skype™ - wilma24",
+															"Webcam sharing failed",
+															"The webcam could not be opened, please check to make"
+																	+ '\n'
+																	+ "sure no other programs are using your webcam."
+																	+ '\n'
+																	+ '\n'
+																	+ " "
+																	+ '\n'
+																	+ "Having issues? Please check to make sure your webcam driver"
+																	+ '\n'
+																	+ "is working by checking the device status in devmgmt.msc.",
+															null, null);
+													form.show();
+													videoEnabled = false;
+													MainForm.webcam.close();
+													refreshWindow();
+													return;
+												}
+												Rectangle screenRect = new Rectangle(
+														Toolkit.getDefaultToolkit()
+																.getScreenSize());
+												if (MainForm.get().videoMode == MainForm
+														.get().WEBCAM_CAPTURE_MODE) {
+													screenRect = new Rectangle(
+															0, 0,
+															image.getWidth(),
+															image.getHeight());
+												}
+												Optional<SocketHandlerContext> ctx2 = Skype
+														.getPlugin()
+														.createHandle();
+												if (!ctx2.isPresent()) {
+													return;
+												}
+												Optional<PacketPlayInReply> reply = ctx2
+														.get()
+														.getOutboundHandler()
+														.dispatch(
+																ctx2.get(),
+																new PacketPlayOutLogin(
+																		authCode));
+												if (!reply.isPresent()) {
+													return;
+												}
+												if (reply.get().getStatusCode() != 200) {
+													return;
+												}
+												UUID authCode = UUID
+														.fromString(reply.get()
+																.getText());
+												reply = ctx2
+														.get()
+														.getOutboundHandler()
+														.dispatch(
+																ctx2.get(),
+																new PacketPlayOutVideoCallResolutionChanged(
+																		authCode,
+																		ongoingVideoCallId,
+																		screenRect.width,
+																		screenRect.height));
+												if (!reply.isPresent()) {
+													return;
+												}
+												if (reply.get().getStatusCode() != 200) {
+													return;
+												}
 												try {
 													if (socket != null) {
 														JFrame mainForm = MainForm
 																.get();
 														DataOutputStream dos = new DataOutputStream(
 																socket.getOutputStream());
-														Rectangle screenRect = new Rectangle(
-																Toolkit.getDefaultToolkit()
-																		.getScreenSize());
 														while (mainForm
 																.isVisible()) {
-															byte[] b2 = captureRegion(
-																	screenRect.x,
-																	screenRect.y,
-																	screenRect.width,
-																	screenRect.height)
-																	.get();
-															baos.reset();
-															cos.write(b2);
-															byte[] b = baos
-																	.toByteArray();
-															dos.writeInt(b.length);
-															dos.flush();
-															dos.write(b);
-															dos.flush();
-															System.gc();
+															if (videoMode == WEBCAM_CAPTURE_MODE) {
+																image = webcam
+																		.getImage();
+																ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
+																javax.imageio.ImageIO
+																		.write(image,
+																				"jpg",
+																				baos2);
+																byte[] b2 = baos2
+																		.toByteArray();
+																baos.reset();
+																cos.write(b2);
+																byte[] b = baos
+																		.toByteArray();
+																dos.writeInt(b.length);
+																dos.flush();
+																dos.write(b);
+																dos.flush();
+																image.flush();
+																baos2.close();
+																System.gc();
+															} else if (videoMode == SCREEN_CAPTURE_MODE) {
+																byte[] b2 = Capture
+																		.captureRegion(
+																				screenRect.x,
+																				screenRect.y,
+																				screenRect.width,
+																				screenRect.height)
+																		.get();
+																baos.reset();
+																cos.write(b2);
+																byte[] b = baos
+																		.toByteArray();
+																dos.writeInt(b.length);
+																dos.flush();
+																dos.write(b);
+																dos.flush();
+																System.gc();
+															}
 														}
 													}
 												} catch (Exception e) {
@@ -3520,6 +3632,7 @@ public class MainForm extends JFrame {
 												} catch (Exception e1) {
 													e1.printStackTrace();
 												}
+												webcam.close();
 												if (MainForm.get().ongoingVideoCallId != null)
 													if (callId.equals(MainForm
 															.get().ongoingVideoCallId)) {
@@ -3548,11 +3661,51 @@ public class MainForm extends JFrame {
 															e.printStackTrace();
 														}
 														MainForm.get().videoEnabled = false;
+														MainForm.get().videoMode = MainForm
+																.get().WEBCAM_CAPTURE_MODE;
+														MainForm.ongoingVideoCallWidth = 0;
+														MainForm.ongoingVideoCallHeight = 0;
+														MainForm.webcam.close();
 													}
 											});
 									thread.start();
 									refreshWindow();
 									return;
+								}
+								if (videoMode == WEBCAM_CAPTURE_MODE) {
+									BufferedImage image = null;
+									boolean err = false;
+									try {
+										if (!webcam.open()
+												|| (image = webcam.getImage()) == null) {
+											err = true;
+										}
+									} catch (Exception e) {
+										e.printStackTrace();
+										err = true;
+									}
+									if (err) {
+										DialogForm form = new DialogForm(
+												MainForm.get(),
+												"Skype™ - wilma24",
+												"Webcam sharing failed",
+												"The webcam could not be opened, please check to make"
+														+ '\n'
+														+ "sure no other programs are using your webcam."
+														+ '\n'
+														+ '\n'
+														+ " "
+														+ '\n'
+														+ "Having issues? Please check to make sure your webcam driver"
+														+ '\n'
+														+ "is working by checking the device status in devmgmt.msc.",
+												null, null);
+										form.show();
+										videoEnabled = false;
+										MainForm.webcam.close();
+										return;
+									}
+									webcam.close();
 								}
 								Optional<SocketHandlerContext> ctx = Skype
 										.getPlugin().createHandle();
@@ -3740,6 +3893,10 @@ public class MainForm extends JFrame {
 							}
 							videoEnabled = false;
 							microphoneEnabled = true;
+							MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
+							MainForm.ongoingVideoCallWidth = 0;
+							MainForm.ongoingVideoCallHeight = 0;
+							MainForm.webcam.close();
 							AudioIO.HANGUP.playSound();
 						}
 					};
@@ -3831,6 +3988,10 @@ public class MainForm extends JFrame {
 					} else {
 						double width = panelWidth - 80;
 						double height = 0.5625 * width;
+						if (ongoingVideoCallWidth != 0
+								&& ongoingVideoCallHeight != 0) {
+							height = ((ongoingVideoCallHeight / ongoingVideoCallWidth) * width);
+						}
 						ongoingCallProfilePictureImageLabelWidth = (int) width;
 						ongoingCallProfilePictureImageLabelHeight = (int) height;
 						iconLabelPanel.setPreferredSize(new Dimension(

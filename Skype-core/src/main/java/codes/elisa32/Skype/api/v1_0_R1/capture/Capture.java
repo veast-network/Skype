@@ -4,11 +4,10 @@ import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.util.Optional;
 
 import javax.imageio.ImageIO;
-
-import org.apache.commons.io.output.ByteArrayOutputStream;
 
 public class Capture {
 

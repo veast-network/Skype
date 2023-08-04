@@ -25,6 +25,10 @@
 			<name>squealy-aspose-cells-repo</name>
 			<url>file://${basedir}/libs/</url>
 		</repository>
+		<repository>
+			<id>Sonatype OSS Snapshot Repository</id>
+			<url>http://oss.sonatype.org/content/repositories/snapshots</url>
+		</repository>
 	</repositories>
 	<dependencyManagement>
 		<dependencies>
@@ -99,9 +103,14 @@
 				<version>1.5.6</version>
 			</dependency>
 			<dependency>
-				<groupId>com.twilio.sdk</groupId>
-				<artifactId>twilio</artifactId>
-				<version>9.8.0</version>
+				<groupId>com.github.sarxos</groupId>
+				<artifactId>webcam-capture</artifactId>
+				<version>0.3.10</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.sarxos</groupId>
+				<artifactId>webcam-capture-driver-javacv</artifactId>
+				<version>0.3.13-SNAPSHOT</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

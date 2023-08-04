@@ -182,6 +182,10 @@ public class CallRequestCmd extends CommandExecutor {
 								}
 								MainForm.get().videoEnabled = false;
 								MainForm.get().microphoneEnabled = true;
+								MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
+								MainForm.ongoingVideoCallWidth = 0;
+								MainForm.ongoingVideoCallHeight = 0;
+								MainForm.webcam.close();
 							}
 					});
 			thread.start();

@@ -47,6 +47,7 @@ import codes.elisa32.Skype.server.v1_0_R1.command.SendMessageCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.SendVideoCallRequestCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.UpdateGroupChatParticipantsCmd;
 import codes.elisa32.Skype.server.v1_0_R1.command.UpdateUserCmd;
+import codes.elisa32.Skype.server.v1_0_R1.command.VideoCallResolutionChangedCmd;
 import codes.elisa32.Skype.server.v1_0_R1.data.types.Connection;
 import codes.elisa32.Skype.server.v1_0_R1.manager.ConversationManager;
 import codes.elisa32.Skype.server.v1_0_R1.manager.UserManager;
@@ -170,9 +171,6 @@ public class Skype {
 				new AcceptCallDataStreamRequestCmd());
 		CommandMap.register(PacketType.DECLINE_CALL_REQUEST,
 				new DeclineCallRequestCmd());
-		/**
-		 * Experimental
-		 */
 		CommandMap.register(PacketType.SEND_FILE_TRANSFER_REQUEST,
 				new SendFileTransferRequestCmd());
 		CommandMap.register(PacketType.ACCEPT_FILE_TRANSFER_REQUEST,
@@ -183,9 +181,6 @@ public class Skype {
 				new DeclineFileTransferRequestCmd());
 		CommandMap.register(PacketType.FINISHED_READING_FILE_TRANSFER_DATA,
 				new FinishedReadingFileTransferDataCmd());
-		/**
-		 * Experimental
-		 */
 		CommandMap.register(PacketType.SEND_VIDEO_CALL_REQUEST,
 				new SendVideoCallRequestCmd());
 		CommandMap.register(PacketType.ACCEPT_VIDEO_CALL_REQUEST,
@@ -194,7 +189,8 @@ public class Skype {
 				new DeclineVideoCallRequestCmd());
 		CommandMap.register(PacketType.ACCEPT_VIDEO_CALL_DATA_STREAM_REQUEST,
 				new AcceptVideoCallDataStreamRequestCmd());
-
+		CommandMap.register(PacketType.VIDEO_CALL_RESOLUTION_CHANGED,
+				new VideoCallResolutionChangedCmd());
 		serverSocket = new ServerSocket(28109);
 		while (true) {
 			try {

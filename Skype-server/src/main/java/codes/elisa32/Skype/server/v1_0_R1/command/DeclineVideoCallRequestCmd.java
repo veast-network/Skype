@@ -3,7 +3,6 @@ package codes.elisa32.Skype.server.v1_0_R1.command;
 import codes.elisa32.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.elisa32.Skype.api.v1_0_R1.data.types.Call;
 import codes.elisa32.Skype.api.v1_0_R1.packet.Packet;
-import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInDeclineVideoCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.elisa32.Skype.api.v1_0_R1.packet.PacketPlayOutDeclineVideoCallRequest;
 import codes.elisa32.Skype.api.v1_0_R1.socket.SocketHandlerContext;
@@ -41,8 +40,6 @@ public class DeclineVideoCallRequestCmd extends CommandExecutor {
 							+ " failed");
 			return replyPacket;
 		}
-		PacketPlayInDeclineVideoCallRequest declineCallRequestPacket = new PacketPlayInDeclineVideoCallRequest(
-				participantId, callId);
 		int hits = 0;
 		for (UUID participant : call.getParticipants()) {
 			boolean hasParticipantAnsweredCall = Skype.getPlugin()
@@ -52,13 +49,6 @@ public class DeclineVideoCallRequestCmd extends CommandExecutor {
 				for (Connection listeningParticipant : Skype.getPlugin()
 						.getUserManager().getListeningConnections(participant)) {
 					try {
-						listeningParticipant
-								.getSocketHandlerContext()
-								.getOutboundHandler()
-								.dispatchAsync(
-										listeningParticipant
-												.getSocketHandlerContext(),
-										declineCallRequestPacket, null);
 						hits++;
 					} catch (IllegalArgumentException e) {
 						e.printStackTrace();
