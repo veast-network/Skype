@@ -107,11 +107,6 @@
 				<artifactId>webcam-capture</artifactId>
 				<version>0.3.10</version>
 			</dependency>
-			<dependency>
-				<groupId>com.github.sarxos</groupId>
-				<artifactId>webcam-capture-driver-javacv</artifactId>
-				<version>0.3.13-SNAPSHOT</version>
-			</dependency>
 		</dependencies>
 	</dependencyManagement>
 </project>

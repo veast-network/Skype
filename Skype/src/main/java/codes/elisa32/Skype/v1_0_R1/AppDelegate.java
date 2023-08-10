@@ -17,7 +17,7 @@ import codes.elisa32.Skype.v1_0_R1.forms.LoginForm;
 
 public class AppDelegate {
 
-	public static final long VERSION = 3401;
+	public static final long VERSION = 3402;
 
 	public static void main(String[] args) {
 		try {
