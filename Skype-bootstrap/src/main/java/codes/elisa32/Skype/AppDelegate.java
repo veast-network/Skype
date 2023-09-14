@@ -22,28 +22,9 @@ public class AppDelegate {
 	}
 
 	public static void main(String... args) {
-		File dataFolder = new File(System.getenv("APPDATA"), "Skype");
-		if (!dataFolder.exists()) {
-			File file = new File("Updater.exe");
-			if (file.exists()) {
-				ProcessBuilder pb = new ProcessBuilder("Updater.exe");
-				try {
-					pb.start();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} else {
-				try {
-					Desktop.getDesktop()
-							.browse(new URI(
-									"https://raw.skypeusercontent.com/elisa322008/elisa322008.github.io/main/skype/Skype.msi"));
-				} catch (IOException | URISyntaxException e) {
-					e.printStackTrace();
-				}
-			}
-			System.exit(-1);
-		}
-		File jarFile = new File(dataFolder, "Skype.jar");
+		File dataFolder = new File(System.getenv("APPDATA"), "Skype Technologies S.A.");
+		dataFolder = new File(dataFolder, "Skype™ 7.11");
+		File jarFile = new File(dataFolder, "Skype-1.2-SNAPSHOT.jar");
 		RuntimeMXBean bean = ManagementFactory.getRuntimeMXBean();
 		List<String> jvmArgs = bean.getInputArguments();
 		System.out.println(getJavaExecutable());

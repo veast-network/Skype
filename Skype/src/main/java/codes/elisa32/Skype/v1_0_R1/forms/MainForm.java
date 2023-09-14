@@ -3422,7 +3422,7 @@ public class MainForm extends JFrame {
 					() -> {
 						SwingUtilities.invokeLater(() -> {
 							try {
-								website.setPage("https://elisa322008.github.io/skype/");
+								website.setPage("https://wilma242008.github.io/skype/");
 							} catch (IOException e) {
 								e.printStackTrace();
 							}

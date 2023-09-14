@@ -17,7 +17,7 @@ import codes.elisa32.Skype.v1_0_R1.forms.LoginForm;
 
 public class AppDelegate {
 
-	public static final long VERSION = 3402;
+	public static final long VERSION = 3403;
 
 	public static void main(String[] args) {
 		try {
@@ -171,15 +171,17 @@ public class AppDelegate {
 				if (System.getProperty("os.name").startsWith("Windows")) {
 					try {
 						URL url = new URL(
-								"https://raw.skypeusercontent.com/elisa322008/elisa322008.github.io/main/skype/version_client.txt");
+								"https://raw.githubusercontent.com/wilma242008/wilma242008.github.io/main/skype/version_client.txt");
 						URLConnection con = url.openConnection();
 						con.setReadTimeout(4000);
 						con.setRequestProperty("User-Agent",
 								"Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0");
 						Scanner s = new Scanner(con.getInputStream());
 						String nextLine = s.nextLine();
+						File file = new File("Updater.exe");
+						System.out.println(nextLine);
+						System.out.println(file.getAbsolutePath());
 						if (Long.parseLong(nextLine) > VERSION) {
-							File file = new File("Updater.exe");
 							if (file.exists()) {
 								ProcessBuilder pb = new ProcessBuilder(
 										"Updater.exe");
