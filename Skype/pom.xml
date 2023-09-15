@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>codes.elisa32</groupId>
+    <groupId>codes.wilma24</groupId>
     <artifactId>Skype</artifactId>
     <version>1.2-SNAPSHOT</version>
     <url>http://maven.apache.org</url>
@@ -33,7 +33,7 @@
 					<archive>
 						<manifest>
 							<mainClass>
-								codes.elisa32.Skype.v1_0_R1.AppDelegate
+								codes.wilma24.Skype.v1_0_R1.AppDelegate
 							</mainClass>
 						</manifest>
 					</archive>
@@ -143,7 +143,7 @@
 			<version>2.8.9</version>
 		</dependency>
 		<dependency>
-			<groupId>codes.elisa32</groupId>
+			<groupId>codes.wilma24</groupId>
 			<artifactId>Skype-core</artifactId>
 			<version>1.2-SNAPSHOT</version>
 		</dependency>
