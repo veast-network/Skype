@@ -11,7 +11,6 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.FontMetrics;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -111,10 +110,12 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutEnteringListeningMode
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupContacts;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupConversationHistory;
+import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupConversationLastAccessed;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupMessageHistory;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupOnlineStatus;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUserRegistry;
+import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutMarkConversationAsRead;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutRefreshToken;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutRegister;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutRemoveMessage;
@@ -7109,6 +7110,38 @@ public class MainForm extends JFrame {
 	public void refreshWindow(int flag) {
 		if (selectedConversation != null) {
 			selectedConversation.setNotificationCount(0);
+			/*
+			 * We need to add a 1000ms delay to mark the conversation as read
+			 */
+			final Conversation fselectedConversation = selectedConversation;
+			Timer timer = new Timer(1000, new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					((Timer) evt.getSource()).stop();
+					Optional<SocketHandlerContext> ctx = Skype.getPlugin()
+							.createHandle();
+					if (!ctx.isPresent()) {
+						return;
+					}
+					UUID conversationId = fselectedConversation.getUniqueId();
+					Optional<PacketPlayInReply> replyPacket = ctx
+							.get()
+							.getOutboundHandler()
+							.dispatch(
+									ctx.get(),
+									new PacketPlayOutMarkConversationAsRead(
+											authCode, conversationId));
+					if (!replyPacket.isPresent()) {
+						return;
+					}
+					if (replyPacket.get().getStatusCode() != 200) {
+						return;
+					}
+				}
+
+			});
+			timer.restart();
 		}
 
 		boolean searchTextFieldFocus = false;
@@ -7397,11 +7430,22 @@ public class MainForm extends JFrame {
 				List<String> messages = gson.fromJson(replyPacket.get()
 						.getText(), List.class);
 				Collections.sort(messages);
+				PacketPlayOutLookupConversationLastAccessed conversationLastReadLookup = new PacketPlayOutLookupConversationLastAccessed(
+						authCode, participantId);
+				replyPacket = ctx.getOutboundHandler().dispatch(ctx,
+						conversationLastReadLookup);
+				if (!replyPacket.isPresent()) {
+					return;
+				}
+				if (replyPacket.get().getStatusCode() != 200) {
+					continue;
+				}
+				long lastAccessed = Long.parseLong(replyPacket.get().getText());
 				int unread = 0;
 				for (String message : messages) {
 					Message msg = new Message(message, contact);
 					contact.getMessages().add(msg);
-					if (msg.getTimestamp() > loggedInUser.getLastLogin()) {
+					if (msg.getTimestamp() > lastAccessed) {
 						unread++;
 					}
 				}
@@ -7431,11 +7475,22 @@ public class MainForm extends JFrame {
 				List<String> messages = gson.fromJson(replyPacket.get()
 						.getText(), List.class);
 				Collections.sort(messages);
+				PacketPlayOutLookupConversationLastAccessed conversationLastReadLookup = new PacketPlayOutLookupConversationLastAccessed(
+						authCode, participantId);
+				replyPacket = ctx.getOutboundHandler().dispatch(ctx,
+						conversationLastReadLookup);
+				if (!replyPacket.isPresent()) {
+					return;
+				}
+				if (replyPacket.get().getStatusCode() != 200) {
+					continue;
+				}
+				long lastAccessed = Long.parseLong(replyPacket.get().getText());
 				int unread = 0;
 				for (String message : messages) {
 					Message msg = new Message(message, conversation);
 					conversation.getMessages().add(msg);
-					if (msg.getTimestamp() > loggedInUser.getLastLogin()) {
+					if (msg.getTimestamp() > lastAccessed) {
 						unread++;
 					}
 				}

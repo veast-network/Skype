@@ -31,12 +31,14 @@ import codes.wilma24.Skype.server.v1_0_R1.command.FinishedReadingFileTransferDat
 import codes.wilma24.Skype.server.v1_0_R1.command.LoginCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupContactsCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupConversationHistoryCmd;
+import codes.wilma24.Skype.server.v1_0_R1.command.LookupConversationLastAccessedCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupConversationParticipantsCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupGroupChatAdminsCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupMessageHistoryCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupOnlineStatusCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupUserCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupUserRegistryCmd;
+import codes.wilma24.Skype.server.v1_0_R1.command.MarkConversationAsReadCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.RefreshTokenCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.RegisterCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.RemoveMessageCmd;
@@ -157,6 +159,10 @@ public class Skype {
 				new LookupMessageHistoryCmd());
 		CommandMap
 				.register(PacketType.LOOKUP_CONTACTS, new LookupContactsCmd());
+		CommandMap.register(PacketType.MARK_CONVERSATION_AS_READ,
+				new MarkConversationAsReadCmd());
+		CommandMap.register(PacketType.LOOKUP_CONVERSATION_LAST_ACCESSED,
+				new LookupConversationLastAccessedCmd());
 		CommandMap.register(PacketType.ACCEPT_CONTACT_REQUEST,
 				new AcceptContactRequestCmd());
 		CommandMap.register(PacketType.DECLINE_CONTACT_REQUEST,

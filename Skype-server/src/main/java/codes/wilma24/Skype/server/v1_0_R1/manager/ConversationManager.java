@@ -323,6 +323,36 @@ public class ConversationManager {
 		return false;
 	}
 
+	public boolean setLastAccessed(UUID conversationId, UUID participantId,
+			long lastRead) {
+		ConfigurationSection config = this.config
+				.getConfigurationSection("lastAccessed."
+						+ conversationId.toString() + "."
+						+ participantId.toString());
+		try {
+			config.replace("payload", lastRead);
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	public long getLastAccessed(UUID conversationId, UUID participantId) {
+		ConfigurationSection config = this.config
+				.getConfigurationSection("lastAccessed."
+						+ conversationId.toString() + "."
+						+ participantId.toString());
+		try {
+			long lastRead = config.getLong("payload",
+					System.currentTimeMillis());
+			return lastRead;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return System.currentTimeMillis();
+	}
+
 	public LocalDate asLocalDate(Date date) {
 		return Instant.ofEpochMilli(date.getTime())
 				.atZone(ZoneId.systemDefault()).toLocalDate();
