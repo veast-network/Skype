@@ -130,6 +130,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutVideoCallResolutionChanged;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
+import codes.wilma24.Skype.v1_0_R1.AppDelegate;
 import codes.wilma24.Skype.v1_0_R1.Utils;
 import codes.wilma24.Skype.v1_0_R1.audioio.AudioIO;
 import codes.wilma24.Skype.v1_0_R1.cipher.CipherOutputStream;
@@ -622,7 +623,7 @@ public class MainForm extends JFrame {
 			e.printStackTrace();
 		}
 	}
-	
+
 	Clip echo123 = null;
 
 	public String getDateLabelInReferenceToToday(Date date) {
@@ -635,7 +636,8 @@ public class MainForm extends JFrame {
 				Locale.US).format(date);
 		for (int i = 0; i <= 7; i++) {
 			Calendar calendar = Calendar.getInstance();
-			calendar.setTime(new Date());
+			calendar.setTime(new Date(new Date().getTime()
+					+ AppDelegate.TIME_OFFSET));
 			calendar.add(Calendar.DAY_OF_MONTH, -i);
 			int todayYear = calendar.get(Calendar.YEAR);
 			int todayMonth = calendar.get(Calendar.MONTH);
@@ -1847,7 +1849,8 @@ public class MainForm extends JFrame {
 
 			for (Conversation conversation : conversations) {
 				this.notificationCount += conversation.getNotificationCount();
-				Date now = new Date();
+				Date now = new Date(new Date().getTime()
+						+ AppDelegate.TIME_OFFSET);
 				Calendar calendar = Calendar.getInstance();
 				calendar.setTime(conversation.getLastModified());
 				int lastModifiedYear = calendar.get(Calendar.YEAR);
@@ -2798,8 +2801,9 @@ public class MainForm extends JFrame {
 													.getStatusCode() != 200) {
 												return;
 											}
-											groupChat
-													.setLastModified(new Date());
+											groupChat.setLastModified(new Date(
+													new Date().getTime()
+															+ AppDelegate.TIME_OFFSET));
 											if (displayNameUpdate) {
 												String displayName2 = "";
 												int x2 = 0;
@@ -3066,7 +3070,8 @@ public class MainForm extends JFrame {
 							return;
 						}
 						AudioIO.CALL_INIT.playSound();
-						if (selectedConversation.getUniqueId().equals(echoSoundTestService.getUniqueId())) {
+						if (selectedConversation.getUniqueId().equals(
+								echoSoundTestService.getUniqueId())) {
 							if (echo123 == null) {
 								echo123 = AudioIO.ECHO123.playSound();
 							} else {
@@ -3079,7 +3084,8 @@ public class MainForm extends JFrame {
 					rightPanelPage = "OngoingCall";
 					ongoingCall = true;
 					ongoingCallConversation = selectedConversation;
-					ongoingCallStartTime = System.currentTimeMillis();
+					ongoingCallStartTime = new Date(new Date().getTime()
+							+ AppDelegate.TIME_OFFSET).getTime();
 					refreshWindow();
 				}
 			};
@@ -3230,7 +3236,10 @@ public class MainForm extends JFrame {
 										return;
 									}
 									UUID messageId = UUID.randomUUID();
-									long timestamp = System.currentTimeMillis();
+									long timestamp = new Date(new Date()
+											.getTime()
+											+ AppDelegate.TIME_OFFSET)
+											.getTime();
 									Message message = new Message(messageId,
 											loggedInUser.getUniqueId(),
 											MessageType.GROUP_MEMBER_ADDED,
@@ -3348,7 +3357,9 @@ public class MainForm extends JFrame {
 									if (replyPacket.get().getStatusCode() != 200) {
 										return;
 									}
-									groupChat.setLastModified(new Date());
+									groupChat.setLastModified(new Date(
+											new Date().getTime()
+													+ AppDelegate.TIME_OFFSET));
 									if (selectedConversation.isGroupChat()
 											&& displayNameUpdate) {
 										String displayName2 = "";
@@ -4133,7 +4144,8 @@ public class MainForm extends JFrame {
 							/*
 							 * TODO: End call
 							 */
-							if (selectedConversation.getUniqueId().equals(echoSoundTestService.getUniqueId())) {
+							if (selectedConversation.getUniqueId().equals(
+									echoSoundTestService.getUniqueId())) {
 								if (echo123 == null) {
 								} else {
 									echo123.stop();
@@ -5102,7 +5114,7 @@ public class MainForm extends JFrame {
 
 						if (message.isDecryptionSuccessful()
 								&& !message.isSignatureVerified()) {
-							label.setForeground(Color.red);
+							// label.setForeground(Color.red);
 						}
 
 						label.setFont(font);
@@ -5918,7 +5930,10 @@ public class MainForm extends JFrame {
 													if (replyPacket.get()
 															.getStatusCode() == 200) {
 														selectedConversation
-																.setLastModified(new Date());
+																.setLastModified(new Date(
+																		new Date()
+																				.getTime()
+																				+ AppDelegate.TIME_OFFSET));
 														selectedConversation
 																.setHasIncomingFriendRequest(
 																		false,
@@ -6892,7 +6907,10 @@ public class MainForm extends JFrame {
 																			.getMessages()
 																			.add(message);
 																	selectedConversation
-																			.setLastModified(new Date());
+																			.setLastModified(new Date(
+																					new Date()
+																							.getTime()
+																							+ AppDelegate.TIME_OFFSET));
 																	refreshWindow();
 																}
 																AudioIO.IM_SENT
@@ -7350,14 +7368,17 @@ public class MainForm extends JFrame {
 				echoSoundTestService.getSkypeName()));
 		echoSoundTestService.setDisplayName("Echo / Sound Test Service");
 		echoSoundTestService.bot = true;
-		echoSoundTestService.setLastModified(new Date());
+		echoSoundTestService.setLastModified(new Date(new Date().getTime()
+				+ AppDelegate.TIME_OFFSET));
 		echoSoundTestService.setOnlineStatus(Status.ONLINE);
 		this.rightPanelPage = "Conversation";
 		this.selectedConversation = echoSoundTestService;
 		{
 			Message echoSoundTestServiceMsg = new Message(UUID.randomUUID(),
-					echoSoundTestService.getUniqueId(), "Hi " + loggedInUser.getSkypeName(),
-					System.currentTimeMillis() - 20, echoSoundTestService);
+					echoSoundTestService.getUniqueId(), "Hi "
+							+ loggedInUser.getSkypeName(),
+					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
+							.getTime() - 20, echoSoundTestService);
 			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
 		}
 		{
@@ -7365,7 +7386,8 @@ public class MainForm extends JFrame {
 					UUID.randomUUID(),
 					echoSoundTestService.getUniqueId(),
 					" Thank you for checking out this hobby project of mine, it means a lot to me",
-					System.currentTimeMillis() - 19, echoSoundTestService);
+					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
+							.getTime() - 19, echoSoundTestService);
 			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
 		}
 		{
@@ -7373,7 +7395,8 @@ public class MainForm extends JFrame {
 					UUID.randomUUID(),
 					echoSoundTestService.getUniqueId(),
 					"This is designed to be a drop in replacement for Skype 7.11.32.102 for OS X, Windows and Linux, thanks to painstaking work of reverse engineering. The fuel for a project like this was in part caused by the heavily criticised Skype 8 redesign",
-					System.currentTimeMillis() - 18, echoSoundTestService);
+					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
+							.getTime() - 18, echoSoundTestService);
 			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
 		}
 		{
@@ -7381,7 +7404,8 @@ public class MainForm extends JFrame {
 					UUID.randomUUID(),
 					echoSoundTestService.getUniqueId(),
 					"If you want to help contribute to this project, please feel free to reach out to wilma242008 on Discord",
-					System.currentTimeMillis() - 17, echoSoundTestService);
+					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
+							.getTime() - 17, echoSoundTestService);
 			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
 		}
 		{
@@ -7389,7 +7413,8 @@ public class MainForm extends JFrame {
 					UUID.randomUUID(),
 					echoSoundTestService.getUniqueId(),
 					"Special thanks to palera1n Team, llsc12, phoenixacevfx, _sukuratchi, liapalacios, void *, mel1na, nebula, whitetailani, avatheava1i, arcane, elliessurviving, emily, afastaudir8, lizzythewitch, mineek, genesis, modiverse, pythonplayer123, galaxy, ainara, lunarn0v4, ariezyt, corgi, eversiege, snoolie, naelie, transdev, __jo2007, malwarepad, ridgeway+, and samara",
-					System.currentTimeMillis() - 16, echoSoundTestService);
+					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
+							.getTime() - 16, echoSoundTestService);
 			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
 		}
 		{
@@ -7397,12 +7422,13 @@ public class MainForm extends JFrame {
 					UUID.randomUUID(),
 					echoSoundTestService.getUniqueId(),
 					"All asset files used in this program are under copyright by Microsoft. This means it is illegal to redistribute this program or any assets within in a commercial fashion. This program is designed for private, non commercial use only",
-					System.currentTimeMillis() - 15, echoSoundTestService);
+					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
+							.getTime() - 15, echoSoundTestService);
 			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
 		}
 		conversations.add(echoSoundTestService);
 		SocketHandlerContext ctx = Skype.getPlugin().getHandle();
-		Date now = new Date();
+		Date now = new Date(new Date().getTime() + AppDelegate.TIME_OFFSET);
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(now);
 		cal.add(Calendar.DAY_OF_MONTH, 1);
@@ -7809,7 +7835,8 @@ public class MainForm extends JFrame {
 				String txt = PGPUtilities.encryptAndSign(conversationTextField
 						.getText().trim(), selectedConversation);
 				UUID messageId = UUID.randomUUID();
-				long timestamp = System.currentTimeMillis();
+				long timestamp = new Date(new Date().getTime()
+						+ AppDelegate.TIME_OFFSET).getTime();
 				Message message = new Message(messageId, loggedInUser
 						.getUniqueId(), txt, timestamp, selectedConversation);
 				if (!conversations.contains(selectedConversation)) {
@@ -7839,7 +7866,9 @@ public class MainForm extends JFrame {
 						if (selectedMessage == null) {
 							selectedConversation.getMessages().add(message);
 						}
-						selectedConversation.setLastModified(new Date());
+						selectedConversation
+								.setLastModified(new Date(new Date().getTime()
+										+ AppDelegate.TIME_OFFSET));
 						refreshWindow();
 					}
 					if (selectedMessage != null) {
@@ -7948,7 +7977,10 @@ public class MainForm extends JFrame {
 																.getMessages()
 																.add(message);
 														selectedConversation
-																.setLastModified(new Date());
+																.setLastModified(new Date(
+																		new Date()
+																				.getTime()
+																				+ AppDelegate.TIME_OFFSET));
 														refreshWindow();
 													}
 													AudioIO.IM_SENT.playSound();

@@ -3,8 +3,10 @@ package codes.wilma24.Skype.v1_0_R1;
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Date;
 import java.util.Scanner;
 
 import javax.swing.SwingUtilities;
@@ -12,12 +14,17 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.plaf.FontUIResource;
 
+import org.apache.commons.net.ntp.NTPUDPClient;
+import org.apache.commons.net.ntp.TimeInfo;
+
 import codes.wilma24.Skype.v1_0_R1.fontio.FontIO;
 import codes.wilma24.Skype.v1_0_R1.forms.LoginForm;
 
 public class AppDelegate {
 
-	public static final long VERSION = 3408;
+	public static final long VERSION = 3409;
+
+	public static long TIME_OFFSET = 0L;
 
 	public static void main(String[] args) {
 		try {
@@ -30,6 +37,17 @@ public class AppDelegate {
 		} catch (IllegalAccessException e) {
 			e.printStackTrace();
 		} catch (UnsupportedLookAndFeelException e) {
+			e.printStackTrace();
+		}
+		try {
+			String TIME_SERVER = "time-a.nist.gov";
+			NTPUDPClient timeClient = new NTPUDPClient();
+			InetAddress inetAddress = InetAddress.getByName(TIME_SERVER);
+			TimeInfo timeInfo = timeClient.getTime(inetAddress);
+			long returnTime = timeInfo.getMessage().getTransmitTimeStamp()
+					.getTime();
+			TIME_OFFSET = returnTime - System.currentTimeMillis();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		UIManager.put("OptionPane.buttonFont", new FontUIResource(

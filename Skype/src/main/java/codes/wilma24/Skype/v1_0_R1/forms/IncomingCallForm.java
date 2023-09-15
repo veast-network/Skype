@@ -11,6 +11,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.net.Socket;
+import java.util.Date;
 import java.util.Optional;
 
 import javax.sound.sampled.Clip;
@@ -28,6 +29,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutDeclineCallRequest;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
+import codes.wilma24.Skype.v1_0_R1.AppDelegate;
 import codes.wilma24.Skype.v1_0_R1.audioio.AudioIO;
 import codes.wilma24.Skype.v1_0_R1.awt.AWTUtilities;
 import codes.wilma24.Skype.v1_0_R1.cipher.CipherOutputStream;
@@ -150,7 +152,7 @@ public class IncomingCallForm extends JDialog {
 		thread.start();
 		MainForm.get().rightPanelPage = "OngoingCall";
 		MainForm.get().ongoingCall = true;
-		MainForm.get().ongoingCallStartTime = System.currentTimeMillis();
+		MainForm.get().ongoingCallStartTime = new Date(new Date().getTime() + AppDelegate.TIME_OFFSET).getTime();
 		for (Conversation conversation : MainForm.get().getConversations()) {
 			if (conversation.getUniqueId().equals(
 					this.conversation.getUniqueId())) {

@@ -1,5 +1,6 @@
 package codes.wilma24.Skype.v1_0_R1.command;
 
+import java.util.Date;
 import java.util.Optional;
 
 import codes.wilma24.Skype.api.v1_0_R1.command.CommandExecutor;
@@ -10,6 +11,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptFileTransferReq
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
+import codes.wilma24.Skype.v1_0_R1.AppDelegate;
 import codes.wilma24.Skype.v1_0_R1.cipher.CipherUtilities;
 import codes.wilma24.Skype.v1_0_R1.data.types.Conversation;
 import codes.wilma24.Skype.v1_0_R1.forms.MainForm;
@@ -42,7 +44,7 @@ public class FileTransferRequestCmd extends CommandExecutor {
 		authCode = UUID.fromString(reply.get().getText());
 		UUID conversationId = packet.getConversationId();
 		UUID participantId = packet.getParticipantId();
-		long timestamp = System.currentTimeMillis();
+		long timestamp = new Date(new Date().getTime() + AppDelegate.TIME_OFFSET).getTime();
 		String fileName = packet.getFileName();
 		long length = packet.getLength();
 

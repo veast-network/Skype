@@ -33,6 +33,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutSendMessage;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
+import codes.wilma24.Skype.v1_0_R1.AppDelegate;
 import codes.wilma24.Skype.v1_0_R1.data.types.Contact;
 import codes.wilma24.Skype.v1_0_R1.data.types.Message;
 import codes.wilma24.Skype.v1_0_R1.data.types.Status;
@@ -93,7 +94,7 @@ public class SkypeChatImporter extends JDialog implements Runnable {
 		UUID participantId = Skype.getPlugin().getUniqueId(username);
 		if (replyPacket.getStatusCode() != 200) {
 			if (!username.equals(loggedInUser.getSkypeName())) {
-				Date now = new Date();
+				Date now = new Date(new Date().getTime() + AppDelegate.TIME_OFFSET);
 				Date startOfTime = new Date(2012 - 1900, 0, 1);
 				PacketPlayOutLookupMessageHistory messageHistoryLookup = new PacketPlayOutLookupMessageHistory(
 						authCode, loggedInUser.getUniqueId(), startOfTime, now);

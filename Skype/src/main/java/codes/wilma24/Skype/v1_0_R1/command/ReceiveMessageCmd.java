@@ -10,6 +10,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
+import codes.wilma24.Skype.v1_0_R1.AppDelegate;
 import codes.wilma24.Skype.v1_0_R1.data.types.Contact;
 import codes.wilma24.Skype.v1_0_R1.data.types.Conversation;
 import codes.wilma24.Skype.v1_0_R1.data.types.Message;
@@ -50,7 +51,7 @@ public class ReceiveMessageCmd extends CommandExecutor {
 				}
 				conversation.setNotificationCount(conversation
 						.getNotificationCount() + 1);
-				conversation.setLastModified(new Date());
+				conversation.setLastModified(new Date(new Date().getTime() + AppDelegate.TIME_OFFSET));
 				if (message.getMessageType() != null) {
 					if (message.getMessageType() == MessageType.SEND_FRIEND_REQUEST) {
 						if (!message.getSender().equals(
@@ -98,7 +99,7 @@ public class ReceiveMessageCmd extends CommandExecutor {
 					}
 					conversation.setNotificationCount(conversation
 							.getNotificationCount() + 1);
-					conversation.setLastModified(new Date());
+					conversation.setLastModified(new Date(new Date().getTime() + AppDelegate.TIME_OFFSET));
 					if (message.getMessageType() != null) {
 						if (message.getMessageType() == MessageType.SEND_FRIEND_REQUEST) {
 							if (!message.getSender().equals(
@@ -151,7 +152,7 @@ public class ReceiveMessageCmd extends CommandExecutor {
 			}
 			conversation.getMessages().add(message);
 			conversation.setNotificationCount(1);
-			conversation.setLastModified(new Date());
+			conversation.setLastModified(new Date(new Date().getTime() + AppDelegate.TIME_OFFSET));
 			if (message.getMessageType() != null) {
 				if (message.getMessageType() == MessageType.SEND_FRIEND_REQUEST) {
 					if (!message.getSender().equals(loggedInUser.getUniqueId())) {

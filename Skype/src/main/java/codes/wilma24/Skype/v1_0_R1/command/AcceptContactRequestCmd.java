@@ -11,6 +11,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupOnlineStatus;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
+import codes.wilma24.Skype.v1_0_R1.AppDelegate;
 import codes.wilma24.Skype.v1_0_R1.data.types.Contact;
 import codes.wilma24.Skype.v1_0_R1.data.types.Conversation;
 import codes.wilma24.Skype.v1_0_R1.data.types.Status;
@@ -65,7 +66,7 @@ public class AcceptContactRequestCmd extends CommandExecutor {
 									.getText());
 							contact.getMessages().addAll(
 									conversation.getMessages());
-							contact.setLastModified(new Date());
+							contact.setLastModified(new Date(new Date().getTime() + AppDelegate.TIME_OFFSET));
 							Status onlineStatus = Status.OFFLINE;
 							{
 								PacketPlayOutLookupOnlineStatus onlineStatusLookup = new PacketPlayOutLookupOnlineStatus(
