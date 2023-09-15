@@ -7119,25 +7119,39 @@ public class MainForm extends JFrame {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
 					((Timer) evt.getSource()).stop();
-					Optional<SocketHandlerContext> ctx = Skype.getPlugin()
-							.createHandle();
-					if (!ctx.isPresent()) {
-						return;
-					}
-					UUID conversationId = fselectedConversation.getUniqueId();
-					Optional<PacketPlayInReply> replyPacket = ctx
-							.get()
-							.getOutboundHandler()
-							.dispatch(
-									ctx.get(),
-									new PacketPlayOutMarkConversationAsRead(
-											authCode, conversationId));
-					if (!replyPacket.isPresent()) {
-						return;
-					}
-					if (replyPacket.get().getStatusCode() != 200) {
-						return;
-					}
+					Thread thread = new Thread(new Runnable() {
+
+						@Override
+						public void run() {
+							Optional<SocketHandlerContext> ctx = Skype
+									.getPlugin().createHandle();
+							if (!ctx.isPresent()) {
+								return;
+							}
+							UUID conversationId = fselectedConversation
+									.getUniqueId();
+							Optional<PacketPlayInReply> replyPacket = ctx
+									.get()
+									.getOutboundHandler()
+									.dispatch(
+											ctx.get(),
+											new PacketPlayOutMarkConversationAsRead(
+													authCode, conversationId));
+							if (!replyPacket.isPresent()) {
+								return;
+							}
+							if (replyPacket.get().getStatusCode() != 200) {
+								return;
+							}
+							try {
+								ctx.get().getSocket().close();
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
+
+					});
+					thread.start();
 				}
 
 			});

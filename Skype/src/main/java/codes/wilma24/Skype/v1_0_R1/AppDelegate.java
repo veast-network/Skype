@@ -17,7 +17,7 @@ import codes.wilma24.Skype.v1_0_R1.forms.LoginForm;
 
 public class AppDelegate {
 
-	public static final long VERSION = 3404;
+	public static final long VERSION = 3405;
 
 	public static void main(String[] args) {
 		try {
