@@ -7107,55 +7107,12 @@ public class MainForm extends JFrame {
 		refreshWindow(RETAIN_SCROLL_POSITION);
 	}
 
+	Timer markAsReadTimer;
+
 	public void refreshWindow(int flag) {
 		if (selectedConversation != null) {
 			selectedConversation.setNotificationCount(0);
-			/*
-			 * We need to add a 1000ms delay to mark the conversation as read
-			 */
-			final Conversation fselectedConversation = selectedConversation;
-			Timer timer = new Timer(1000, new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					((Timer) evt.getSource()).stop();
-					Thread thread = new Thread(new Runnable() {
-
-						@Override
-						public void run() {
-							Optional<SocketHandlerContext> ctx = Skype
-									.getPlugin().createHandle();
-							if (!ctx.isPresent()) {
-								return;
-							}
-							UUID conversationId = fselectedConversation
-									.getUniqueId();
-							Optional<PacketPlayInReply> replyPacket = ctx
-									.get()
-									.getOutboundHandler()
-									.dispatch(
-											ctx.get(),
-											new PacketPlayOutMarkConversationAsRead(
-													authCode, conversationId));
-							if (!replyPacket.isPresent()) {
-								return;
-							}
-							if (replyPacket.get().getStatusCode() != 200) {
-								return;
-							}
-							try {
-								ctx.get().getSocket().close();
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-
-					});
-					thread.start();
-				}
-
-			});
-			timer.restart();
+			markAsReadTimer.restart();
 		}
 
 		boolean searchTextFieldFocus = false;
@@ -7344,6 +7301,50 @@ public class MainForm extends JFrame {
 	}
 
 	public void readFromMemory() {
+		markAsReadTimer = new Timer(1000, new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				((Timer) evt.getSource()).stop();
+				Thread thread = new Thread(new Runnable() {
+
+					@Override
+					public void run() {
+						Optional<SocketHandlerContext> ctx = Skype.getPlugin()
+								.createHandle();
+						if (!ctx.isPresent()) {
+							return;
+						}
+						if (selectedConversation == null) {
+							return;
+						}
+						UUID conversationId = selectedConversation
+								.getUniqueId();
+						Optional<PacketPlayInReply> replyPacket = ctx
+								.get()
+								.getOutboundHandler()
+								.dispatch(
+										ctx.get(),
+										new PacketPlayOutMarkConversationAsRead(
+												authCode, conversationId));
+						if (!replyPacket.isPresent()) {
+							return;
+						}
+						if (replyPacket.get().getStatusCode() != 200) {
+							return;
+						}
+						try {
+							ctx.get().getSocket().close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+
+				});
+				thread.start();
+			}
+
+		});
 		conversations.clear();
 		SocketHandlerContext ctx = Skype.getPlugin().getHandle();
 		Date now = new Date();
