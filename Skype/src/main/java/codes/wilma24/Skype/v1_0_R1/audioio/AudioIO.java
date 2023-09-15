@@ -97,6 +97,8 @@ public class AudioIO {
 	public static AudioIO USER_LEFT_ORG = new AudioIO("/USER_LEFT_ORG.wav");
 
 	public static AudioIO VC_BEEP_1 = new AudioIO("/VC_BEEP_1.wav");
+	
+	public static AudioIO ECHO123 = new AudioIO("/ECHO123.wav");
 
 	private String resource;
 

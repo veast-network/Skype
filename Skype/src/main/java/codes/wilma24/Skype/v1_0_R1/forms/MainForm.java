@@ -64,6 +64,7 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.NoSuchPaddingException;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.TargetDataLine;
 import javax.swing.BorderFactory;
@@ -71,7 +72,6 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
-import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -622,6 +622,8 @@ public class MainForm extends JFrame {
 			e.printStackTrace();
 		}
 	}
+	
+	Clip echo123 = null;
 
 	public String getDateLabelInReferenceToToday(Date date) {
 		Calendar cal = Calendar.getInstance();
@@ -3064,6 +3066,15 @@ public class MainForm extends JFrame {
 							return;
 						}
 						AudioIO.CALL_INIT.playSound();
+						if (selectedConversation.getUniqueId().equals(echoSoundTestService.getUniqueId())) {
+							if (echo123 == null) {
+								echo123 = AudioIO.ECHO123.playSound();
+							} else {
+								echo123.stop();
+								echo123.close();
+								echo123 = AudioIO.ECHO123.playSound();
+							}
+						}
 					}
 					rightPanelPage = "OngoingCall";
 					ongoingCall = true;
@@ -4122,6 +4133,12 @@ public class MainForm extends JFrame {
 							/*
 							 * TODO: End call
 							 */
+							if (selectedConversation.getUniqueId().equals(echoSoundTestService.getUniqueId())) {
+								if (echo123 == null) {
+								} else {
+									echo123.stop();
+								}
+							}
 							mic.stop();
 							mic.drain();
 							ongoingCall = false;
