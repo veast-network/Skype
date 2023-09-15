@@ -5751,7 +5751,7 @@ public class MainForm extends JFrame {
 
 								if (message.isDecryptionSuccessful()
 										&& !message.isSignatureVerified()) {
-									label.setForeground(Color.red);
+									// label.setForeground(Color.red);
 								}
 
 								label.setFont(font.deriveFont(
@@ -6359,7 +6359,7 @@ public class MainForm extends JFrame {
 
 							if (message.isDecryptionSuccessful()
 									&& !message.isSignatureVerified()) {
-								label.setForeground(Color.red);
+								// label.setForeground(Color.red);
 							}
 
 							label.setBorder(BorderFactory.createEmptyBorder());
@@ -6658,7 +6658,7 @@ public class MainForm extends JFrame {
 
 							if (message.isDecryptionSuccessful()
 									&& !message.isSignatureVerified()) {
-								label.setForeground(Color.red);
+								// label.setForeground(Color.red);
 							}
 
 							label.setFont(font);
