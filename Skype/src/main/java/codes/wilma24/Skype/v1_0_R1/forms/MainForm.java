@@ -51,6 +51,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -387,13 +388,22 @@ public class MainForm extends JFrame {
 		if (!replyPacket.isPresent()) {
 			return Optional.empty();
 		}
-		Conversation conversation = new Conversation(replyPacket.get()
-				.getText());
-		if (!conversation.isGroupChat()) {
-			conversation.setDisplayName(conversation.getSkypeName());
+		if (participantId.equals(echoSoundTestService.getUniqueId())) {
+			Contact contact = new Contact(replyPacket.get().getText());
+			if (!contact.isGroupChat()) {
+				contact.setDisplayName(contact.getSkypeName());
+			}
+			cachedUsers.put(participantId, contact);
+			return Optional.of(contact);
+		} else {
+			Conversation conversation = new Conversation(replyPacket.get()
+					.getText());
+			if (!conversation.isGroupChat()) {
+				conversation.setDisplayName(conversation.getSkypeName());
+			}
+			cachedUsers.put(participantId, conversation);
+			return Optional.of(conversation);
 		}
-		cachedUsers.put(participantId, conversation);
-		return Optional.of(conversation);
 	}
 
 	public UUID getAuthCode() {
@@ -3414,28 +3424,6 @@ public class MainForm extends JFrame {
 			panelWidth = getContentPane().getSize().width
 					- this.splitPaneDividerSize - leftSplitPaneWidth;
 			int panelHeight = this.getContentPane().getHeight();
-			JEditorPane website = new JEditorPane();
-			website.setEditable(false);
-			if (webPageThread != null) {
-				webPageThread.stop();
-			}
-			webPageThread = new Thread(
-					() -> {
-						SwingUtilities.invokeLater(() -> {
-							try {
-								website.setPage("https://wilma242008.github.io/skype/");
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						});
-					});
-			webPageThread.start();
-			panel.setBounds(0, 0, panelWidth, panelHeight);
-			JScrollPane pane = new JScrollPane(website);
-			pane.setBorder(BorderFactory.createEmptyBorder());
-			pane.setBounds(0, 0, panelWidth, panelHeight);
-			panel.setLayout(null);
-			panel.add(pane);
 			return panel;
 		}
 
@@ -4849,7 +4837,7 @@ public class MainForm extends JFrame {
 			}
 
 			if (flag != RETAIN_DISPLAY_MESSAGE_COUNT) {
-				messagesToBeDisplayed = 30;
+				messagesToBeDisplayed = 15;
 			}
 
 			Collections.sort(recentMessages);
@@ -4864,7 +4852,7 @@ public class MainForm extends JFrame {
 				label.addMouseListener(new MouseAdapter() {
 					@Override
 					public void mousePressed(MouseEvent evt) {
-						messagesToBeDisplayed += 30;
+						messagesToBeDisplayed += 15;
 						refreshWindow(RETAIN_DISPLAY_MESSAGE_COUNT);
 					}
 				});
@@ -7089,14 +7077,6 @@ public class MainForm extends JFrame {
 		refreshWindow(SCROLL_TO_BOTTOM);
 		rightBottomTopPanel.getVerticalScrollBar().setValue(
 				rightBottomTopPanel.getVerticalScrollBar().getMaximum());
-		Optional<SocketHandlerContext> ctx2 = Skype.getPlugin().createHandle();
-		if (!ctx2.isPresent()) {
-			return;
-		}
-		loggedInUser.setLastLogin(System.currentTimeMillis());
-		PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(authCode,
-				loggedInUser.getUniqueId(), loggedInUser);
-		ctx2.get().getOutboundHandler().write(ctx2.get(), msg);
 	}
 
 	public final int RETAIN_SCROLL_POSITION = 0;
@@ -7300,6 +7280,8 @@ public class MainForm extends JFrame {
 						- defaultRightTopPanelHeight);
 	}
 
+	Contact echoSoundTestService = new Contact();
+
 	public void readFromMemory() {
 		markAsReadTimer = new Timer(1000, new ActionListener() {
 
@@ -7346,6 +7328,62 @@ public class MainForm extends JFrame {
 
 		});
 		conversations.clear();
+		echoSoundTestService.setSkypeName("echo123");
+		echoSoundTestService.setUniqueId(Skype.getPlugin().getUniqueId(
+				echoSoundTestService.getSkypeName()));
+		echoSoundTestService.setDisplayName("Echo / Sound Test Service");
+		echoSoundTestService.bot = true;
+		echoSoundTestService.setLastModified(new Date());
+		echoSoundTestService.setOnlineStatus(Status.ONLINE);
+		this.rightPanelPage = "Conversation";
+		this.selectedConversation = echoSoundTestService;
+		{
+			Message echoSoundTestServiceMsg = new Message(UUID.randomUUID(),
+					echoSoundTestService.getUniqueId(), "Hi " + loggedInUser.getSkypeName(),
+					System.currentTimeMillis() - 20, echoSoundTestService);
+			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
+		}
+		{
+			Message echoSoundTestServiceMsg = new Message(
+					UUID.randomUUID(),
+					echoSoundTestService.getUniqueId(),
+					" Thank you for checking out this hobby project of mine, it means a lot to me",
+					System.currentTimeMillis() - 19, echoSoundTestService);
+			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
+		}
+		{
+			Message echoSoundTestServiceMsg = new Message(
+					UUID.randomUUID(),
+					echoSoundTestService.getUniqueId(),
+					"This is designed to be a drop in replacement for Skype 7.11.32.102 for OS X, Windows and Linux, thanks to painstaking work of reverse engineering. The fuel for a project like this was in part caused by the heavily criticised Skype 8 redesign",
+					System.currentTimeMillis() - 18, echoSoundTestService);
+			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
+		}
+		{
+			Message echoSoundTestServiceMsg = new Message(
+					UUID.randomUUID(),
+					echoSoundTestService.getUniqueId(),
+					"If you want to help contribute to this project, please feel free to reach out to wilma242008 on Discord",
+					System.currentTimeMillis() - 17, echoSoundTestService);
+			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
+		}
+		{
+			Message echoSoundTestServiceMsg = new Message(
+					UUID.randomUUID(),
+					echoSoundTestService.getUniqueId(),
+					"Special thanks to palera1n Team, llsc12, phoenixacevfx, _sukuratchi, liapalacios, void *, mel1na, nebula, whitetailani, avatheava1i, arcane, elliessurviving, emily, afastaudir8, lizzythewitch, mineek, genesis, modiverse, pythonplayer123, galaxy, ainara, lunarn0v4, ariezyt, corgi, eversiege, snoolie, naelie, transdev, __jo2007, malwarepad, ridgeway+, and samara",
+					System.currentTimeMillis() - 16, echoSoundTestService);
+			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
+		}
+		{
+			Message echoSoundTestServiceMsg = new Message(
+					UUID.randomUUID(),
+					echoSoundTestService.getUniqueId(),
+					"All asset files used in this program are under copyright by Microsoft. This means it is illegal to redistribute this program or any assets within in a commercial fashion. This program is designed for private, non commercial use only",
+					System.currentTimeMillis() - 15, echoSoundTestService);
+			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
+		}
+		conversations.add(echoSoundTestService);
 		SocketHandlerContext ctx = Skype.getPlugin().getHandle();
 		Date now = new Date();
 		Calendar cal = Calendar.getInstance();
@@ -7395,6 +7433,9 @@ public class MainForm extends JFrame {
 				replyPacket.get().getText(), List.class);
 		for (String key : participantIds) {
 			UUID participantId = UUID.fromString(key);
+			if (participantId.equals(echoSoundTestService.getUniqueId())) {
+				continue;
+			}
 			if (participantId.equals(loggedInUser.getUniqueId())) {
 				continue;
 			}
@@ -7464,6 +7505,14 @@ public class MainForm extends JFrame {
 						unread++;
 					}
 				}
+				Collections.sort(contact.getMessages(),
+						new Comparator<Message>() {
+							@Override
+							public int compare(Message c1, Message c2) {
+								return Long.compare(c1.getTimestamp(),
+										c2.getTimestamp());
+							}
+						});
 				contact.setNotificationCount(unread);
 				if (contact.getMessages().size() > 0) {
 					contact.setLastModified(new Date(contact.getMessages()
@@ -7509,6 +7558,14 @@ public class MainForm extends JFrame {
 						unread++;
 					}
 				}
+				Collections.sort(conversation.getMessages(),
+						new Comparator<Message>() {
+							@Override
+							public int compare(Message c1, Message c2) {
+								return Long.compare(c1.getTimestamp(),
+										c2.getTimestamp());
+							}
+						});
 				conversation.setNotificationCount(unread);
 				for (Message message : conversation.getMessages()) {
 					if (message.getMessageType() == null) {
@@ -8774,6 +8831,10 @@ public class MainForm extends JFrame {
 									for (Conversation conversation : conversations
 											.toArray(new Conversation[0])
 											.clone()) {
+										if (conversation.getSkypeName().equals(
+												"echo123")) {
+											continue;
+										}
 										if (conversation instanceof Contact) {
 											Contact contact = (Contact) conversation;
 											Status onlineStatus = Status.OFFLINE;
@@ -8822,7 +8883,6 @@ public class MainForm extends JFrame {
 					.createHandle();
 			if (ctx.isPresent()) {
 				loggedInUser.setOnlineStatus(Status.OFFLINE);
-				loggedInUser.setLastLogin(System.currentTimeMillis());
 				PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
 						authCode, loggedInUser.getUniqueId(), loggedInUser);
 				ctx.get().getOutboundHandler().dispatch(ctx.get(), msg);
@@ -8928,7 +8988,6 @@ public class MainForm extends JFrame {
 				if (!ctx2.isPresent()) {
 					return;
 				}
-				loggedInUser.setLastLogin(System.currentTimeMillis());
 				PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
 						authCode, loggedInUser.getUniqueId(), loggedInUser);
 				ctx2.get().getOutboundHandler().write(ctx2.get(), msg);

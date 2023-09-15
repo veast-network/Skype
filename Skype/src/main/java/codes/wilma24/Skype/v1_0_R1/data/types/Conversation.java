@@ -41,6 +41,8 @@ public class Conversation {
 
 	public volatile boolean groupChat = false;
 
+	public volatile boolean bot = false;
+
 	public volatile transient long lastModified;
 
 	public volatile transient int notificationCount;
@@ -226,6 +228,8 @@ public class Conversation {
 		if (imageIcon == null) {
 			if (groupChat) {
 				return ImageIO.getResourceAsImageIcon("/151908522.png");
+			} else if (bot) {
+				return ImageIO.getResourceAsImageIcon("/22744.png");
 			} else {
 				return ImageIO.getResourceAsImageIcon("/1595064335.png");
 			}
