@@ -1,6 +1,7 @@
 package codes.wilma24.Skype.server.v1_0_R1.socket;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -103,25 +104,21 @@ public class CallingInboundHandler implements Runnable {
 				@Override
 				public void run() {
 					Socket socket = null;
+					DataInputStream dis = null;
 					try {
 						socket = server.accept();
 						socket.setSoTimeout(0);
 						dos.close();
+						dis = new DataInputStream(socket.getInputStream());
 					} catch (Exception e1) {
 						e1.printStackTrace();
 					}
-					outerLoop: while (true) {
+					while (true) {
 						try {
 							ByteArrayOutputStream baos = new ByteArrayOutputStream();
-							do {
-								byte[] b = new byte[1616 - baos.size()];
-								int len = socket.getInputStream().read(b, 0,
-										b.length);
-								if (len == -1 || len == 0) {
-									break outerLoop;
-								}
-								baos.write(Arrays.copyOf(b, len));
-							} while (baos.size() != 1616);
+							byte[] b = new byte[1616];
+							dis.readFully(b);
+							baos.write(b);
 							run2(baos.toByteArray(), baos.size());
 						} catch (Exception e) {
 							e.printStackTrace();

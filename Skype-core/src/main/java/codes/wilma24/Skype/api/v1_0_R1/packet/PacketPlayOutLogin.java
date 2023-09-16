@@ -4,7 +4,7 @@ import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
 
 public class PacketPlayOutLogin extends Packet {
 
-	public static final int PROTOCOL_VERSION = 16;
+	public static final int PROTOCOL_VERSION = 17;
 
 	private UUID authCode;
 
