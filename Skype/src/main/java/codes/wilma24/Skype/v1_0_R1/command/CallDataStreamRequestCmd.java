@@ -2,6 +2,7 @@ package codes.wilma24.Skype.v1_0_R1.command;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Arrays;
@@ -100,22 +101,13 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 						MainForm.get().refreshWindow();
 						JFrame mainForm = MainForm.get();
 						byte[] cipher = MainForm.get().ongoingCallCipher;
-						outerLoop: while (mainForm.isVisible()) {
+						DataInputStream dis = new DataInputStream(socket.getInputStream());
+						while (mainForm.isVisible()) {
 							try {
 								ByteArrayOutputStream baos = new ByteArrayOutputStream();
-								do {
-									byte[] b = new byte[1616 - baos.size()];
-									int len = socket.getInputStream().read(b,
-											0, b.length);
-									if (len == -1) {
-										break outerLoop;
-									}
-									if (len == 0) {
-										Thread.sleep(100);
-										continue;
-									}
-									baos.write(Arrays.copyOf(b, len));
-								} while (baos.size() != 1616);
+								byte[] b = new byte[1616];
+								dis.readFully(b);
+								baos.write(b);
 								CipherInputStream cis = new CipherInputStream(
 										new ByteArrayInputStream(baos
 												.toByteArray()), cipher);

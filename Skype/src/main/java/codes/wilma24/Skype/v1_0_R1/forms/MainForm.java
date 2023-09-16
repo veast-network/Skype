@@ -50,6 +50,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -1833,7 +1834,7 @@ public class MainForm extends JFrame {
 			groups.put("Today", new ArrayList<Conversation>());
 			groups.put("Yesterday", new ArrayList<Conversation>());
 
-			for (int i = 2; i < 8; i++) {
+			for (int i = 1; i < 8; i++) {
 				Calendar calendar = Calendar.getInstance();
 				int year = calendar.get(Calendar.YEAR);
 				int month = calendar.get(Calendar.MONTH);

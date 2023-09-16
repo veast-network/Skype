@@ -1,9 +1,13 @@
 package codes.wilma24.Skype.v1_0_R1.command;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Optional;
 
 import javax.swing.JFrame;
+
+import org.bouncycastle.util.Arrays;
 
 import codes.wilma24.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.wilma24.Skype.api.v1_0_R1.packet.Packet;
@@ -103,12 +107,35 @@ public class CallRequestCmd extends CommandExecutor {
 							byte tmpBuff[] = new byte[MainForm.get().mic
 									.getBufferSize() / 5];
 							MainForm.get().mic.start();
+							ctx2.get().getSocket().setSoTimeout(2000);
+							InputStream dis = ctx2.get().getSocket()
+									.getInputStream();
+							OutputStream dos = ctx2.get().getSocket()
+									.getOutputStream();
+							boolean err = false;
+							int port = 0;
+							do {
+								try {
+									dos.write("200 OK".getBytes());
+									dos.flush();
+									byte[] b2 = new byte[1024];
+									int bytesRead2 = dis.read(b2);
+									port = Integer.parseInt(new String(Arrays
+											.copyOf(b2, bytesRead2)));
+									err = false;
+								} catch (Exception e) {
+									e.printStackTrace();
+									err = true;
+								}
+							} while (err == true);
+							String hostname = Skype.getPlugin().getHostname();
+							Socket socket = new Socket(hostname, port);
 							MainForm.get().callOutgoingAudioSockets.add(ctx2
 									.get().getSocket());
+							MainForm.get().callOutgoingAudioSockets.add(socket);
 							JFrame mainForm = MainForm.get();
 							CipherOutputStream cos = new CipherOutputStream(
-									ctx2.get().getSocket().getOutputStream(),
-									cipher);
+									socket.getOutputStream(), cipher);
 							while (mainForm.isVisible()) {
 								try {
 									int count = MainForm.get().mic.read(
