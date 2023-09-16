@@ -41,7 +41,7 @@ public class Conversation {
 
 	public volatile boolean groupChat = false;
 
-	public volatile boolean bot = false;
+	private volatile boolean bot = false;
 
 	public volatile transient long lastModified;
 
@@ -62,7 +62,10 @@ public class Conversation {
 	private volatile transient JLabel onlineStatusLabel;
 
 	public Conversation() {
-		if (this instanceof Contact) {
+		if (this instanceof Bot) {
+			this.bot = true;
+		}
+		if (this instanceof Contact || this instanceof Bot) {
 			Contact contact = (Contact) this;
 			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
 					this.getImageIcon(), contact.getOnlineStatus());

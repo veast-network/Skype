@@ -50,7 +50,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -136,6 +135,7 @@ import codes.wilma24.Skype.v1_0_R1.Utils;
 import codes.wilma24.Skype.v1_0_R1.audioio.AudioIO;
 import codes.wilma24.Skype.v1_0_R1.cipher.CipherOutputStream;
 import codes.wilma24.Skype.v1_0_R1.cipher.CipherUtilities;
+import codes.wilma24.Skype.v1_0_R1.data.types.Bot;
 import codes.wilma24.Skype.v1_0_R1.data.types.Contact;
 import codes.wilma24.Skype.v1_0_R1.data.types.Conversation;
 import codes.wilma24.Skype.v1_0_R1.data.types.Message;
@@ -7316,7 +7316,7 @@ public class MainForm extends JFrame {
 						- defaultRightTopPanelHeight);
 	}
 
-	Contact echoSoundTestService = new Contact();
+	Bot echoSoundTestService = new Bot();
 
 	public void readFromMemory() {
 		markAsReadTimer = new Timer(1000, new ActionListener() {
@@ -7368,7 +7368,6 @@ public class MainForm extends JFrame {
 		echoSoundTestService.setUniqueId(Skype.getPlugin().getUniqueId(
 				echoSoundTestService.getSkypeName()));
 		echoSoundTestService.setDisplayName("Echo / Sound Test Service");
-		echoSoundTestService.bot = true;
 		echoSoundTestService.setLastModified(new Date(new Date().getTime()
 				+ AppDelegate.TIME_OFFSET));
 		echoSoundTestService.setOnlineStatus(Status.ONLINE);

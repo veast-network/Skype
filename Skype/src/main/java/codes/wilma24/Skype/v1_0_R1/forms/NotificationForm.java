@@ -22,6 +22,7 @@ import javax.swing.JPanel;
 import codes.wilma24.Skype.v1_0_R1.Utils;
 import codes.wilma24.Skype.v1_0_R1.audioio.AudioIO;
 import codes.wilma24.Skype.v1_0_R1.awt.AWTUtilities;
+import codes.wilma24.Skype.v1_0_R1.data.types.Bot;
 import codes.wilma24.Skype.v1_0_R1.data.types.Contact;
 import codes.wilma24.Skype.v1_0_R1.data.types.Conversation;
 import codes.wilma24.Skype.v1_0_R1.data.types.Message;
@@ -220,7 +221,8 @@ public class NotificationForm extends JDialog {
 				layeredPane.add(iconLabelPanel, new Integer(1), 0);
 			}
 
-			if (conversation == null || !(conversation instanceof Contact)) {
+			if (conversation == null
+					|| !(conversation instanceof Contact || conversation instanceof Bot)) {
 				JPanel iconLabelPanel = new JPanel();
 				iconLabelPanel
 						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
