@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Date;
 import java.util.Scanner;
 
 import javax.swing.SwingUtilities;
