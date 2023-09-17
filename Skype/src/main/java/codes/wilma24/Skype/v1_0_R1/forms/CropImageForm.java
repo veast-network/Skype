@@ -19,6 +19,7 @@ import java.awt.image.BufferedImage;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultBoundedRangeModel;
 import javax.swing.ImageIcon;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
@@ -30,7 +31,7 @@ import javax.swing.JScrollBar;
 
 import codes.wilma24.Skype.v1_0_R1.imageio.ImageIO;
 
-public class CropImageForm extends JFrame implements MouseMotionListener,
+public class CropImageForm extends JDialog implements MouseMotionListener,
 		MouseListener, AdjustmentListener {
 
 	private ImageIcon img;
@@ -56,9 +57,9 @@ public class CropImageForm extends JFrame implements MouseMotionListener,
 
 	private Rectangle def;
 
-	public CropImageForm(ImageIcon img, Runnable callback,
+	public CropImageForm(JFrame parent, ImageIcon img, Runnable callback,
 			boolean forceSquareAspectRatio) {
-		super("Crop Image");
+		super(parent, "Crop Image", true);
 		this.img = img;
 		this.callback = callback;
 		this.forceSquareAspectRatio = forceSquareAspectRatio;

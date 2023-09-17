@@ -17,11 +17,12 @@ import org.apache.commons.net.ntp.NTPUDPClient;
 import org.apache.commons.net.ntp.TimeInfo;
 
 import codes.wilma24.Skype.v1_0_R1.fontio.FontIO;
+import codes.wilma24.Skype.v1_0_R1.forms.DialogForm;
 import codes.wilma24.Skype.v1_0_R1.forms.LoginForm;
 
 public class AppDelegate {
 
-	public static final long VERSION = 3415;
+	public static final long VERSION = 3416;
 
 	public static long TIME_OFFSET = 0L;
 

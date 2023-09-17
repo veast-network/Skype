@@ -1,10 +1,17 @@
 package codes.wilma24.Skype.v1_0_R1.data.types;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
+import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
@@ -62,6 +69,41 @@ public class Contact extends Conversation {
 		this.skypeName = clazz.skypeName;
 		this.name = clazz.name;
 		this.groupChat = clazz.groupChat;
+		this.imageIconUrl = clazz.imageIconUrl;
+		if (imageIconUrl != null) {
+			if (imageIconUrl.length() > 0) {
+				if (imageIconUrl.startsWith("https://i.imgur.com/")) {
+					try {
+						URL url = new URL(imageIconUrl);
+						URLConnection connection = url.openConnection();
+						connection
+								.setRequestProperty("User-Agent",
+										"Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0");
+						InputStream is = url.openStream();
+						ByteArrayOutputStream os = new ByteArrayOutputStream();
+
+						byte[] b = new byte[2048];
+						int length;
+
+						while ((length = is.read(b)) != -1) {
+							os.write(b, 0, length);
+						}
+
+						is.close();
+						os.close();
+
+						BufferedImage image = javax.imageio.ImageIO
+								.read(new ByteArrayInputStream(os.toByteArray()));
+
+						ImageIcon imgIcon = new ImageIcon(image);
+
+						this.imageIcon = imgIcon;
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
 		/**
 		 * Contact
 		 */
@@ -83,6 +125,11 @@ public class Contact extends Conversation {
 		this.numberOfContacts = clazz.numberOfContacts;
 		this.aboutMe = clazz.aboutMe;
 		this.lastLogin = clazz.lastLogin;
+		Contact contact = (Contact) this;
+		Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
+				this.getImageIcon(), contact.getOnlineStatus());
+		onlineStatusPanel = entry.getKey();
+		onlineStatusLabel = entry.getValue();
 	}
 
 	@Override

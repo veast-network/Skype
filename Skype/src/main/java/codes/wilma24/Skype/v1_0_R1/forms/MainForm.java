@@ -11,6 +11,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.FontMetrics;
+import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -39,7 +40,9 @@ import java.beans.PropertyChangeListener;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
@@ -101,6 +104,7 @@ import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.lang3.text.WordUtils;
 import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.util.io.Streams;
 import org.pgpainless.PGPainless;
 
 import codes.wilma24.Skype.api.v1_0_R1.gson.GsonBuilder;
@@ -751,17 +755,121 @@ public class MainForm extends JFrame {
 				@Override
 				public void mousePressed(MouseEvent evt) {
 					super.mousePressed(evt);
-					if (loggedInUser.getPubKey().isPresent()) {
-						String pubKey;
-						try {
-							pubKey = PGPainless.asciiArmor(loggedInUser
-									.getPubKey().get());
-							JOptionPane.showMessageDialog(frame, pubKey);
-						} catch (IOException e) {
-							e.printStackTrace();
+					JFileChooser fc = new JFileChooser();
+					fc.setCurrentDirectory(new java.io.File("."));
+					fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+					FileNameExtensionFilter filter = new FileNameExtensionFilter(
+							"*.png|*.jpg|*.jpeg|*.gif|*.bmp", "png", "jpg",
+							"jpeg", "gif", "bmp");
+					fc.setFileFilter(filter);
+					int returnVal = fc.showSaveDialog(null);
+					if (returnVal == JFileChooser.APPROVE_OPTION) {
+						String ext = fc.getSelectedFile().getName();
+						if (ext.contains(".")) {
+							ext = ext.substring(ext.lastIndexOf(".") + 1);
+						}
+						if (ext.equals("png") || ext.equals("jpeg")
+								|| ext.equals("jpg") || ext.equals("gif")
+								|| ext.equals("bmp")) {
+							try {
+								InputStream resourceUrl = new FileInputStream(
+										fc.getSelectedFile());
+								ByteArrayOutputStream baos = new ByteArrayOutputStream();
+								Streams.pipeAll(resourceUrl, baos);
+								resourceUrl.close();
+								ImageIcon imageIcon = new ImageIcon(
+										baos.toByteArray());
+								CropImageForm cropImageFrame = new CropImageForm(
+										frame, imageIcon,
+										new CropImageForm.Runnable() {
+
+											@Override
+											public void run() {
+												try {
+													ImageIcon subImage = this
+															.getSubImage();
+													BufferedImage bi = new BufferedImage(
+															subImage.getIconWidth(),
+															subImage.getIconHeight(),
+															BufferedImage.TYPE_INT_RGB);
+													Graphics g = bi
+															.createGraphics();
+													subImage.paintIcon(null, g,
+															0, 0);
+													g.dispose();
+													File file = File
+															.createTempFile(
+																	"image",
+																	"jpg");
+													if (file.exists()) {
+														file.delete();
+													}
+													javax.imageio.ImageIO
+															.write(bi, "jpg",
+																	file);
+													ImgurUploader imgurUploader = new ImgurUploader();
+													Optional<String> url = imgurUploader
+															.uploadFile(file);
+													if (!url.isPresent()) {
+														return;
+													}
+													Optional<SocketHandlerContext> ctx = Skype
+															.getPlugin()
+															.createHandle();
+													if (!ctx.isPresent()) {
+														return;
+													}
+													loggedInUser
+															.setImageIconUrl(url
+																	.get());
+													loggedInUser
+															.setImageIcon(subImage);
+													PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+															authCode,
+															loggedInUser
+																	.getUniqueId(),
+															loggedInUser);
+													ctx.get()
+															.getOutboundHandler()
+															.dispatch(
+																	ctx.get(),
+																	msg);
+												} catch (Exception e) {
+													e.printStackTrace();
+												}
+											}
+										}, true);
+								cropImageFrame.show();
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
 						}
 					} else {
-						JOptionPane.showMessageDialog(frame, loggedInUser);
+						DialogForm form = new DialogForm(
+								null,
+								"Skype™ - Remove profile picture?",
+								"Remove profile picture?",
+								"Are you sure you want to remove this profile picture?",
+								"Remove", new Runnable() {
+
+									@Override
+									public void run() {
+										Optional<SocketHandlerContext> ctx = Skype
+												.getPlugin().createHandle();
+										if (!ctx.isPresent()) {
+											return;
+										}
+										loggedInUser.setImageIconUrl(null);
+										loggedInUser.setImageIcon(null);
+										PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+												authCode, loggedInUser
+														.getUniqueId(),
+												loggedInUser);
+										ctx.get().getOutboundHandler()
+												.dispatch(ctx.get(), msg);
+									}
+								});
+						form.show();
 					}
 				}
 

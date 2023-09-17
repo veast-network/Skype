@@ -1,5 +1,11 @@
 package codes.wilma24.Skype.v1_0_R1.data.types;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -41,7 +47,9 @@ public class Conversation {
 
 	public volatile boolean groupChat = false;
 
-	private volatile boolean bot = false;
+	public volatile String imageIconUrl;
+
+	private volatile transient boolean bot = false;
 
 	public volatile transient long lastModified;
 
@@ -57,9 +65,9 @@ public class Conversation {
 
 	public volatile transient List<Message> messages = new ArrayList<>();
 
-	private volatile transient JPanel onlineStatusPanel;
+	protected volatile transient JPanel onlineStatusPanel;
 
-	private volatile transient JLabel onlineStatusLabel;
+	protected volatile transient JLabel onlineStatusLabel;
 
 	public Conversation() {
 		if (this instanceof Bot) {
@@ -91,6 +99,41 @@ public class Conversation {
 		this.skypeName = clazz.skypeName;
 		this.name = clazz.name;
 		this.groupChat = clazz.groupChat;
+		this.imageIconUrl = clazz.imageIconUrl;
+		if (imageIconUrl != null) {
+			if (imageIconUrl.length() > 0) {
+				if (imageIconUrl.startsWith("https://i.imgur.com/")) {
+					try {
+						URL url = new URL(imageIconUrl);
+						URLConnection connection = url.openConnection();
+						connection
+								.setRequestProperty("User-Agent",
+										"Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0");
+						InputStream is = url.openStream();
+						ByteArrayOutputStream os = new ByteArrayOutputStream();
+
+						byte[] b = new byte[2048];
+						int length;
+
+						while ((length = is.read(b)) != -1) {
+							os.write(b, 0, length);
+						}
+
+						is.close();
+						os.close();
+
+						BufferedImage image = javax.imageio.ImageIO
+								.read(new ByteArrayInputStream(os.toByteArray()));
+
+						ImageIcon imgIcon = new ImageIcon(image);
+
+						this.imageIcon = imgIcon;
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
 		if (this instanceof Contact) {
 			Contact contact = (Contact) this;
 			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
@@ -192,6 +235,14 @@ public class Conversation {
 
 	public void setGroupChat(boolean groupChat) {
 		this.groupChat = groupChat;
+	}
+
+	public String getImageIconUrl() {
+		return imageIconUrl;
+	}
+
+	public void setImageIconUrl(String imageIconUrl) {
+		this.imageIconUrl = imageIconUrl;
 	}
 
 	public boolean hasIncomingFriendRequest() {

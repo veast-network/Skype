@@ -40,7 +40,6 @@ public class ImgurUploader {
 				arg0 = arg0.substring(arg0.indexOf("\"link\":\"")
 						+ "\"link\":\"".length());
 				arg0 = arg0.substring(0, arg0.indexOf("\""));
-				System.out.println(arg0);
 				return Optional.of(arg0);
 			}
 		} catch (Exception e) {
