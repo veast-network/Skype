@@ -6,7 +6,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
@@ -16,6 +18,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import codes.wilma24.Skype.api.v1_0_R1.gson.GsonBuilder;
+import codes.wilma24.Skype.v1_0_R1.forms.MainForm;
 import codes.wilma24.Skype.v1_0_R1.imageio.ImageIO;
 
 import com.google.gson.Gson;
@@ -36,6 +39,7 @@ public class Contact extends Conversation {
 	/*
 	 * Show full profile
 	 */
+	public volatile List<String> favorites = new ArrayList<>();
 	public volatile String email;
 	public volatile String countryName;
 	public volatile String state;
@@ -108,6 +112,7 @@ public class Contact extends Conversation {
 		 * Contact
 		 */
 		this.favorite = clazz.favorite;
+		this.favorites = clazz.favorites;
 		this.mood = clazz.mood;
 		/* this.onlineStatus = clazz.onlineStatus; */
 		this.mobilePhone = clazz.mobilePhone;
@@ -138,7 +143,17 @@ public class Contact extends Conversation {
 		return gson.toJson(this);
 	}
 
+	public List<String> getFavorites() {
+		return favorites;
+	}
+
 	public boolean isFavorite() {
+		if (MainForm.get().getLoggedInUser().getFavorites()
+				.contains(this.getUniqueId().toString())) {
+			this.favorite = true;
+		} else {
+			this.favorite = false;
+		}
 		return favorite;
 	}
 
@@ -279,11 +294,11 @@ public class Contact extends Conversation {
 	public void setAboutMe(String aboutMe) {
 		this.aboutMe = aboutMe;
 	}
-	
+
 	public long getLastLogin() {
 		return lastLogin;
 	}
-	
+
 	public void setLastLogin(long lastLogin) {
 		this.lastLogin = lastLogin;
 	}

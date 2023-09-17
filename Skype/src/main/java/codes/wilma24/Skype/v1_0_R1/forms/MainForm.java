@@ -1548,86 +1548,161 @@ public class MainForm extends JFrame {
 
 					JPopupMenu popUp = new JPopupMenu();
 					{
-						JMenuItem menuItem = new JMenuItem("Clear chat with "
-								+ conversation.getSkypeName());
-						menuItem.addActionListener(new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent arg0) {
-								DialogForm form = new DialogForm(
-										null,
-										"Skype™ - Clear chat?",
-										"Clear chat?",
-										"Are you sure you want to clear this chat?",
-										"Remove", new Runnable() {
-
-											@Override
-											public void run() {
-												Optional<SocketHandlerContext> ctx = Skype
-														.getPlugin()
-														.createHandle();
-												if (ctx.isPresent()) {
-													Optional<PacketPlayInReply> reply = ctx
-															.get()
-															.getOutboundHandler()
-															.dispatch(
-																	ctx.get(),
-																	new PacketPlayOutLogin(
-																			authCode));
-													if (!reply.isPresent()
-															|| reply.get()
-																	.getStatusCode() != 200) {
-														return;
-													}
-													for (Message message : conversation
-															.getMessages()
-															.toArray(
-																	new Message[0])
-															.clone()) {
-														if (message.isDeleted()) {
-															continue;
-														}
-														if (message
-																.getMessageType() != null) {
-															continue;
-														}
-														UUID authCode = UUID
-																.fromString(reply
-																		.get()
-																		.getText());
-														PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
-																authCode,
-																conversation
-																		.getUniqueId(),
-																message.getUniqueId(),
-																message.getTimestamp());
-														Optional<PacketPlayInReply> replyPacket2 = ctx
-																.get()
-																.getOutboundHandler()
-																.dispatch(
-																		ctx.get(),
-																		removeMessage);
-														if (!replyPacket2
-																.isPresent()) {
-															return;
-														}
-														if (replyPacket2
-																.get()
-																.getStatusCode() != 200) {
-															return;
-														}
-													}
-												}
-											}
-										});
-
-								form.show();
-
-							}
-						});
+						JMenuItem menuItem = new JMenuItem("Call");
+						menuItem.setEnabled(false);
 						popUp.add(menuItem);
 					}
-					popUp.add(new JSeparator());
+					{
+						JMenuItem menuItem = new JMenuItem("Video Call");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send IM");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send Video Message");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send SMS Message");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send Contacts...");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send files...");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send Voice Message");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Share Screens...");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+						popUp.add(new JSeparator());
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("View Profile");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Rename");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+						popUp.add(new JSeparator());
+					}
+					{
+						boolean val = false;
+						if (conversation instanceof Contact) {
+							val = ((Contact) conversation).isFavorite();
+						}
+						if (val) {
+							JMenuItem menuItem = new JMenuItem(
+									"Remove from Favorites");
+							menuItem.addActionListener(new ActionListener() {
+
+								@Override
+								public void actionPerformed(ActionEvent arg0) {
+									loggedInUser.getFavorites().remove(
+											conversation.getUniqueId()
+													.toString());
+									Optional<SocketHandlerContext> ctx = Skype
+											.getPlugin().createHandle();
+									if (!ctx.isPresent()) {
+										return;
+									}
+									PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+											authCode, loggedInUser
+													.getUniqueId(),
+											loggedInUser);
+									ctx.get().getOutboundHandler()
+											.dispatch(ctx.get(), msg);
+								}
+
+							});
+							popUp.add(menuItem);
+						} else {
+							JMenuItem menuItem = new JMenuItem(
+									"Add to Favorites");
+							menuItem.addActionListener(new ActionListener() {
+
+								@Override
+								public void actionPerformed(ActionEvent arg0) {
+									if (conversation instanceof Contact) {
+										loggedInUser.getFavorites().add(
+												conversation.getUniqueId()
+														.toString());
+										Optional<SocketHandlerContext> ctx = Skype
+												.getPlugin().createHandle();
+										if (!ctx.isPresent()) {
+											return;
+										}
+										PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+												authCode, loggedInUser
+														.getUniqueId(),
+												loggedInUser);
+										ctx.get().getOutboundHandler()
+												.dispatch(ctx.get(), msg);
+									}
+								}
+
+							});
+							popUp.add(menuItem);
+						}
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Add to List");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						if (conversation.getNotificationCount() > 0) {
+							JMenuItem menuItem = new JMenuItem("Mark as Read");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						} else {
+							JMenuItem menuItem = new JMenuItem("Mark as Unread");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						}
+					}
+					{
+						JMenuItem menuItem = new JMenuItem(
+								"Block This Person...");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					if (!(conversation instanceof Contact)) {
+						if (conversation.hasOutgoingFriendRequest()) {
+							JMenuItem menuItem = new JMenuItem(
+									"Resend Contact Request");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						} else {
+							JMenuItem menuItem = new JMenuItem(
+									"Send Contact Request");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						}
+					}
+					{
+						JMenu menuItem = new JMenu("View Old Messages");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
 					{
 						JMenuItem menuItem = new JMenuItem(
 								"Remove from Contacts");
@@ -1708,6 +1783,93 @@ public class MainForm extends JFrame {
 								form.show();
 							}
 
+						});
+						popUp.add(menuItem);
+						popUp.add(new JSeparator());
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Hide conversation");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+						popUp.add(new JSeparator());
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Clear chat with "
+								+ conversation.getSkypeName());
+						menuItem.addActionListener(new ActionListener() {
+
+							@Override
+							public void actionPerformed(ActionEvent arg0) {
+								DialogForm form = new DialogForm(
+										null,
+										"Skype™ - Clear chat?",
+										"Clear chat?",
+										"Are you sure you want to clear this chat?",
+										"Remove", new Runnable() {
+
+											@Override
+											public void run() {
+												Optional<SocketHandlerContext> ctx = Skype
+														.getPlugin()
+														.createHandle();
+												if (ctx.isPresent()) {
+													Optional<PacketPlayInReply> reply = ctx
+															.get()
+															.getOutboundHandler()
+															.dispatch(
+																	ctx.get(),
+																	new PacketPlayOutLogin(
+																			authCode));
+													if (!reply.isPresent()
+															|| reply.get()
+																	.getStatusCode() != 200) {
+														return;
+													}
+													for (Message message : conversation
+															.getMessages()
+															.toArray(
+																	new Message[0])
+															.clone()) {
+														if (message.isDeleted()) {
+															continue;
+														}
+														if (message
+																.getMessageType() != null) {
+															continue;
+														}
+														UUID authCode = UUID
+																.fromString(reply
+																		.get()
+																		.getText());
+														PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																authCode,
+																conversation
+																		.getUniqueId(),
+																message.getUniqueId(),
+																message.getTimestamp());
+														Optional<PacketPlayInReply> replyPacket2 = ctx
+																.get()
+																.getOutboundHandler()
+																.dispatch(
+																		ctx.get(),
+																		removeMessage);
+														if (!replyPacket2
+																.isPresent()) {
+															return;
+														}
+														if (replyPacket2
+																.get()
+																.getStatusCode() != 200) {
+															return;
+														}
+													}
+												}
+											}
+										});
+
+								form.show();
+
+							}
 						});
 						popUp.add(menuItem);
 					}
@@ -2169,86 +2331,161 @@ public class MainForm extends JFrame {
 
 					JPopupMenu popUp = new JPopupMenu();
 					{
-						JMenuItem menuItem = new JMenuItem("Clear chat with "
-								+ conversation.getSkypeName());
-						menuItem.addActionListener(new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent arg0) {
-								DialogForm form = new DialogForm(
-										null,
-										"Skype™ - Clear chat?",
-										"Clear chat?",
-										"Are you sure you want to clear this chat?",
-										"Remove", new Runnable() {
-
-											@Override
-											public void run() {
-												Optional<SocketHandlerContext> ctx = Skype
-														.getPlugin()
-														.createHandle();
-												if (ctx.isPresent()) {
-													Optional<PacketPlayInReply> reply = ctx
-															.get()
-															.getOutboundHandler()
-															.dispatch(
-																	ctx.get(),
-																	new PacketPlayOutLogin(
-																			authCode));
-													if (!reply.isPresent()
-															|| reply.get()
-																	.getStatusCode() != 200) {
-														return;
-													}
-													for (Message message : conversation
-															.getMessages()
-															.toArray(
-																	new Message[0])
-															.clone()) {
-														if (message.isDeleted()) {
-															continue;
-														}
-														if (message
-																.getMessageType() != null) {
-															continue;
-														}
-														UUID authCode = UUID
-																.fromString(reply
-																		.get()
-																		.getText());
-														PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
-																authCode,
-																conversation
-																		.getUniqueId(),
-																message.getUniqueId(),
-																message.getTimestamp());
-														Optional<PacketPlayInReply> replyPacket2 = ctx
-																.get()
-																.getOutboundHandler()
-																.dispatch(
-																		ctx.get(),
-																		removeMessage);
-														if (!replyPacket2
-																.isPresent()) {
-															return;
-														}
-														if (replyPacket2
-																.get()
-																.getStatusCode() != 200) {
-															return;
-														}
-													}
-												}
-											}
-										});
-
-								form.show();
-
-							}
-						});
+						JMenuItem menuItem = new JMenuItem("Call");
+						menuItem.setEnabled(false);
 						popUp.add(menuItem);
 					}
-					popUp.add(new JSeparator());
+					{
+						JMenuItem menuItem = new JMenuItem("Video Call");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send IM");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send Video Message");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send SMS Message");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send Contacts...");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send files...");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Send Voice Message");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Share Screens...");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+						popUp.add(new JSeparator());
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("View Profile");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Rename");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+						popUp.add(new JSeparator());
+					}
+					{
+						boolean val = false;
+						if (conversation instanceof Contact) {
+							val = ((Contact) conversation).isFavorite();
+						}
+						if (val) {
+							JMenuItem menuItem = new JMenuItem(
+									"Remove from Favorites");
+							menuItem.addActionListener(new ActionListener() {
+
+								@Override
+								public void actionPerformed(ActionEvent arg0) {
+									loggedInUser.getFavorites().remove(
+											conversation.getUniqueId()
+													.toString());
+									Optional<SocketHandlerContext> ctx = Skype
+											.getPlugin().createHandle();
+									if (!ctx.isPresent()) {
+										return;
+									}
+									PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+											authCode, loggedInUser
+													.getUniqueId(),
+											loggedInUser);
+									ctx.get().getOutboundHandler()
+											.dispatch(ctx.get(), msg);
+								}
+
+							});
+							popUp.add(menuItem);
+						} else {
+							JMenuItem menuItem = new JMenuItem(
+									"Add to Favorites");
+							menuItem.addActionListener(new ActionListener() {
+
+								@Override
+								public void actionPerformed(ActionEvent arg0) {
+									if (conversation instanceof Contact) {
+										loggedInUser.getFavorites().add(
+												conversation.getUniqueId()
+														.toString());
+										Optional<SocketHandlerContext> ctx = Skype
+												.getPlugin().createHandle();
+										if (!ctx.isPresent()) {
+											return;
+										}
+										PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+												authCode, loggedInUser
+														.getUniqueId(),
+												loggedInUser);
+										ctx.get().getOutboundHandler()
+												.dispatch(ctx.get(), msg);
+									}
+								}
+
+							});
+							popUp.add(menuItem);
+						}
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Add to List");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					{
+						if (conversation.getNotificationCount() > 0) {
+							JMenuItem menuItem = new JMenuItem("Mark as Read");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						} else {
+							JMenuItem menuItem = new JMenuItem("Mark as Unread");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						}
+					}
+					{
+						JMenuItem menuItem = new JMenuItem(
+								"Block This Person...");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
+					if (!(conversation instanceof Contact)) {
+						if (conversation.hasOutgoingFriendRequest()) {
+							JMenuItem menuItem = new JMenuItem(
+									"Resend Contact Request");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						} else {
+							JMenuItem menuItem = new JMenuItem(
+									"Send Contact Request");
+							menuItem.setEnabled(false);
+							popUp.add(menuItem);
+						}
+					}
+					{
+						JMenu menuItem = new JMenu("View Old Messages");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+					}
 					{
 						JMenuItem menuItem = new JMenuItem(
 								"Remove from Contacts");
@@ -2329,6 +2566,92 @@ public class MainForm extends JFrame {
 								form.show();
 							}
 
+						});
+						popUp.add(menuItem);
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Hide conversation");
+						menuItem.setEnabled(false);
+						popUp.add(menuItem);
+						popUp.add(new JSeparator());
+					}
+					{
+						JMenuItem menuItem = new JMenuItem("Clear chat with "
+								+ conversation.getSkypeName());
+						menuItem.addActionListener(new ActionListener() {
+
+							@Override
+							public void actionPerformed(ActionEvent arg0) {
+								DialogForm form = new DialogForm(
+										null,
+										"Skype™ - Clear chat?",
+										"Clear chat?",
+										"Are you sure you want to clear this chat?",
+										"Remove", new Runnable() {
+
+											@Override
+											public void run() {
+												Optional<SocketHandlerContext> ctx = Skype
+														.getPlugin()
+														.createHandle();
+												if (ctx.isPresent()) {
+													Optional<PacketPlayInReply> reply = ctx
+															.get()
+															.getOutboundHandler()
+															.dispatch(
+																	ctx.get(),
+																	new PacketPlayOutLogin(
+																			authCode));
+													if (!reply.isPresent()
+															|| reply.get()
+																	.getStatusCode() != 200) {
+														return;
+													}
+													for (Message message : conversation
+															.getMessages()
+															.toArray(
+																	new Message[0])
+															.clone()) {
+														if (message.isDeleted()) {
+															continue;
+														}
+														if (message
+																.getMessageType() != null) {
+															continue;
+														}
+														UUID authCode = UUID
+																.fromString(reply
+																		.get()
+																		.getText());
+														PacketPlayOutRemoveMessage removeMessage = new PacketPlayOutRemoveMessage(
+																authCode,
+																conversation
+																		.getUniqueId(),
+																message.getUniqueId(),
+																message.getTimestamp());
+														Optional<PacketPlayInReply> replyPacket2 = ctx
+																.get()
+																.getOutboundHandler()
+																.dispatch(
+																		ctx.get(),
+																		removeMessage);
+														if (!replyPacket2
+																.isPresent()) {
+															return;
+														}
+														if (replyPacket2
+																.get()
+																.getStatusCode() != 200) {
+															return;
+														}
+													}
+												}
+											}
+										});
+
+								form.show();
+
+							}
 						});
 						popUp.add(menuItem);
 					}
@@ -7481,59 +7804,6 @@ public class MainForm extends JFrame {
 		echoSoundTestService.setOnlineStatus(Status.ONLINE);
 		this.rightPanelPage = "Conversation";
 		this.selectedConversation = echoSoundTestService;
-		{
-			Message echoSoundTestServiceMsg = new Message(UUID.randomUUID(),
-					echoSoundTestService.getUniqueId(), "Hi "
-							+ loggedInUser.getSkypeName(),
-					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
-							.getTime() - 20, echoSoundTestService);
-			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
-		}
-		{
-			Message echoSoundTestServiceMsg = new Message(
-					UUID.randomUUID(),
-					echoSoundTestService.getUniqueId(),
-					" Thank you for checking out this hobby project of mine, it means a lot to me",
-					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
-							.getTime() - 19, echoSoundTestService);
-			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
-		}
-		{
-			Message echoSoundTestServiceMsg = new Message(
-					UUID.randomUUID(),
-					echoSoundTestService.getUniqueId(),
-					"This is designed to be a drop in replacement for Skype 7.11.32.102 for OS X, Windows and Linux, thanks to painstaking work of reverse engineering. The fuel for a project like this was in part caused by the heavily criticised Skype 8 redesign",
-					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
-							.getTime() - 18, echoSoundTestService);
-			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
-		}
-		{
-			Message echoSoundTestServiceMsg = new Message(
-					UUID.randomUUID(),
-					echoSoundTestService.getUniqueId(),
-					"If you want to help contribute to this project, please feel free to reach out to wilma242008 on Discord",
-					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
-							.getTime() - 17, echoSoundTestService);
-			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
-		}
-		{
-			Message echoSoundTestServiceMsg = new Message(
-					UUID.randomUUID(),
-					echoSoundTestService.getUniqueId(),
-					"Special thanks to palera1n Team, llsc12, phoenixacevfx, _sukuratchi, liapalacios, void *, mel1na, nebula, whitetailani, avatheava1i, arcane, elliessurviving, emily, afastaudir8, lizzythewitch, mineek, genesis, modiverse, pythonplayer123, galaxy, ainara, lunarn0v4, ariezyt, corgi, eversiege, snoolie, naelie, transdev, __jo2007, malwarepad, ridgeway+, and samara",
-					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
-							.getTime() - 16, echoSoundTestService);
-			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
-		}
-		{
-			Message echoSoundTestServiceMsg = new Message(
-					UUID.randomUUID(),
-					echoSoundTestService.getUniqueId(),
-					"All asset files used in this program are under copyright by Microsoft. This means it is illegal to redistribute this program or any assets within in a commercial fashion. This program is designed for private, non commercial use only",
-					new Date(new Date().getTime() + AppDelegate.TIME_OFFSET)
-							.getTime() - 15, echoSoundTestService);
-			echoSoundTestService.getMessages().add(echoSoundTestServiceMsg);
-		}
 		conversations.add(echoSoundTestService);
 		SocketHandlerContext ctx = Skype.getPlugin().getHandle();
 		Date now = new Date(new Date().getTime() + AppDelegate.TIME_OFFSET);
