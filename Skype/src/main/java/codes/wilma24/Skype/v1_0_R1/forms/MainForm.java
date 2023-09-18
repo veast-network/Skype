@@ -157,7 +157,6 @@ import codes.wilma24.Skype.v1_0_R1.uicommon.JRecentConversationGroup;
 import codes.wilma24.Skype.v1_0_R1.uicommon.JVerticalLayout;
 import codes.wilma24.SkypeChatViewer.v1_0_R1.plugin.SkypeChatImporter;
 
-import com.github.sarxos.webcam.Webcam;
 import com.google.gson.Gson;
 import com.ibm.icu.util.Calendar;
 
@@ -177,7 +176,7 @@ public class MainForm extends JFrame {
 
 	private JTextField conversationTextField = new JTextField();
 
-	public static Webcam webcam = Webcam.getDefault();
+	public static com.github.sarxos.webcam.Webcam webcam = null;
 
 	private WindowAdapter windowAdapter = new WindowAdapter() {
 		@Override
@@ -3939,9 +3938,20 @@ public class MainForm extends JFrame {
 												BufferedImage image = null;
 												boolean err = false;
 												try {
-													if (!webcam.open()
-															|| (image = webcam
-																	.getImage()) == null) {
+													if (System.getProperty(
+															"os.name")
+															.startsWith(
+																	"Windows")) {
+														if (webcam == null) {
+															webcam = com.github.sarxos.webcam.Webcam
+																	.getDefault();
+														}
+														if (!webcam.open()
+																|| (image = webcam
+																		.getImage()) == null) {
+															err = true;
+														}
+													} else {
 														err = true;
 													}
 												} catch (Exception e) {
@@ -3951,7 +3961,9 @@ public class MainForm extends JFrame {
 												if (err) {
 													DialogForm form = new DialogForm(
 															frame,
-															"Skype™ - wilma24",
+															"Skype™ - "
+																	+ loggedInUser
+																			.getSkypeName(),
 															"Webcam sharing failed",
 															"The webcam could not be opened, please check to make"
 																	+ '\n'
@@ -4121,8 +4133,18 @@ public class MainForm extends JFrame {
 									BufferedImage image = null;
 									boolean err = false;
 									try {
-										if (!webcam.open()
-												|| (image = webcam.getImage()) == null) {
+										if (System.getProperty("os.name")
+												.startsWith("Windows")) {
+											if (webcam == null) {
+												webcam = com.github.sarxos.webcam.Webcam
+														.getDefault();
+											}
+											if (!webcam.open()
+													|| (image = webcam
+															.getImage()) == null) {
+												err = true;
+											}
+										} else {
 											err = true;
 										}
 									} catch (Exception e) {
@@ -4132,7 +4154,9 @@ public class MainForm extends JFrame {
 									if (err) {
 										DialogForm form = new DialogForm(
 												MainForm.get(),
-												"Skype™ - wilma24",
+												"Skype™ - "
+														+ loggedInUser
+																.getSkypeName(),
 												"Webcam sharing failed",
 												"The webcam could not be opened, please check to make"
 														+ '\n'

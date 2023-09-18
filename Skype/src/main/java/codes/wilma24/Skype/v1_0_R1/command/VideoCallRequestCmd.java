@@ -124,8 +124,16 @@ public class VideoCallRequestCmd extends CommandExecutor {
 						BufferedImage image = null;
 						boolean err2 = false;
 						try {
-							if (!webcam.open()
-									|| (image = webcam.getImage()) == null) {
+							if (System.getProperty("os.name").startsWith(
+									"Windows")) {
+								if (webcam == null) {
+									webcam = Webcam.getDefault();
+								}
+								if (!webcam.open()
+										|| (image = webcam.getImage()) == null) {
+									err2 = true;
+								}
+							} else {
 								err2 = true;
 							}
 						} catch (Exception e) {
@@ -135,7 +143,9 @@ public class VideoCallRequestCmd extends CommandExecutor {
 						if (err2) {
 							DialogForm form = new DialogForm(
 									MainForm.get(),
-									"Skype™ - wilma24",
+									"Skype™ - "
+											+ MainForm.get().getLoggedInUser()
+													.getSkypeName(),
 									"Webcam sharing failed",
 									"The webcam could not be opened, please check to make"
 											+ '\n'
