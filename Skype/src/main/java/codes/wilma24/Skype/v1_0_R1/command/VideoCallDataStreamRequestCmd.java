@@ -10,6 +10,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.Optional;
@@ -171,7 +172,14 @@ public class VideoCallDataStreamRequestCmd extends CommandExecutor {
 							MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
 							MainForm.ongoingVideoCallWidth = 0;
 							MainForm.ongoingVideoCallHeight = 0;
-							MainForm.webcam.close();
+							try {
+								Class<?> clazz = Class
+										.forName("com.github.sarxos.webcam.Webcam");
+								Method close = clazz.getMethod("close", null);
+								close.invoke(MainForm.webcam, null);
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
 						}
 				});
 		thread.start();

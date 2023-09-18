@@ -4,8 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.Optional;
 
 import javax.sound.sampled.AudioFormat;
@@ -101,7 +101,8 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 						MainForm.get().refreshWindow();
 						JFrame mainForm = MainForm.get();
 						byte[] cipher = MainForm.get().ongoingCallCipher;
-						DataInputStream dis = new DataInputStream(socket.getInputStream());
+						DataInputStream dis = new DataInputStream(socket
+								.getInputStream());
 						while (mainForm.isVisible()) {
 							try {
 								ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -174,7 +175,14 @@ public class CallDataStreamRequestCmd extends CommandExecutor {
 							MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
 							MainForm.ongoingVideoCallWidth = 0;
 							MainForm.ongoingVideoCallHeight = 0;
-							MainForm.webcam.close();
+							try {
+								Class<?> clazz = Class
+										.forName("com.github.sarxos.webcam.Webcam");
+								Method close = clazz.getMethod("close", null);
+								close.invoke(MainForm.webcam, null);
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
 						}
 				});
 		thread.start();

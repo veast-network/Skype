@@ -10,6 +10,7 @@ import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.util.Date;
 import java.util.Optional;
@@ -145,14 +146,22 @@ public class IncomingCallForm extends JDialog {
 							MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
 							MainForm.ongoingVideoCallWidth = 0;
 							MainForm.ongoingVideoCallHeight = 0;
-							MainForm.webcam.close();
+							try {
+								Class<?> clazz = Class
+										.forName("com.github.sarxos.webcam.Webcam");
+								Method close = clazz.getMethod("close", null);
+								close.invoke(MainForm.webcam, null);
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
 							MainForm.get().refreshWindow();
 						}
 				});
 		thread.start();
 		MainForm.get().rightPanelPage = "OngoingCall";
 		MainForm.get().ongoingCall = true;
-		MainForm.get().ongoingCallStartTime = new Date(new Date().getTime() + AppDelegate.TIME_OFFSET).getTime();
+		MainForm.get().ongoingCallStartTime = new Date(new Date().getTime()
+				+ AppDelegate.TIME_OFFSET).getTime();
 		for (Conversation conversation : MainForm.get().getConversations()) {
 			if (conversation.getUniqueId().equals(
 					this.conversation.getUniqueId())) {

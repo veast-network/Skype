@@ -44,6 +44,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.URI;
@@ -176,7 +177,7 @@ public class MainForm extends JFrame {
 
 	private JTextField conversationTextField = new JTextField();
 
-	public static com.github.sarxos.webcam.Webcam webcam = null;
+	public static Object webcam = null;
 
 	private WindowAdapter windowAdapter = new WindowAdapter() {
 		@Override
@@ -3937,26 +3938,60 @@ public class MainForm extends JFrame {
 														baos, cipher);
 												BufferedImage image = null;
 												boolean err = false;
-												try {
-													if (System.getProperty(
-															"os.name")
-															.startsWith(
-																	"Windows")) {
-														if (webcam == null) {
-															webcam = com.github.sarxos.webcam.Webcam
-																	.getDefault();
-														}
-														if (!webcam.open()
-																|| (image = webcam
-																		.getImage()) == null) {
+												if (MainForm.get().videoMode == MainForm
+														.get().WEBCAM_CAPTURE_MODE) {
+													try {
+														if (System
+																.getProperty(
+																		"os.name")
+																.startsWith(
+																		"Windows")) {
+															Class<?> clazz = Class
+																	.forName("com.github.sarxos.webcam.Webcam");
+															Method getDefault = clazz
+																	.getMethod(
+																			"getDefault",
+																			null);
+															Method open = clazz
+																	.getMethod(
+																			"open",
+																			null);
+															Method close = clazz
+																	.getMethod(
+																			"close",
+																			null);
+															Method getImage = clazz
+																	.getMethod(
+																			"getImage",
+																			null);
+															if (webcam == null) {
+																Object o = getDefault
+																		.invoke(clazz,
+																				null);
+																webcam = o;
+															}
+															boolean ret = (boolean) open
+																	.invoke(webcam,
+																			null);
+															if (!ret) {
+																err = true;
+															} else {
+																Object ret2 = getImage
+																		.invoke(webcam,
+																				null);
+																if (ret2 == null) {
+																	err = true;
+																} else {
+																	image = (BufferedImage) ret2;
+																}
+															}
+														} else {
 															err = true;
 														}
-													} else {
+													} catch (Exception e) {
+														e.printStackTrace();
 														err = true;
 													}
-												} catch (Exception e) {
-													e.printStackTrace();
-													err = true;
 												}
 												if (err) {
 													DialogForm form = new DialogForm(
@@ -3978,7 +4013,18 @@ public class MainForm extends JFrame {
 															null, null);
 													form.show();
 													videoEnabled = false;
-													MainForm.webcam.close();
+													try {
+														Class<?> clazz = Class
+																.forName("com.github.sarxos.webcam.Webcam");
+														Method close = clazz
+																.getMethod(
+																		"close",
+																		null);
+														close.invoke(webcam,
+																null);
+													} catch (Exception e) {
+														e.printStackTrace();
+													}
 													refreshWindow();
 													return;
 												}
@@ -4037,11 +4083,19 @@ public class MainForm extends JFrame {
 														DataOutputStream dos = new DataOutputStream(
 																socket.getOutputStream());
 														Robot robot = new Robot();
+
+														Class<?> clazz = Class
+																.forName("com.github.sarxos.webcam.Webcam");
+														Method getImage = clazz
+																.getMethod(
+																		"getImage",
+																		null);
 														while (mainForm
 																.isVisible()) {
 															if (videoMode == WEBCAM_CAPTURE_MODE) {
-																image = webcam
-																		.getImage();
+																image = (BufferedImage) getImage
+																		.invoke(webcam,
+																				null);
 																ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
 																javax.imageio.ImageIO
 																		.write(image,
@@ -4091,7 +4145,16 @@ public class MainForm extends JFrame {
 												} catch (Exception e1) {
 													e1.printStackTrace();
 												}
-												webcam.close();
+												try {
+													Class<?> clazz = Class
+															.forName("com.github.sarxos.webcam.Webcam");
+													Method close = clazz
+															.getMethod("close",
+																	null);
+													close.invoke(webcam, null);
+												} catch (Exception e) {
+													e.printStackTrace();
+												}
 												if (MainForm.get().ongoingVideoCallId != null)
 													if (callId.equals(MainForm
 															.get().ongoingVideoCallId)) {
@@ -4122,7 +4185,19 @@ public class MainForm extends JFrame {
 																.get().WEBCAM_CAPTURE_MODE;
 														MainForm.ongoingVideoCallWidth = 0;
 														MainForm.ongoingVideoCallHeight = 0;
-														MainForm.webcam.close();
+														try {
+															Class<?> clazz = Class
+																	.forName("com.github.sarxos.webcam.Webcam");
+															Method close = clazz
+																	.getMethod(
+																			"close",
+																			null);
+															close.invoke(
+																	webcam,
+																	null);
+														} catch (Exception e) {
+															e.printStackTrace();
+														}
 													}
 											});
 									thread.start();
@@ -4135,13 +4210,28 @@ public class MainForm extends JFrame {
 									try {
 										if (System.getProperty("os.name")
 												.startsWith("Windows")) {
+											Class<?> clazz = Class
+													.forName("com.github.sarxos.webcam.Webcam");
+											Method getDefault = clazz
+													.getMethod("getDefault",
+															null);
+											Method open = clazz.getMethod(
+													"open", null);
+											Method close = clazz.getMethod(
+													"close", null);
+											Method getImage = clazz.getMethod(
+													"getImage", null);
 											if (webcam == null) {
-												webcam = com.github.sarxos.webcam.Webcam
-														.getDefault();
+												Object o = getDefault.invoke(
+														clazz, null);
+												webcam = o;
 											}
-											if (!webcam.open()
-													|| (image = webcam
-															.getImage()) == null) {
+											boolean ret = (boolean) open
+													.invoke(webcam, null);
+											if (!ret) {
+												err = true;
+											} else if (getImage.invoke(webcam,
+													null) == null) {
 												err = true;
 											}
 										} else {
@@ -4171,10 +4261,26 @@ public class MainForm extends JFrame {
 												null, null);
 										form.show();
 										videoEnabled = false;
-										MainForm.webcam.close();
+										try {
+											Class<?> clazz = Class
+													.forName("com.github.sarxos.webcam.Webcam");
+											Method close = clazz.getMethod(
+													"close", null);
+											close.invoke(webcam, null);
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
 										return;
 									}
-									webcam.close();
+									try {
+										Class<?> clazz = Class
+												.forName("com.github.sarxos.webcam.Webcam");
+										Method close = clazz.getMethod("close",
+												null);
+										close.invoke(webcam, null);
+									} catch (Exception e) {
+										e.printStackTrace();
+									}
 								}
 								Optional<SocketHandlerContext> ctx = Skype
 										.getPlugin().createHandle();
@@ -4237,7 +4343,15 @@ public class MainForm extends JFrame {
 								MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
 								MainForm.ongoingVideoCallWidth = 0;
 								MainForm.ongoingVideoCallHeight = 0;
-								MainForm.webcam.close();
+								try {
+									Class<?> clazz = Class
+											.forName("com.github.sarxos.webcam.Webcam");
+									Method close = clazz.getMethod("close",
+											null);
+									close.invoke(webcam, null);
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
 							}
 							refreshWindow();
 						}
@@ -4438,7 +4552,19 @@ public class MainForm extends JFrame {
 																	} catch (Exception e1) {
 																		e1.printStackTrace();
 																	}
-																	webcam.close();
+																	try {
+																		Class<?> clazz = Class
+																				.forName("com.github.sarxos.webcam.Webcam");
+																		Method close = clazz
+																				.getMethod(
+																						"close",
+																						null);
+																		close.invoke(
+																				webcam,
+																				null);
+																	} catch (Exception e) {
+																		e.printStackTrace();
+																	}
 																	if (MainForm
 																			.get().ongoingVideoCallId != null)
 																		if (callId
@@ -4471,8 +4597,19 @@ public class MainForm extends JFrame {
 																					.get().WEBCAM_CAPTURE_MODE;
 																			MainForm.ongoingVideoCallWidth = 0;
 																			MainForm.ongoingVideoCallHeight = 0;
-																			MainForm.webcam
-																					.close();
+																			try {
+																				Class<?> clazz = Class
+																						.forName("com.github.sarxos.webcam.Webcam");
+																				Method close = clazz
+																						.getMethod(
+																								"close",
+																								null);
+																				close.invoke(
+																						webcam,
+																						null);
+																			} catch (Exception e) {
+																				e.printStackTrace();
+																			}
 																		}
 																});
 														thread.start();
@@ -4549,7 +4686,18 @@ public class MainForm extends JFrame {
 															.get().WEBCAM_CAPTURE_MODE;
 													MainForm.ongoingVideoCallWidth = 0;
 													MainForm.ongoingVideoCallHeight = 0;
-													MainForm.webcam.close();
+													try {
+														Class<?> clazz = Class
+																.forName("com.github.sarxos.webcam.Webcam");
+														Method close = clazz
+																.getMethod(
+																		"close",
+																		null);
+														close.invoke(webcam,
+																null);
+													} catch (Exception e) {
+														e.printStackTrace();
+													}
 												}
 												refreshWindow();
 											}
@@ -4653,7 +4801,14 @@ public class MainForm extends JFrame {
 							MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
 							MainForm.ongoingVideoCallWidth = 0;
 							MainForm.ongoingVideoCallHeight = 0;
-							MainForm.webcam.close();
+							try {
+								Class<?> clazz = Class
+										.forName("com.github.sarxos.webcam.Webcam");
+								Method close = clazz.getMethod("close", null);
+								close.invoke(MainForm.webcam, null);
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
 							AudioIO.HANGUP.playSound();
 						}
 					};

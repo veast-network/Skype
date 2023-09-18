@@ -2,6 +2,7 @@ package codes.wilma24.Skype.v1_0_R1.command;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.util.Optional;
 
@@ -210,7 +211,15 @@ public class CallRequestCmd extends CommandExecutor {
 								MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
 								MainForm.ongoingVideoCallWidth = 0;
 								MainForm.ongoingVideoCallHeight = 0;
-								MainForm.webcam.close();
+								try {
+									Class<?> clazz = Class
+											.forName("com.github.sarxos.webcam.Webcam");
+									Method close = clazz.getMethod("close",
+											null);
+									close.invoke(MainForm.webcam, null);
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
 							}
 					});
 			thread.start();

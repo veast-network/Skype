@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.Optional;
@@ -34,8 +35,6 @@ import codes.wilma24.Skype.v1_0_R1.forms.MainForm;
 import codes.wilma24.Skype.v1_0_R1.pgp.PGPUtilities;
 import codes.wilma24.Skype.v1_0_R1.pgp.PGPUtilities.DecryptionResult;
 import codes.wilma24.Skype.v1_0_R1.plugin.Skype;
-
-import com.github.sarxos.webcam.Webcam;
 
 public class VideoCallRequestCmd extends CommandExecutor {
 
@@ -120,25 +119,47 @@ public class VideoCallRequestCmd extends CommandExecutor {
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						CipherOutputStream cos = new CipherOutputStream(baos,
 								cipher);
-						Webcam webcam = MainForm.webcam;
+						Object webcam = MainForm.webcam;
 						BufferedImage image = null;
 						boolean err2 = false;
-						try {
-							if (System.getProperty("os.name").startsWith(
-									"Windows")) {
-								if (webcam == null) {
-									webcam = Webcam.getDefault();
-								}
-								if (!webcam.open()
-										|| (image = webcam.getImage()) == null) {
+						if (MainForm.get().videoMode == MainForm.get().WEBCAM_CAPTURE_MODE) {
+							try {
+								if (System.getProperty("os.name").startsWith(
+										"Windows")) {
+									Class<?> clazz = Class
+											.forName("com.github.sarxos.webcam.Webcam");
+									Method getDefault = clazz.getMethod(
+											"getDefault", null);
+									Method open = clazz.getMethod("open", null);
+									Method close = clazz.getMethod("close",
+											null);
+									Method getImage = clazz.getMethod(
+											"getImage", null);
+									if (webcam == null) {
+										Object o = getDefault.invoke(clazz,
+												null);
+										webcam = o;
+									}
+									boolean ret = (boolean) open.invoke(webcam,
+											null);
+									if (!ret) {
+										err2 = true;
+									} else {
+										Object ret2 = getImage.invoke(webcam,
+												null);
+										if (ret2 == null) {
+											err2 = true;
+										} else {
+											image = (BufferedImage) ret2;
+										}
+									}
+								} else {
 									err2 = true;
 								}
-							} else {
+							} catch (Exception e) {
+								e.printStackTrace();
 								err2 = true;
 							}
-						} catch (Exception e) {
-							e.printStackTrace();
-							err2 = true;
 						}
 						if (err2) {
 							DialogForm form = new DialogForm(
@@ -159,7 +180,14 @@ public class VideoCallRequestCmd extends CommandExecutor {
 											+ "is working by checking the device status in devmgmt.msc.",
 									null, null);
 							form.show();
-							MainForm.webcam.close();
+							try {
+								Class<?> clazz = Class
+										.forName("com.github.sarxos.webcam.Webcam");
+								Method close = clazz.getMethod("close", null);
+								close.invoke(MainForm.webcam, null);
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
 							return;
 						}
 						Rectangle screenRect = new Rectangle(Toolkit
@@ -244,10 +272,15 @@ public class VideoCallRequestCmd extends CommandExecutor {
 								DataOutputStream dos = new DataOutputStream(
 										socket.getOutputStream());
 								Robot robot = new Robot();
+								Class<?> clazz = Class
+										.forName("com.github.sarxos.webcam.Webcam");
+								Method getImage = clazz.getMethod("getImage",
+										null);
 								while (mainForm.isVisible()) {
 									if (MainForm.get().videoMode == MainForm
 											.get().WEBCAM_CAPTURE_MODE) {
-										image = webcam.getImage();
+										image = (BufferedImage) getImage
+												.invoke(webcam, null);
 										ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
 										ImageIO.write(image, "jpg", baos2);
 										byte[] b2 = baos2.toByteArray();
@@ -289,7 +322,14 @@ public class VideoCallRequestCmd extends CommandExecutor {
 						} catch (Exception e1) {
 							e1.printStackTrace();
 						}
-						webcam.close();
+						try {
+							Class<?> clazz = Class
+									.forName("com.github.sarxos.webcam.Webcam");
+							Method close = clazz.getMethod("close", null);
+							close.invoke(webcam, null);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 						if (MainForm.get().ongoingVideoCallId != null)
 							if (callId.equals(MainForm.get().ongoingVideoCallId)) {
 								MainForm.get().ongoingVideoCall = false;
@@ -315,7 +355,15 @@ public class VideoCallRequestCmd extends CommandExecutor {
 								MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
 								MainForm.ongoingVideoCallWidth = 0;
 								MainForm.ongoingVideoCallHeight = 0;
-								MainForm.webcam.close();
+								try {
+									Class<?> clazz = Class
+											.forName("com.github.sarxos.webcam.Webcam");
+									Method close = clazz.getMethod("close",
+											null);
+									close.invoke(MainForm.webcam, null);
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
 							}
 					});
 			thread.start();
