@@ -9,6 +9,9 @@ import javax.swing.UIManager;
 import javax.swing.plaf.FontUIResource;
 
 public class FontIO {
+	
+	public static final Font SANS_SERIF = getResourceAsFont(
+			"/Microsoft Sans Serif.ttf", 12, Font.TRUETYPE_FONT);
 
 	public static final Font SEGOE_UI_SEMILIGHT = getResourceAsFont(
 			"/Segoe UI Semilight.ttf", 12, Font.TRUETYPE_FONT);

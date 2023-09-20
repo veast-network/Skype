@@ -755,122 +755,9 @@ public class MainForm extends JFrame {
 				@Override
 				public void mousePressed(MouseEvent evt) {
 					super.mousePressed(evt);
-					JFileChooser fc = new JFileChooser();
-					fc.setCurrentDirectory(new java.io.File("."));
-					fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-					FileNameExtensionFilter filter = new FileNameExtensionFilter(
-							"*.png|*.jpg|*.jpeg|*.gif|*.bmp", "png", "jpg",
-							"jpeg", "gif", "bmp");
-					fc.setFileFilter(filter);
-					int returnVal = fc.showSaveDialog(null);
-					if (returnVal == JFileChooser.APPROVE_OPTION) {
-						String ext = fc.getSelectedFile().getName();
-						if (ext.contains(".")) {
-							ext = ext.substring(ext.lastIndexOf(".") + 1);
-						}
-						if (ext.equals("png") || ext.equals("jpeg")
-								|| ext.equals("jpg") || ext.equals("gif")
-								|| ext.equals("bmp")) {
-							try {
-								InputStream resourceUrl = new FileInputStream(
-										fc.getSelectedFile());
-								ByteArrayOutputStream baos = new ByteArrayOutputStream();
-								Streams.pipeAll(resourceUrl, baos);
-								resourceUrl.close();
-								ImageIcon imageIcon = new ImageIcon(
-										baos.toByteArray());
-								CropImageForm cropImageFrame = new CropImageForm(
-										frame, imageIcon,
-										new CropImageForm.Runnable() {
-
-											@Override
-											public void run() {
-												try {
-													ImageIcon subImage = this
-															.getSubImage();
-													BufferedImage bi = new BufferedImage(
-															subImage.getIconWidth(),
-															subImage.getIconHeight(),
-															BufferedImage.TYPE_INT_RGB);
-													Graphics g = bi
-															.createGraphics();
-													subImage.paintIcon(null, g,
-															0, 0);
-													g.dispose();
-													File file = File
-															.createTempFile(
-																	"image",
-																	"jpg");
-													if (file.exists()) {
-														file.delete();
-													}
-													javax.imageio.ImageIO
-															.write(bi, "jpg",
-																	file);
-													ImgurUploader imgurUploader = new ImgurUploader();
-													Optional<String> url = imgurUploader
-															.uploadFile(file);
-													if (!url.isPresent()) {
-														return;
-													}
-													Optional<SocketHandlerContext> ctx = Skype
-															.getPlugin()
-															.createHandle();
-													if (!ctx.isPresent()) {
-														return;
-													}
-													loggedInUser
-															.setImageIconUrl(url
-																	.get());
-													loggedInUser
-															.setImageIcon(subImage);
-													PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
-															authCode,
-															loggedInUser
-																	.getUniqueId(),
-															loggedInUser);
-													ctx.get()
-															.getOutboundHandler()
-															.dispatch(
-																	ctx.get(),
-																	msg);
-												} catch (Exception e) {
-													e.printStackTrace();
-												}
-											}
-										}, true);
-								cropImageFrame.show();
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-						}
-					} else {
-						DialogForm form = new DialogForm(
-								null,
-								"Skype™ - Remove profile picture?",
-								"Remove profile picture?",
-								"Are you sure you want to remove this profile picture?",
-								"Remove", new Runnable() {
-
-									@Override
-									public void run() {
-										Optional<SocketHandlerContext> ctx = Skype
-												.getPlugin().createHandle();
-										if (!ctx.isPresent()) {
-											return;
-										}
-										loggedInUser.setImageIconUrl(null);
-										loggedInUser.setImageIcon(null);
-										PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
-												authCode, loggedInUser
-														.getUniqueId(),
-												loggedInUser);
-										ctx.get().getOutboundHandler()
-												.dispatch(ctx.get(), msg);
-									}
-								});
-						form.show();
-					}
+					selectedConversation = null;
+					rightPanelPage = "AccountHome";
+					refreshWindow();
 				}
 
 			};
@@ -3878,6 +3765,893 @@ public class MainForm extends JFrame {
 			panelWidth = getContentPane().getSize().width
 					- this.splitPaneDividerSize - leftSplitPaneWidth;
 			int panelHeight = this.getContentPane().getHeight();
+			JLayeredPane layeredPane = new JLayeredPane();
+			layeredPane.setBounds(0, 0, panelWidth, panelHeight);
+			layeredPane
+					.setPreferredSize(new Dimension(panelWidth, panelHeight));
+			layeredPane.setOpaque(true);
+			layeredPane.setBackground(Color.white);
+
+			{
+				JPanel labelPanel = new JPanel();
+				labelPanel.setOpaque(false);
+				labelPanel.setBounds(260, 103, 430, 1);
+				labelPanel.setBorder(BorderFactory
+						.createDashedBorder(new Color(147, 153, 157)));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				labelPanel.setOpaque(false);
+				labelPanel.setBounds(260, 160, 430, 1);
+				labelPanel.setBorder(BorderFactory
+						.createDashedBorder(new Color(147, 153, 157)));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				labelPanel.setOpaque(false);
+				labelPanel.setBounds(20, 319, 670, 1);
+				labelPanel.setBorder(BorderFactory
+						.createDashedBorder(new Color(147, 153, 157)));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				labelPanel.setOpaque(false);
+				labelPanel.setBounds(19, 19, 222, 222);
+				labelPanel.setBorder(BorderFactory.createMatteBorder(1, 1, 1,
+						1, new Color(179, 231, 251)));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = loggedInUser.getImageIcon();
+				imageIcon = ImageIO.getScaledImageIcon(imageIcon,
+						new Dimension(160, 160));
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						if (loggedInUser.getPubKey().isPresent()) {
+							String pubKey;
+							try {
+								pubKey = PGPainless.asciiArmor(loggedInUser
+										.getPubKey().get());
+								JOptionPane.showMessageDialog(frame, pubKey);
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						} else {
+							JOptionPane.showMessageDialog(frame, loggedInUser);
+						}
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(50, 50, 160, 160);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel(loggedInUser.getDisplayName());
+				label.setFont(FontIO.SANS_SERIF.deriveFont(Font.BOLD, 18.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(350 - 1, 26 - 9, width, height + 10);
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						if (loggedInUser.getPubKey().isPresent()) {
+							String res2 = (String) JOptionPane.showInputDialog(
+									frame,
+									"Enter new name for "
+											+ loggedInUser.getSkypeName(),
+									frame.getTitle(),
+									JOptionPane.PLAIN_MESSAGE, null, null,
+									loggedInUser.getDisplayName());
+							if (res2 != null) {
+								if (res2.trim().equals("")) {
+									res2 = loggedInUser.getSkypeName();
+								}
+								loggedInUser.setDisplayName(res2);
+								Optional<UUID> authCode2 = registerUser(
+										loggedInUser, password);
+								if (authCode2.isPresent()) {
+									refreshWindow(SCROLL_TO_BOTTOM);
+								}
+							}
+						} else {
+							JOptionPane.showMessageDialog(frame, loggedInUser);
+						}
+					}
+
+				};
+
+				label.addMouseListener(mouseAdapter);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Accounts");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(291 + 1, 58 - 8, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel(loggedInUser.getSkypeName());
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(349 + 1, 58 - 8, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Manage");
+				// label.setFont(font);
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(349 + 1, 75 - 8, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Mood");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(309 + 1, 126 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label;
+				if (loggedInUser.getMood() == null
+						|| loggedInUser.getMood().equals("")) {
+					label = new JLabel("Enter mood message");
+					label.setForeground(Color.blue);
+				} else {
+					label = new JLabel(loggedInUser.getMood());
+				}
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(351 + 1, 126 - 7, width, height + 10);
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						if (loggedInUser.getPubKey().isPresent()) {
+							String res2 = (String) JOptionPane.showInputDialog(
+									frame,
+									"Enter new mood for "
+											+ loggedInUser.getSkypeName(),
+									frame.getTitle(),
+									JOptionPane.PLAIN_MESSAGE, null, null,
+									loggedInUser.getMood());
+							if (res2 != null) {
+								if (res2.trim().equals("")) {
+									res2 = null;
+								}
+								loggedInUser.setMood(res2);
+								Optional<UUID> authCode2 = registerUser(
+										loggedInUser, password);
+								if (authCode2.isPresent()) {
+									refreshWindow(SCROLL_TO_BOTTOM);
+								}
+							}
+						} else {
+							JOptionPane.showMessageDialog(frame, loggedInUser);
+						}
+					}
+
+				};
+
+				label.addMouseListener(mouseAdapter);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Mobile phone");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(272 + 1, 177 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Add number");
+				// label.setFont(font);
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(349 + 1, 177 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Home phone");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(275 + 1, 211 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Add number");
+				// label.setFont(font);
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(349 + 1, 211 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Office phone");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(273 + 1, 245 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Add number");
+				// label.setFont(font);
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(349 + 1, 245 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/22109567.png");
+
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				iconLabelPanel.setBounds(353, 292, 4, 6);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						/*
+						 * See connection details
+						 */
+						refreshWindow();
+					}
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+				iconLabelPanel.addMouseListener(mouseAdapter);
+
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+				iconLabelPanel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Show full profile");
+				// Font font = label.getFont();
+				// Map attributes = font.getAttributes();
+				// attributes.put(TextAttribute.UNDERLINE,
+				// TextAttribute.UNDERLINE_ON);
+				// label.setFont(font.deriveFont(attributes));
+				label.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0,
+						Color.black));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(365 + 1, 290 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Change picture");
+				// label.setFont(font);
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(19 + 1, 254 - 7, width, height + 10);
+
+				label.addMouseListener(new MouseAdapter() {
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						JFileChooser fc = new JFileChooser();
+						fc.setCurrentDirectory(new java.io.File("."));
+						fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+						FileNameExtensionFilter filter = new FileNameExtensionFilter(
+								"*.png|*.jpg|*.jpeg|*.gif|*.bmp", "png", "jpg",
+								"jpeg", "gif", "bmp");
+						fc.setFileFilter(filter);
+						int returnVal = fc.showSaveDialog(null);
+						if (returnVal == JFileChooser.APPROVE_OPTION) {
+							String ext = fc.getSelectedFile().getName();
+							if (ext.contains(".")) {
+								ext = ext.substring(ext.lastIndexOf(".") + 1);
+							}
+							if (ext.equals("png") || ext.equals("jpeg")
+									|| ext.equals("jpg") || ext.equals("gif")
+									|| ext.equals("bmp")) {
+								try {
+									InputStream resourceUrl = new FileInputStream(
+											fc.getSelectedFile());
+									ByteArrayOutputStream baos = new ByteArrayOutputStream();
+									Streams.pipeAll(resourceUrl, baos);
+									resourceUrl.close();
+									ImageIcon imageIcon = new ImageIcon(baos
+											.toByteArray());
+									CropImageForm cropImageFrame = new CropImageForm(
+											frame, imageIcon,
+											new CropImageForm.Runnable() {
+
+												@Override
+												public void run() {
+													try {
+														ImageIcon subImage = this
+																.getSubImage();
+														BufferedImage bi = new BufferedImage(
+																subImage.getIconWidth(),
+																subImage.getIconHeight(),
+																BufferedImage.TYPE_INT_RGB);
+														Graphics g = bi
+																.createGraphics();
+														subImage.paintIcon(
+																null, g, 0, 0);
+														g.dispose();
+														File file = File
+																.createTempFile(
+																		"image",
+																		"jpg");
+														if (file.exists()) {
+															file.delete();
+														}
+														javax.imageio.ImageIO
+																.write(bi,
+																		"jpg",
+																		file);
+														ImgurUploader imgurUploader = new ImgurUploader();
+														Optional<String> url = imgurUploader
+																.uploadFile(file);
+														if (!url.isPresent()) {
+															return;
+														}
+														Optional<SocketHandlerContext> ctx = Skype
+																.getPlugin()
+																.createHandle();
+														if (!ctx.isPresent()) {
+															return;
+														}
+														loggedInUser
+																.setImageIconUrl(url
+																		.get());
+														loggedInUser
+																.setImageIcon(subImage);
+														PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+																authCode,
+																loggedInUser
+																		.getUniqueId(),
+																loggedInUser);
+														ctx.get()
+																.getOutboundHandler()
+																.dispatch(
+																		ctx.get(),
+																		msg);
+													} catch (Exception e) {
+														e.printStackTrace();
+													}
+												}
+											}, true);
+									cropImageFrame.show();
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							}
+						} else {
+							DialogForm form = new DialogForm(
+									null,
+									"Skype™ - Remove profile picture?",
+									"Remove profile picture?",
+									"Are you sure you want to remove this profile picture?",
+									"Remove", new Runnable() {
+
+										@Override
+										public void run() {
+											Optional<SocketHandlerContext> ctx = Skype
+													.getPlugin().createHandle();
+											if (!ctx.isPresent()) {
+												return;
+											}
+											loggedInUser.setImageIconUrl(null);
+											loggedInUser.setImageIcon(null);
+											PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+													authCode, loggedInUser
+															.getUniqueId(),
+													loggedInUser);
+											ctx.get().getOutboundHandler()
+													.dispatch(ctx.get(), msg);
+										}
+									});
+							form.show();
+						}
+					}
+				});
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Public");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(19 + 1, 273 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/16870375.png");
+
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				iconLabelPanel.setBounds(51, 277, 7, 4);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						/*
+						 * See connection details
+						 */
+						refreshWindow();
+					}
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+				iconLabelPanel.addMouseListener(mouseAdapter);
+
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+				iconLabelPanel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Subscriptions");
+				Font font = label.getFont();
+				label.setFont(font.deriveFont(Font.BOLD, 12.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(371 + 1, 384 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Call a lot? Save a lot...");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(369 + 1, 407 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("\u25CF" + " Lowest calling rates");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(369 - 2 + 1, 428 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("\u25CF"
+						+ " No long-term commitments");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(369 - 2 + 1, 449 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Get a subscription");
+				// label.setFont(font);
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(369 + 1, 470 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/48990194.png");
+
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				iconLabelPanel.setBounds(321, 381, 30, 32);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						/*
+						 * See connection details
+						 */
+						refreshWindow();
+					}
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+				iconLabelPanel.addMouseListener(mouseAdapter);
+
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+				iconLabelPanel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Credit");
+				Font font = label.getFont();
+				label.setFont(font.deriveFont(Font.BOLD, 12.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(70 + 1, 384 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Call who you want, when you want");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(69 + 1, 407 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("\u25CF"
+						+ " Call mobiles and landlines worldwide");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(69 - 2 + 1, 428 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("\u25CF"
+						+ " Send text messages and access WiFi hotspots");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(69 - 2 + 1, 449 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Add Skype Credit");
+				// label.setFont(font);
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(69 + 1, 470 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/43252662.png");
+
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				iconLabelPanel.setBounds(20, 381, 32, 32);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						/*
+						 * See connection details
+						 */
+						refreshWindow();
+					}
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+				iconLabelPanel.addMouseListener(mouseAdapter);
+
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+				iconLabelPanel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			panel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+			panel.add(layeredPane);
 			return panel;
 		}
 
@@ -7981,8 +8755,6 @@ public class MainForm extends JFrame {
 		echoSoundTestService.setLastModified(new Date(new Date().getTime()
 				+ AppDelegate.TIME_OFFSET));
 		echoSoundTestService.setOnlineStatus(Status.ONLINE);
-		this.rightPanelPage = "Conversation";
-		this.selectedConversation = echoSoundTestService;
 		conversations.add(echoSoundTestService);
 		SocketHandlerContext ctx = Skype.getPlugin().getHandle();
 		Date now = new Date(new Date().getTime() + AppDelegate.TIME_OFFSET);
