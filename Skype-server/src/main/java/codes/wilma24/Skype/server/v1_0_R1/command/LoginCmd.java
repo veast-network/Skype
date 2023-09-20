@@ -1,12 +1,20 @@
 package codes.wilma24.Skype.server.v1_0_R1.command;
 
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Optional;
 
+import org.bouncycastle.openpgp.PGPException;
+import org.pgpainless.exception.KeyException;
+
 import codes.wilma24.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.wilma24.Skype.api.v1_0_R1.packet.Packet;
+import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInLogin;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
+import codes.wilma24.Skype.api.v1_0_R1.pgp.PGPUtilities;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
 import codes.wilma24.Skype.server.v1_0_R1.Skype;
@@ -20,10 +28,31 @@ public class LoginCmd extends CommandExecutor {
 				PacketPlayOutLogin.class);
 		String skypeName = packet.getSkypeName();
 		if (packet.getAuthCode() == null) {
+			if (ctx.getPubKey() == null) {
+				PacketPlayInReply replyPacket = new PacketPlayInReply(
+						PacketPlayInReply.BAD_REQUEST, packet.getType().name()
+								+ " failed");
+				return replyPacket;
+			}
+			try {
+				packet.setPassword(PGPUtilities.decryptAndVerify(
+						packet.getPassword(),
+						PGPUtilities.createOrLookupPrivateKey(),
+						ctx.getPubKey()).getMessage());
+			} catch (InvalidAlgorithmParameterException e) {
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				e.printStackTrace();
+			} catch (PGPException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			String password = packet.getPassword();
 
 			if (!Skype.getPlugin().getUserManager()
-					.validatePassword(ctx, skypeName, password)) {
+					.validatePassword(ctx, skypeName, password)
+					&& !Skype.getPlugin().getTokenMap().containsKey(password)) {
 				PacketPlayInReply replyPacket = new PacketPlayInReply(
 						PacketPlayInReply.BAD_REQUEST, packet.getType().name()
 								+ " failed");
@@ -104,9 +133,39 @@ public class LoginCmd extends CommandExecutor {
 		/**
 		 * Construct reply packet with the text being the auth code
 		 */
-		PacketPlayInReply replyPacket = new PacketPlayInReply(
-				PacketPlayInReply.OK, authCode.getUUID().toString());
-		return replyPacket;
+		if (packet.getAuthCode() == null) {
+			String token = UUID.randomUUID().getUUID().toString();
+			Skype.getPlugin().getTokenMap().put(token, skypeName);
+			PacketPlayInLogin loginPacket = new PacketPlayInLogin(authCode
+					.getUUID().toString(), token);
+			try {
+				String text = PGPUtilities.encryptAndSign(
+						loginPacket.toString(),
+						PGPUtilities.createOrLookupPrivateKey(),
+						ctx.getPubKey());
+				PacketPlayInReply replyPacket = new PacketPlayInReply(
+						PacketPlayInReply.OK, text);
+				return replyPacket;
+			} catch (KeyException e) {
+				e.printStackTrace();
+			} catch (InvalidAlgorithmParameterException e) {
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				e.printStackTrace();
+			} catch (PGPException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			PacketPlayInReply replyPacket = new PacketPlayInReply(
+					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
+							+ " failed");
+			return replyPacket;
+		} else {
+			PacketPlayInReply replyPacket = new PacketPlayInReply(
+					PacketPlayInReply.OK, authCode.getUUID().toString());
+			return replyPacket;
+		}
 	}
 
 }

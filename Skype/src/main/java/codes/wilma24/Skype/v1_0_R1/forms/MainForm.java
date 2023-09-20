@@ -3772,8 +3772,6 @@ public class MainForm extends JFrame {
 			layeredPane.setOpaque(true);
 			layeredPane.setBackground(Color.white);
 
-			System.out.println(panelWidth);
-
 			{
 				JPanel labelPanel = new JPanel();
 				labelPanel.setOpaque(false);
@@ -9644,6 +9642,13 @@ public class MainForm extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
+				try {
+					new File("login1.txt").delete();
+					new File("login2.txt").delete();
+					new File("login3.txt").delete();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 				logOut();
 			}
 

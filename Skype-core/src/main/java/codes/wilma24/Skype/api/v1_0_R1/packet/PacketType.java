@@ -16,6 +16,8 @@ public enum PacketType {
 	UPDATE_GROUP_CHAT_PARTICIPANTS,
 
 	ENTERING_LISTEN_MODE,
+	
+	PUB_KEY_EXCHANGE,
 
 	LOOKUP_USER,
 
@@ -79,6 +81,8 @@ public enum PacketType {
 	 * PacketPlayIn
 	 */
 	REPLY,
+	
+	LOGIN_IN,
 
 	MESSAGE_IN,
 	

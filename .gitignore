@@ -91,11 +91,15 @@ RCDATA
 Skype/bin
 Skype/target
 Skype/config.db
+Skype/login1.txt
+Skype/login2.txt
+Skype/login3.txt
 Skype-core/bin
 Skype-core/target
 Skype-server/bin
 Skype-server/target
 Skype-server/config*.db
 Skype-server/src/main/resources/IP2PROXY-LITE-PX2.CSV
+Skype-server/private.key
 images2
 Skype-1.2-SNAPSHOT.exe

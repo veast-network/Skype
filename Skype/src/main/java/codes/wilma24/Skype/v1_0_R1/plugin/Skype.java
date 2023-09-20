@@ -3,9 +3,16 @@ package codes.wilma24.Skype.v1_0_R1.plugin;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Optional;
+
+import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
+import org.pgpainless.PGPainless;
 
 import codes.wilma24.Skype.api.v1_0_R1.command.CommandMap;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketType;
@@ -34,6 +41,7 @@ import codes.wilma24.Skype.v1_0_R1.command.UserRegistryChangedCmd;
 import codes.wilma24.Skype.v1_0_R1.command.VideoCallDataStreamRequestCmd;
 import codes.wilma24.Skype.v1_0_R1.command.VideoCallRequestCmd;
 import codes.wilma24.Skype.v1_0_R1.command.VideoCallResolutionChangedCmd;
+import codes.wilma24.Skype.v1_0_R1.pgp.PGPUtilities;
 
 public class Skype {
 
@@ -46,6 +54,10 @@ public class Skype {
 	private ArrayList<SocketHandlerContext> handles = new ArrayList<>();
 
 	private String hostname = "eu-frankfurt-1.wilma24.codes";
+
+	private PGPSecretKeyRing privKey;
+
+	private PGPPublicKeyRing pubKey;
 
 	static {
 		plugin = new Skype();
@@ -92,6 +104,19 @@ public class Skype {
 		try {
 			config = new FileConfiguration("config.db")
 					.getConfigurationSection();
+			try {
+				setPrivKey(PGPUtilities.createOrLookupPrivateKey("private"));
+				setPubKey(PGPainless.readKeyRing().publicKeyRing(
+						PGPUtilities.createOrLookupPublicKey("private")));
+			} catch (InvalidAlgorithmParameterException e) {
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (PGPException e) {
+				e.printStackTrace();
+			}
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} catch (SQLException e) {
@@ -164,6 +189,22 @@ public class Skype {
 			}
 		}
 		handles.clear();
+	}
+
+	public PGPPublicKeyRing getPubKey() {
+		return pubKey;
+	}
+
+	public void setPubKey(PGPPublicKeyRing pubKey) {
+		this.pubKey = pubKey;
+	}
+
+	public PGPSecretKeyRing getPrivKey() {
+		return privKey;
+	}
+
+	public void setPrivKey(PGPSecretKeyRing privKey) {
+		this.privKey = privKey;
 	}
 
 }

@@ -17,7 +17,10 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.font.TextAttribute;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -41,10 +44,16 @@ import javax.swing.KeyStroke;
 
 import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.Imaging;
+import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.pgpainless.PGPainless;
 
+import codes.wilma24.Skype.api.v1_0_R1.packet.Packet;
+import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInLogin;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
+import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutPubKeyExchange;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutRefreshToken;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutRegister;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
@@ -844,6 +853,39 @@ public class LoginForm extends JFrame {
 										UUID participantId = Skype.getPlugin()
 												.getUniqueId(skypeName);
 										UUID authCode = null;
+										PGPPublicKeyRing pubKey = null;
+										String fpassword = null;
+										try {
+											{
+												Optional<PacketPlayInReply> replyPacket = ctx
+														.getOutboundHandler()
+														.dispatch(
+																ctx,
+																new PacketPlayOutPubKeyExchange(
+																		Skype.getPlugin()
+																				.getPubKey()));
+												System.out.println(replyPacket);
+												if (replyPacket.isPresent()) {
+													if (replyPacket.get()
+															.getStatusCode() == 200) {
+														pubKey = PGPainless
+																.readKeyRing()
+																.publicKeyRing(
+																		replyPacket
+																				.get()
+																				.getText());
+													}
+												}
+											}
+											fpassword = PGPUtilities
+													.encryptAndSign(
+															password,
+															Skype.getPlugin()
+																	.getPrivKey(),
+															pubKey);
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
 										{
 											Optional<PacketPlayInReply> replyPacket = ctx
 													.getOutboundHandler()
@@ -852,7 +894,7 @@ public class LoginForm extends JFrame {
 															new PacketPlayOutRegister(
 																	fullName,
 																	skypeName,
-																	password));
+																	fpassword));
 											if (replyPacket.isPresent()) {
 												if (replyPacket.get()
 														.getStatusCode() == 200) {
@@ -1109,15 +1151,86 @@ public class LoginForm extends JFrame {
 							UUID participantId = Skype.getPlugin().getUniqueId(
 									skypeName);
 							UUID authCode = null;
+							PGPPublicKeyRing pubKey = null;
+							{
+								Optional<PacketPlayInReply> replyPacket = ctx
+										.getOutboundHandler()
+										.dispatch(
+												ctx,
+												new PacketPlayOutPubKeyExchange(
+														Skype.getPlugin()
+																.getPubKey()));
+								System.out.println(replyPacket);
+								if (replyPacket.isPresent()) {
+									if (replyPacket.get().getStatusCode() == 200) {
+										pubKey = PGPainless.readKeyRing()
+												.publicKeyRing(
+														replyPacket.get()
+																.getText());
+									}
+								}
+							}
+							String fpassword = PGPUtilities.encryptAndSign(
+									password, Skype.getPlugin().getPrivKey(),
+									pubKey);
 							Optional<PacketPlayInReply> replyPacket = ctx
 									.getOutboundHandler().dispatch(
 											ctx,
 											new PacketPlayOutLogin(skypeName,
-													password));
+													fpassword));
 							if (replyPacket.isPresent()) {
 								if (replyPacket.get().getStatusCode() == 200) {
-									authCode = UUID.fromString(replyPacket
-											.get().getText());
+									String text = null;
+									try {
+										text = PGPUtilities.decryptAndVerify(
+												replyPacket.get().getText(),
+												Skype.getPlugin().getPrivKey(),
+												pubKey).getMessage();
+									} catch (PGPException e) {
+										e.printStackTrace();
+									} catch (IOException e) {
+										e.printStackTrace();
+									}
+									PacketPlayInLogin loginPacket = Packet
+											.fromJson(text,
+													PacketPlayInLogin.class);
+									{
+										File file = new File("login1.txt");
+										if (file.exists()) {
+											file.delete();
+										}
+										FileOutputStream fos = new FileOutputStream(
+												file);
+										fos.write(skypeName.getBytes());
+										fos.flush();
+										fos.close();
+									}
+									{
+										File file = new File("login2.txt");
+										if (file.exists()) {
+											file.delete();
+										}
+										FileOutputStream fos = new FileOutputStream(
+												file);
+										fos.write(replyPacket.get().getText()
+												.getBytes());
+										fos.flush();
+										fos.close();
+									}
+									{
+										File file = new File("login3.txt");
+										if (file.exists()) {
+											file.delete();
+										}
+										FileOutputStream fos = new FileOutputStream(
+												file);
+										fos.write(PGPainless.asciiArmor(pubKey)
+												.getBytes());
+										fos.flush();
+										fos.close();
+									}
+									authCode = UUID.fromString(loginPacket
+											.getAuthCode());
 									ctx.getOutboundHandler().dispatch(
 											ctx,
 											new PacketPlayOutRefreshToken(
@@ -1136,15 +1249,23 @@ public class LoginForm extends JFrame {
 											PGPUtilities
 													.createOrLookupPublicKey(skypeName);
 											MainForm form = new MainForm(
-													authCode, password, loggedInUser);
+													authCode, password,
+													loggedInUser);
 											/**
-											 * We will now read the data we have in memory on our disk
+											 * We will now read the data we have
+											 * in memory on our disk
 											 * 
-											 * This may be contacts, conversations, messages and personal data
+											 * This may be contacts,
+											 * conversations, messages and
+											 * personal data
 											 * 
-											 * If the data is not present then read the last 30 days from the server
+											 * If the data is not present then
+											 * read the last 30 days from the
+											 * server
 											 * 
-											 * The data is stored forever on the hard drive, just not on the server
+											 * The data is stored forever on the
+											 * hard drive, just not on the
+											 * server
 											 */
 											form.readFromMemory();
 											frame.removeWindowListener(windowAdapter);
@@ -1155,6 +1276,13 @@ public class LoginForm extends JFrame {
 									}
 								}
 							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						try {
+							new File("login1.txt").delete();
+							new File("login2.txt").delete();
+							new File("login3.txt").delete();
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -1180,6 +1308,35 @@ public class LoginForm extends JFrame {
 
 	@Override
 	public void show() {
+		if (new File("login1.txt").exists()) {
+			try {
+				String skypeName = new String(Files.readAllBytes(new File(
+						"login1.txt").toPath()));
+				String password = new String(Files.readAllBytes(new File(
+						"login2.txt").toPath()));
+				PGPPublicKeyRing pubKey = PGPainless.readKeyRing()
+						.publicKeyRing(
+								new String(Files.readAllBytes(new File(
+										"login3.txt").toPath())));
+				try {
+					password = PGPUtilities.decryptAndVerify(password,
+							Skype.getPlugin().getPrivKey(), pubKey)
+							.getMessage();
+				} catch (PGPException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				PacketPlayInLogin loginPacket = Packet.fromJson(password,
+						PacketPlayInLogin.class);
+				password = loginPacket.getToken();
+				navigateSignIn(skypeName, password);
+				super.show();
+				return;
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		navigateHomePage();
 		super.show();
 	}

@@ -4,6 +4,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.UUID;
 
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
+
 import codes.wilma24.Skype.api.v1_0_R1.cryptography.CryptographicContext;
 import codes.wilma24.Skype.api.v1_0_R1.cryptography.SimpleCryptographicContext;
 import codes.wilma24.Skype.api.v1_0_R1.json.JsonManipulator;
@@ -26,6 +28,8 @@ public class SocketHandlerContext {
 	private JsonManipulator jsonManipulator;
 
 	private final UUID uniqueId = UUID.randomUUID();
+
+	private PGPPublicKeyRing pubKey = null;
 
 	public SocketHandlerContext(Socket socket) {
 		this.setSocket(socket);
@@ -158,6 +162,14 @@ public class SocketHandlerContext {
 	@Deprecated
 	public UUID getUniqueId() {
 		return uniqueId;
+	}
+
+	public PGPPublicKeyRing getPubKey() {
+		return pubKey;
+	}
+
+	public void setPubKey(PGPPublicKeyRing pubKey) {
+		this.pubKey = pubKey;
 	}
 
 }

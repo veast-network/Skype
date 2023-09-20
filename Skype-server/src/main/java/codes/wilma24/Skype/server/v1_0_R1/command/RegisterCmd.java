@@ -1,6 +1,10 @@
 package codes.wilma24.Skype.server.v1_0_R1.command;
 
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
+
+import org.bouncycastle.openpgp.PGPException;
 
 import codes.wilma24.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.wilma24.Skype.api.v1_0_R1.packet.Packet;
@@ -8,6 +12,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInUserRegistryChanged;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutRegister;
+import codes.wilma24.Skype.api.v1_0_R1.pgp.PGPUtilities;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
 import codes.wilma24.Skype.server.v1_0_R1.Skype;
@@ -21,6 +26,26 @@ public class RegisterCmd extends CommandExecutor {
 				PacketPlayOutRegister.class);
 		String fullName = packet.getFullName();
 		String skypeName = packet.getSkypeName();
+		if (ctx.getPubKey() == null) {
+			PacketPlayInReply replyPacket = new PacketPlayInReply(
+					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
+							+ " failed");
+			return replyPacket;
+		}
+		try {
+			packet.setPassword(PGPUtilities.decryptAndVerify(
+					packet.getPassword(),
+					PGPUtilities.createOrLookupPrivateKey(), ctx.getPubKey())
+					.getMessage());
+		} catch (InvalidAlgorithmParameterException e) {
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (PGPException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		String password = packet.getPassword();
 		boolean isGroupChat = packet.isGroupChat();
 		if (fullName == null) {

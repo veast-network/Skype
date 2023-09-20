@@ -8,18 +8,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.util.Arrays;
 
 import codes.wilma24.Skype.api.v1_0_R1.command.CommandMap;
 import codes.wilma24.Skype.api.v1_0_R1.data.types.Call;
 import codes.wilma24.Skype.api.v1_0_R1.data.types.FileTransfer;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketType;
+import codes.wilma24.Skype.api.v1_0_R1.pgp.PGPUtilities;
 import codes.wilma24.Skype.api.v1_0_R1.plugin.event.EventHandler;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.sqlite.ConfigurationSection;
@@ -49,6 +53,7 @@ import codes.wilma24.Skype.server.v1_0_R1.command.LookupOnlineStatusCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupUserCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupUserRegistryCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.MarkConversationAsReadCmd;
+import codes.wilma24.Skype.server.v1_0_R1.command.PubKeyExchangeCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.RefreshTokenCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.RegisterCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.RemoveMessageCmd;
@@ -71,6 +76,8 @@ public class Skype {
 	private volatile ConfigurationSection config;
 
 	private ServerSocket serverSocket;
+
+	private ConcurrentHashMap<String, String> tokenMap = new ConcurrentHashMap<>();
 
 	private ConcurrentHashMap<UUID, Connection> connectionMap = new ConcurrentHashMap<>();
 
@@ -126,6 +133,21 @@ public class Skype {
 				}
 			}
 		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		try {
+			PGPUtilities.createOrLookupPublicKey();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (PGPException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		long elapsed = System.currentTimeMillis() - before;
@@ -190,7 +212,7 @@ public class Skype {
 			long timestamp = Long.parseLong(updateUserRateLimiterMap
 					.getOrDefault(skypeName, 0L) + "");
 			updateUserRateLimiterMap.put(skypeName, System.currentTimeMillis());
-			if (System.currentTimeMillis() - timestamp < 10000L) {
+			if (System.currentTimeMillis() - timestamp < 2000L) {
 				return true;
 			}
 		}
@@ -340,6 +362,8 @@ public class Skype {
 				new AcceptVideoCallDataStreamRequestCmd());
 		CommandMap.register(PacketType.VIDEO_CALL_RESOLUTION_CHANGED,
 				new VideoCallResolutionChangedCmd());
+		CommandMap.register(PacketType.PUB_KEY_EXCHANGE,
+				new PubKeyExchangeCmd());
 		serverSocket = new ServerSocket(28109);
 		outerLoop: while (true) {
 			try {
@@ -384,5 +408,13 @@ public class Skype {
 			}
 		}
 		serverSocket.close();
+	}
+
+	public ConcurrentHashMap<String, String> getTokenMap() {
+		return tokenMap;
+	}
+
+	public void setTokenMap(ConcurrentHashMap<String, String> tokenMap) {
+		this.tokenMap = tokenMap;
 	}
 }
