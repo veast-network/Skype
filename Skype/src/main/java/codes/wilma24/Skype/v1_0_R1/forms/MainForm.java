@@ -3772,10 +3772,12 @@ public class MainForm extends JFrame {
 			layeredPane.setOpaque(true);
 			layeredPane.setBackground(Color.white);
 
+			System.out.println(panelWidth);
+
 			{
 				JPanel labelPanel = new JPanel();
 				labelPanel.setOpaque(false);
-				labelPanel.setBounds(260, 103, 430, 1);
+				labelPanel.setBounds(260, 103, panelWidth - 331, 1);
 				labelPanel.setBorder(BorderFactory
 						.createDashedBorder(new Color(147, 153, 157)));
 
@@ -3787,7 +3789,7 @@ public class MainForm extends JFrame {
 			{
 				JPanel labelPanel = new JPanel();
 				labelPanel.setOpaque(false);
-				labelPanel.setBounds(260, 160, 430, 1);
+				labelPanel.setBounds(260, 160, panelWidth - 331, 1);
 				labelPanel.setBorder(BorderFactory
 						.createDashedBorder(new Color(147, 153, 157)));
 
@@ -3799,7 +3801,7 @@ public class MainForm extends JFrame {
 			{
 				JPanel labelPanel = new JPanel();
 				labelPanel.setOpaque(false);
-				labelPanel.setBounds(20, 319, 670, 1);
+				labelPanel.setBounds(20, 319, panelWidth - 91, 1);
 				labelPanel.setBorder(BorderFactory
 						.createDashedBorder(new Color(147, 153, 157)));
 
@@ -3936,6 +3938,24 @@ public class MainForm extends JFrame {
 			}
 			{
 				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Public");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(panelWidth - 70 - 10 - width, 58 - 8,
+						width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel(loggedInUser.getSkypeName());
 				// label.setFont(font);
 				labelPanel.setOpaque(false);
@@ -4062,14 +4082,70 @@ public class MainForm extends JFrame {
 			}
 			{
 				JPanel labelPanel = new JPanel();
-				JLabel label = new JLabel("Add number");
+				JLabel label;
+				if (loggedInUser.getMobilePhone() == null
+						|| loggedInUser.getMobilePhone().equals("")) {
+					label = new JLabel("Add number");
+					label.setForeground(Color.blue);
+				} else {
+					label = new JLabel(loggedInUser.getMobilePhone());
+				}
 				// label.setFont(font);
-				label.setForeground(Color.blue);
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
 				labelPanel.setBounds(349 + 1, 177 - 7, width, height + 10);
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						if (loggedInUser.getPubKey().isPresent()) {
+							String res2 = (String) JOptionPane.showInputDialog(
+									frame, "Enter new mobile phone for "
+											+ loggedInUser.getSkypeName(),
+									frame.getTitle(),
+									JOptionPane.PLAIN_MESSAGE, null, null,
+									loggedInUser.getMobilePhone());
+							if (res2 != null) {
+								if (res2.trim().equals("")) {
+									res2 = null;
+								}
+								loggedInUser.setMobilePhone(res2);
+								Optional<UUID> authCode2 = registerUser(
+										loggedInUser, password);
+								if (authCode2.isPresent()) {
+									refreshWindow(SCROLL_TO_BOTTOM);
+								}
+							}
+						} else {
+							JOptionPane.showMessageDialog(frame, loggedInUser);
+						}
+					}
+
+				};
+
+				label.addMouseListener(mouseAdapter);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Contacts");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(panelWidth - 70 - 10 - width, 177 - 7,
+						width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4097,14 +4173,70 @@ public class MainForm extends JFrame {
 			}
 			{
 				JPanel labelPanel = new JPanel();
-				JLabel label = new JLabel("Add number");
+				JLabel label;
+				if (loggedInUser.getHomePhone() == null
+						|| loggedInUser.getHomePhone().equals("")) {
+					label = new JLabel("Add number");
+					label.setForeground(Color.blue);
+				} else {
+					label = new JLabel(loggedInUser.getHomePhone());
+				}
 				// label.setFont(font);
-				label.setForeground(Color.blue);
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
 				labelPanel.setBounds(349 + 1, 211 - 7, width, height + 10);
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						if (loggedInUser.getPubKey().isPresent()) {
+							String res2 = (String) JOptionPane.showInputDialog(
+									frame, "Enter new home phone for "
+											+ loggedInUser.getSkypeName(),
+									frame.getTitle(),
+									JOptionPane.PLAIN_MESSAGE, null, null,
+									loggedInUser.getHomePhone());
+							if (res2 != null) {
+								if (res2.trim().equals("")) {
+									res2 = null;
+								}
+								loggedInUser.setHomePhone(res2);
+								Optional<UUID> authCode2 = registerUser(
+										loggedInUser, password);
+								if (authCode2.isPresent()) {
+									refreshWindow(SCROLL_TO_BOTTOM);
+								}
+							}
+						} else {
+							JOptionPane.showMessageDialog(frame, loggedInUser);
+						}
+					}
+
+				};
+
+				label.addMouseListener(mouseAdapter);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Contacts");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(panelWidth - 70 - 10 - width, 211 - 7,
+						width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4132,14 +4264,70 @@ public class MainForm extends JFrame {
 			}
 			{
 				JPanel labelPanel = new JPanel();
-				JLabel label = new JLabel("Add number");
+				JLabel label;
+				if (loggedInUser.getOfficePhone() == null
+						|| loggedInUser.getOfficePhone().equals("")) {
+					label = new JLabel("Add number");
+					label.setForeground(Color.blue);
+				} else {
+					label = new JLabel(loggedInUser.getOfficePhone());
+				}
 				// label.setFont(font);
-				label.setForeground(Color.blue);
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
 				labelPanel.setBounds(349 + 1, 245 - 7, width, height + 10);
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						if (loggedInUser.getPubKey().isPresent()) {
+							String res2 = (String) JOptionPane.showInputDialog(
+									frame, "Enter new office phone for "
+											+ loggedInUser.getSkypeName(),
+									frame.getTitle(),
+									JOptionPane.PLAIN_MESSAGE, null, null,
+									loggedInUser.getOfficePhone());
+							if (res2 != null) {
+								if (res2.trim().equals("")) {
+									res2 = null;
+								}
+								loggedInUser.setOfficePhone(res2);
+								Optional<UUID> authCode2 = registerUser(
+										loggedInUser, password);
+								if (authCode2.isPresent()) {
+									refreshWindow(SCROLL_TO_BOTTOM);
+								}
+							}
+						} else {
+							JOptionPane.showMessageDialog(frame, loggedInUser);
+						}
+					}
+
+				};
+
+				label.addMouseListener(mouseAdapter);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Contacts");
+				// label.setFont(font);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(panelWidth - 70 - 10 - width, 245 - 7,
+						width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4187,18 +4375,19 @@ public class MainForm extends JFrame {
 			{
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("Show full profile");
-				// Font font = label.getFont();
-				// Map attributes = font.getAttributes();
-				// attributes.put(TextAttribute.UNDERLINE,
-				// TextAttribute.UNDERLINE_ON);
-				// label.setFont(font.deriveFont(attributes));
-				label.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0,
-						Color.black));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
 				labelPanel.setBounds(365 + 1, 290 - 7, width, height + 10);
+
+				label.addMouseListener(new MouseAdapter() {
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						JOptionPane.showMessageDialog(frame, loggedInUser);
+					}
+				});
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -9051,6 +9240,9 @@ public class MainForm extends JFrame {
 		contact.setGroupChat(conversation.isGroupChat());
 		if (conversation instanceof Contact) {
 			contact.setMood(((Contact) conversation).getMood());
+			contact.setMobilePhone(((Contact) conversation).getMobilePhone());
+			contact.setHomePhone(((Contact) conversation).getHomePhone());
+			contact.setOfficePhone(((Contact) conversation).getOfficePhone());
 		}
 		ctx.get()
 				.getOutboundHandler()
