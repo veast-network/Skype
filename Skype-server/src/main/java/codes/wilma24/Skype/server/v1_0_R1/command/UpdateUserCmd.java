@@ -41,6 +41,14 @@ public class UpdateUserCmd extends CommandExecutor {
 							+ " failed");
 			return replyPacket;
 		}
+		String skypeName = con.getSkypeName();
+		if (Skype.getPlugin().testRateLimitUpdateUser(skypeName,
+				ctx.getSocket().getInetAddress().getHostAddress())) {
+			PacketPlayInReply replyPacket = new PacketPlayInReply(
+					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
+							+ " failed");
+			return replyPacket;
+		}
 		if (packet.isSilent() == false) {
 			for (UUID authCode2 : Skype.getPlugin().getConnectionMap().keySet()
 					.toArray(new UUID[0]).clone()) {

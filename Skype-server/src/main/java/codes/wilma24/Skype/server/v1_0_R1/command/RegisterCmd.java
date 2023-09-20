@@ -1,5 +1,7 @@
 package codes.wilma24.Skype.server.v1_0_R1.command;
 
+import java.io.IOException;
+
 import codes.wilma24.Skype.api.v1_0_R1.command.CommandExecutor;
 import codes.wilma24.Skype.api.v1_0_R1.packet.Packet;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInReply;
@@ -71,6 +73,16 @@ public class RegisterCmd extends CommandExecutor {
 					PacketPlayInReply.BAD_REQUEST, packet.getType().name()
 							+ " failed");
 			return replyPacket;
+		}
+		if (Skype.getPlugin().testRateLimitRegistration(
+				ctx.getSocket().getInetAddress().getHostAddress())) {
+			try {
+				ctx.getSocket().close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return PacketPlayInReply.empty();
 		}
 		if (!Skype.getPlugin().getUserManager()
 				.createUser(ctx, fullName, skypeName, password, isGroupChat)) {

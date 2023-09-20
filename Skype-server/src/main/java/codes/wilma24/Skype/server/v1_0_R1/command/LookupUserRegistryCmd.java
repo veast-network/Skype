@@ -29,6 +29,16 @@ public class LookupUserRegistryCmd extends CommandExecutor {
 							+ " failed");
 			return replyPacket;
 		}
+		{
+			String skypeName = con.getSkypeName();
+			if (Skype.getPlugin().testRateLimitLookupUserRegistry(skypeName,
+					ctx.getSocket().getInetAddress().getHostAddress())) {
+				PacketPlayInReply replyPacket = new PacketPlayInReply(
+						PacketPlayInReply.BAD_REQUEST, packet.getType().name()
+								+ " failed");
+				return replyPacket;
+			}
+		}
 		List<String> skypeNames = new ArrayList<String>();
 		for (String key : Skype.getPlugin().getConfig()
 				.getConfigurationSection("registry").getKeys(false)) {

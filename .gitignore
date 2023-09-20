@@ -96,5 +96,6 @@ Skype-core/target
 Skype-server/bin
 Skype-server/target
 Skype-server/config*.db
+Skype-server/src/main/resources/IP2PROXY-LITE-PX2.CSV
 images2
 Skype-1.2-SNAPSHOT.exe

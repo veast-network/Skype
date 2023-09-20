@@ -1,10 +1,20 @@
 package codes.wilma24.Skype.server.v1_0_R1;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.bouncycastle.util.Arrays;
 
 import codes.wilma24.Skype.api.v1_0_R1.command.CommandMap;
 import codes.wilma24.Skype.api.v1_0_R1.data.types.Call;
@@ -72,8 +82,141 @@ public class Skype {
 
 	private UserManager userManager;
 
+	private ConcurrentHashMap<String, ConcurrentHashMap<String, Integer>> dayToRegistrationRateLimiterMap = new ConcurrentHashMap<>();
+
+	private ConcurrentHashMap<String, Long> registrationRateLimiterMap = new ConcurrentHashMap<>();
+
+	private ConcurrentHashMap<String, Long> messageRateLimiterMap = new ConcurrentHashMap<>();
+
+	private ConcurrentHashMap<String, Long> updateUserRateLimiterMap = new ConcurrentHashMap<>();
+
+	private ConcurrentHashMap<String, Long> lookupUserRegistryRateLimiterMap = new ConcurrentHashMap<>();
+
+	private static ArrayList<String> proxyList = new ArrayList<>();
+
+	private static ArrayList<String> bannedIpList = new ArrayList<>();
+
 	static {
+		long before = System.currentTimeMillis();
 		plugin = new Skype();
+		try {
+			InputStream is = Skype.class.getResource("/IP2PROXY-LITE-PX2.CSV")
+					.openStream();
+			byte[] b = new byte[1024];
+			int read;
+			File file = File.createTempFile("IP2PROXY-LITE-PX2", ".CSV");
+			FileOutputStream fos = new FileOutputStream(file);
+			while ((read = is.read(b)) != -1) {
+				fos.write(Arrays.copyOf(b, read));
+				fos.flush();
+			}
+			fos.close();
+			try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+				String line;
+				while ((line = br.readLine()) != null) {
+					String ipnum = line.substring(1);
+					ipnum = ipnum.substring(0, ipnum.indexOf("\""));
+					long ipnumLong = Long.parseLong(ipnum);
+					String ip = "";
+					ip = ((ipnumLong / 16777216) % 256) + "."
+							+ ((ipnumLong / 65536) % 256) + "."
+							+ ((ipnumLong / 256) % 256) + "."
+							+ (ipnumLong % 256);
+					proxyList.add(ip);
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		long elapsed = System.currentTimeMillis() - before;
+		System.out.println("took " + elapsed
+				+ "ms to start server on port 28109");
+	}
+
+	public boolean testRateLimitRegistration(String ip) {
+		long timestamp = Long.parseLong(registrationRateLimiterMap
+				.getOrDefault(ip, 0L) + "");
+		registrationRateLimiterMap.put(ip, System.currentTimeMillis());
+		Date date = new Date();
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
+		ConcurrentHashMap<String, Integer> map = dayToRegistrationRateLimiterMap
+				.getOrDefault(format.format(date),
+						new ConcurrentHashMap<String, Integer>());
+		int prev = map.getOrDefault(ip, 0);
+		map.put(ip, prev + 1);
+		dayToRegistrationRateLimiterMap.put(format.format(date), map);
+		if (prev + 1 > 10) {
+			bannedIpList.add(ip);
+		}
+		if (prev + 1 > 3) {
+			return true;
+		}
+		if (System.currentTimeMillis() - timestamp < 10000L) {
+			return true;
+		}
+		return false;
+	}
+
+	public boolean testRateLimitMessaging(String skypeName, String ip) {
+		{
+			long timestamp = Long.parseLong(messageRateLimiterMap.getOrDefault(
+					ip, 0L) + "");
+			messageRateLimiterMap.put(ip, System.currentTimeMillis());
+			if (System.currentTimeMillis() - timestamp < 2000L) {
+				return true;
+			}
+		}
+		{
+			long timestamp = Long.parseLong(messageRateLimiterMap.getOrDefault(
+					skypeName, 0L) + "");
+			messageRateLimiterMap.put(skypeName, System.currentTimeMillis());
+			if (System.currentTimeMillis() - timestamp < 2000L) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public boolean testRateLimitUpdateUser(String skypeName, String ip) {
+		{
+			long timestamp = Long.parseLong(updateUserRateLimiterMap
+					.getOrDefault(ip, 0L) + "");
+			updateUserRateLimiterMap.put(ip, System.currentTimeMillis());
+			if (System.currentTimeMillis() - timestamp < 10000L) {
+				return true;
+			}
+		}
+		{
+			long timestamp = Long.parseLong(updateUserRateLimiterMap
+					.getOrDefault(skypeName, 0L) + "");
+			updateUserRateLimiterMap.put(skypeName, System.currentTimeMillis());
+			if (System.currentTimeMillis() - timestamp < 10000L) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public boolean testRateLimitLookupUserRegistry(String skypeName, String ip) {
+		{
+			long timestamp = Long.parseLong(lookupUserRegistryRateLimiterMap
+					.getOrDefault(ip, 0L) + "");
+			lookupUserRegistryRateLimiterMap
+					.put(ip, System.currentTimeMillis());
+			if (System.currentTimeMillis() - timestamp < 10000L) {
+				return true;
+			}
+		}
+		{
+			long timestamp = Long.parseLong(lookupUserRegistryRateLimiterMap
+					.getOrDefault(skypeName, 0L) + "");
+			lookupUserRegistryRateLimiterMap.put(skypeName,
+					System.currentTimeMillis());
+			if (System.currentTimeMillis() - timestamp < 10000L) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public Skype() {
@@ -198,9 +341,32 @@ public class Skype {
 		CommandMap.register(PacketType.VIDEO_CALL_RESOLUTION_CHANGED,
 				new VideoCallResolutionChangedCmd());
 		serverSocket = new ServerSocket(28109);
-		while (true) {
+		outerLoop: while (true) {
 			try {
 				Socket socket = serverSocket.accept();
+				String ip = socket.getInetAddress().getHostAddress();
+				long before = System.currentTimeMillis();
+				if (ip.equals("127.0.0.1")) {
+				} else {
+					for (String ip2 : proxyList) {
+						if (ip.equals(ip2)) {
+							long elapsed = System.currentTimeMillis() - before;
+							System.out.println("took " + elapsed
+									+ "ms to block " + ip);
+							socket.close();
+							continue outerLoop;
+						}
+					}
+					for (String ip2 : bannedIpList) {
+						if (ip.equals(ip2)) {
+							long elapsed = System.currentTimeMillis() - before;
+							System.out.println("took " + elapsed
+									+ "ms to block " + ip);
+							socket.close();
+							continue outerLoop;
+						}
+					}
+				}
 				SocketHandlerContext ctx = new SocketHandlerContext(socket);
 				ctx.fireInboundHandlerActive(new Runnable() {
 
