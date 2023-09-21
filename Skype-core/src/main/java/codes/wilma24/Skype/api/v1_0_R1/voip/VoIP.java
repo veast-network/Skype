@@ -42,9 +42,16 @@ public class VoIP {
 		webphoneobj.API_SetParameter("serveraddress", sipserver);
 		webphoneobj.API_SetParameter("username", username);
 		webphoneobj.API_SetParameter("password", password);
-		webphoneobj.API_Hangup(-2);
 		System.out.println("start...");
 		boolean ret = webphoneobj.API_Start();
+		if (ret) {
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			webphoneobj.API_Hangup(-2);
+		}
 		connected = ret;
 		return ret;
 	}

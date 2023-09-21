@@ -17,10 +17,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.font.TextAttribute;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -1194,40 +1192,19 @@ public class LoginForm extends JFrame {
 									PacketPlayInLogin loginPacket = Packet
 											.fromJson(text,
 													PacketPlayInLogin.class);
-									{
-										File file = new File("login1.txt");
-										if (file.exists()) {
-											file.delete();
-										}
-										FileOutputStream fos = new FileOutputStream(
-												file);
-										fos.write(skypeName.getBytes());
-										fos.flush();
-										fos.close();
+									try {
+										Skype.getPlugin().getConfig()
+												.replace("username", skypeName);
+									} catch (SQLException e1) {
+										e1.printStackTrace();
 									}
-									{
-										File file = new File("login2.txt");
-										if (file.exists()) {
-											file.delete();
-										}
-										FileOutputStream fos = new FileOutputStream(
-												file);
-										fos.write(replyPacket.get().getText()
-												.getBytes());
-										fos.flush();
-										fos.close();
-									}
-									{
-										File file = new File("login3.txt");
-										if (file.exists()) {
-											file.delete();
-										}
-										FileOutputStream fos = new FileOutputStream(
-												file);
-										fos.write(PGPainless.asciiArmor(pubKey)
-												.getBytes());
-										fos.flush();
-										fos.close();
+									try {
+										Skype.getPlugin()
+												.getConfig()
+												.replace("token",
+														loginPacket.getToken());
+									} catch (SQLException e1) {
+										e1.printStackTrace();
 									}
 									authCode = UUID.fromString(loginPacket
 											.getAuthCode());
@@ -1280,9 +1257,32 @@ public class LoginForm extends JFrame {
 							e.printStackTrace();
 						}
 						try {
-							new File("login1.txt").delete();
-							new File("login2.txt").delete();
-							new File("login3.txt").delete();
+							Skype.getPlugin().getConfig()
+									.replace("username", null);
+						} catch (SQLException e1) {
+							e1.printStackTrace();
+						}
+						try {
+							Skype.getPlugin().getConfig()
+									.replace("token", null);
+						} catch (SQLException e1) {
+							e1.printStackTrace();
+						}
+						try {
+							Skype.getPlugin().getConfig()
+									.replace("sipserver", null);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						try {
+							Skype.getPlugin().getConfig()
+									.replace("sipusername", null);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						try {
+							Skype.getPlugin().getConfig()
+									.replace("sippassword", null);
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -1308,32 +1308,16 @@ public class LoginForm extends JFrame {
 
 	@Override
 	public void show() {
-		if (new File("login1.txt").exists()) {
+		if (Skype.getPlugin().getConfig().contains("username")) {
 			try {
-				String skypeName = new String(Files.readAllBytes(new File(
-						"login1.txt").toPath()));
-				String password = new String(Files.readAllBytes(new File(
-						"login2.txt").toPath()));
-				PGPPublicKeyRing pubKey = PGPainless.readKeyRing()
-						.publicKeyRing(
-								new String(Files.readAllBytes(new File(
-										"login3.txt").toPath())));
-				try {
-					password = PGPUtilities.decryptAndVerify(password,
-							Skype.getPlugin().getPrivKey(), pubKey)
-							.getMessage();
-				} catch (PGPException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				PacketPlayInLogin loginPacket = Packet.fromJson(password,
-						PacketPlayInLogin.class);
-				password = loginPacket.getToken();
+				String skypeName = Skype.getPlugin().getConfig()
+						.getString("username");
+				String password = Skype.getPlugin().getConfig()
+						.getString("token");
 				navigateSignIn(skypeName, password);
 				super.show();
 				return;
-			} catch (IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}

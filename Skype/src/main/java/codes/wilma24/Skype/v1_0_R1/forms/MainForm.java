@@ -52,6 +52,7 @@ import java.nio.file.Files;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10627,9 +10628,27 @@ public class MainForm extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				try {
-					new File("login1.txt").delete();
-					new File("login2.txt").delete();
-					new File("login3.txt").delete();
+					Skype.getPlugin().getConfig().replace("username", null);
+				} catch (SQLException e1) {
+					e1.printStackTrace();
+				}
+				try {
+					Skype.getPlugin().getConfig().replace("token", null);
+				} catch (SQLException e1) {
+					e1.printStackTrace();
+				}
+				try {
+					Skype.getPlugin().getConfig().replace("sipserver", null);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					Skype.getPlugin().getConfig().replace("sipusername", null);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					Skype.getPlugin().getConfig().replace("sippassword", null);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -11468,22 +11487,48 @@ public class MainForm extends JFrame {
 		super.show();
 
 		if (!shown) {
-
-			File file1 = new File("sip1.txt");
-			File file2 = new File("sip2.txt");
-			File file3 = new File("sip3.txt");
-			if (file1.exists() && file2.exists() && file3.exists()) {
+			if (Skype.getPlugin().getConfig().contains("sipserver")) {
 				try {
-					String sipserver = new String(Files.readAllBytes(file1
-							.toPath()));
-					String username = new String(Files.readAllBytes(file2
-							.toPath()));
-					String password = new String(Files.readAllBytes(file3
-							.toPath()));
+					String sipserver = Skype.getPlugin().getConfig()
+							.getString("sipserver");
+					String username = Skype.getPlugin().getConfig()
+							.getString("sipusername");
+					String password = Skype.getPlugin().getConfig()
+							.getString("sippassword");
 					VoIP.getPlugin().API_Start(sipserver, username, password);
-				} catch (IOException e1) {
+				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
+			} else {
+				VoIPRegisterForm form = new VoIPRegisterForm(this,
+						new VoIPRegisterForm.Runnable() {
+
+							@Override
+							public void run() {
+								String sipserver = getSIPServer();
+								String username = getUsername();
+								String password = getPassword();
+								try {
+									Skype.getPlugin().getConfig()
+											.replace("sipserver", sipserver);
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+								try {
+									Skype.getPlugin().getConfig()
+											.replace("sipusername", username);
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+								try {
+									Skype.getPlugin().getConfig()
+											.replace("sippassword", password);
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							}
+						});
+				form.show();
 			}
 
 			/**
