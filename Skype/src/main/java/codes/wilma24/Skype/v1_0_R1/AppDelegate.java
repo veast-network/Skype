@@ -21,7 +21,7 @@ import codes.wilma24.Skype.v1_0_R1.forms.LoginForm;
 
 public class AppDelegate {
 
-	public static final long VERSION = 3424;
+	public static final long VERSION = 3426;
 
 	public static long TIME_OFFSET = 0L;
 

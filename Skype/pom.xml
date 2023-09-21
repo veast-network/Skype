@@ -167,5 +167,10 @@
 			<artifactId>webcam-capture</artifactId>
 			<version>0.3.10</version>
 		</dependency>
+		<dependency>
+			<groupId>webphone</groupId>
+			<artifactId>webphone</artifactId>
+			<version>1.0</version>
+		</dependency>
     </dependencies>
 </project>

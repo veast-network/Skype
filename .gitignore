@@ -94,6 +94,10 @@ Skype/config.db
 Skype/login1.txt
 Skype/login2.txt
 Skype/login3.txt
+Skype/sip1.txt
+Skype/sip2.txt
+Skype/sip3.txt
+Skype/mwphonedata
 Skype-core/bin
 Skype-core/target
 Skype-server/bin

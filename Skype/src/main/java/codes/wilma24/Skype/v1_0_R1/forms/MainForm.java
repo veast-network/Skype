@@ -108,6 +108,7 @@ import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.util.io.Streams;
 import org.pgpainless.PGPainless;
 
+import codes.wilma24.Skype.api.v1_0_R1.data.types.VoIPCall;
 import codes.wilma24.Skype.api.v1_0_R1.gson.GsonBuilder;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptContactRequest;
@@ -135,6 +136,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutVideoCallResolutionChanged;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
+import codes.wilma24.Skype.api.v1_0_R1.voip.VoIP;
 import codes.wilma24.Skype.v1_0_R1.AppDelegate;
 import codes.wilma24.Skype.v1_0_R1.Utils;
 import codes.wilma24.Skype.v1_0_R1.audioio.AudioIO;
@@ -146,6 +148,7 @@ import codes.wilma24.Skype.v1_0_R1.data.types.Conversation;
 import codes.wilma24.Skype.v1_0_R1.data.types.Message;
 import codes.wilma24.Skype.v1_0_R1.data.types.MessageType;
 import codes.wilma24.Skype.v1_0_R1.data.types.Status;
+import codes.wilma24.Skype.v1_0_R1.data.types.VoIPContact;
 import codes.wilma24.Skype.v1_0_R1.fontio.FontIO;
 import codes.wilma24.Skype.v1_0_R1.imageio.ImageIO;
 import codes.wilma24.Skype.v1_0_R1.imgur.ImgurUploader;
@@ -315,6 +318,7 @@ public class MainForm extends JFrame {
 	public boolean microphoneEnabled = true;
 	public int videoMode = WEBCAM_CAPTURE_MODE;
 	public boolean videoEnabled = false;
+	public VoIPCall ongoingCallObj = null;
 	public boolean ongoingCall = false;
 	public JLabel ongoingCallTimeLabel = new JLabel();
 	public long ongoingCallStartTime = 0L;
@@ -358,6 +362,11 @@ public class MainForm extends JFrame {
 	 * User lookup
 	 */
 	private HashMap<UUID, Conversation> cachedUsers = new HashMap<>();
+
+	/*
+	 * Voip
+	 */
+	private String number = "";
 
 	public Optional<Conversation> lookupUser(UUID participantId) {
 		for (Conversation conversation : conversations) {
@@ -1113,6 +1122,7 @@ public class MainForm extends JFrame {
 					homeButtonBackgroundPanel
 							.setBackground(leftTopPaneBackgroundColor);
 					rightPanelPage = "CallPhones";
+					number = "";
 					selectedConversation = null;
 					refreshWindow();
 				} else {
@@ -1600,19 +1610,33 @@ public class MainForm extends JFrame {
 								if (conversation == null) {
 									return;
 								}
-								if (!(conversation instanceof Contact)) {
+								if (!(conversation instanceof Contact)
+										&& !(conversation instanceof VoIPContact)) {
 									return;
 								}
 								DialogForm form = new DialogForm(null,
 										"Skype™ - Remove contact?",
 										"Remove contact?", "Remove "
-												+ selectedConversation
-														.getDisplayName()
+												+ conversation.getDisplayName()
 												+ " from Contacts?", "Remove",
 										new Runnable() {
 
 											@Override
 											public void run() {
+												if (conversation instanceof VoIPContact) {
+													MainForm.get().conversations
+															.remove(conversation);
+													if (selectedConversation != null
+															&& selectedConversation
+																	.getUniqueId()
+																	.equals(conversation
+																			.getUniqueId())) {
+														selectedConversation = null;
+														rightPanelPage = "AccountHome";
+													}
+													refreshWindow();
+													return;
+												}
 												Optional<SocketHandlerContext> ctx = Skype
 														.getPlugin()
 														.createHandle();
@@ -2383,19 +2407,33 @@ public class MainForm extends JFrame {
 								if (conversation == null) {
 									return;
 								}
-								if (!(conversation instanceof Contact)) {
+								if (!(conversation instanceof Contact)
+										&& !(conversation instanceof VoIPContact)) {
 									return;
 								}
 								DialogForm form = new DialogForm(null,
 										"Skype™ - Remove contact?",
 										"Remove contact?", "Remove "
-												+ selectedConversation
-														.getDisplayName()
+												+ conversation.getDisplayName()
 												+ " from Contacts?", "Remove",
 										new Runnable() {
 
 											@Override
 											public void run() {
+												if (conversation instanceof VoIPContact) {
+													MainForm.get().conversations
+															.remove(conversation);
+													if (selectedConversation != null
+															&& selectedConversation
+																	.getUniqueId()
+																	.equals(conversation
+																			.getUniqueId())) {
+														selectedConversation = null;
+														rightPanelPage = "AccountHome";
+													}
+													refreshWindow();
+													return;
+												}
 												Optional<SocketHandlerContext> ctx = Skype
 														.getPlugin()
 														.createHandle();
@@ -2798,7 +2836,8 @@ public class MainForm extends JFrame {
 				0, new Color(211, 230, 234)));
 		rightTopLayeredPane.setOpaque(false);
 
-		if (selectedConversation == null) {
+		if (selectedConversation == null
+				&& !rightPanelPage.equals("CallPhones")) {
 			/**
 			 * The selected right panel page is not Conversation
 			 * 
@@ -2812,7 +2851,12 @@ public class MainForm extends JFrame {
 		{
 			JPanel iconLabelPanel = new JPanel();
 			iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
-			ImageIcon imageIcon = selectedConversation.getImageIcon();
+			ImageIcon imageIcon;
+			if (!rightPanelPage.equals("CallPhones")) {
+				imageIcon = selectedConversation.getImageIcon();
+			} else {
+				imageIcon = ImageIO.getResourceAsImageIcon("/22744.png");
+			}
 			imageIcon = ImageIO.getScaledImageIcon(imageIcon, new Dimension(60,
 					60));
 			imageIcon = ImageIO.getCircularImageIcon(imageIcon);
@@ -2828,18 +2872,21 @@ public class MainForm extends JFrame {
 				@Override
 				public void mousePressed(MouseEvent evt) {
 					super.mousePressed(evt);
-					if (selectedConversation.getPubKey().isPresent()) {
-						String pubKey;
-						try {
-							pubKey = PGPainless.asciiArmor(selectedConversation
-									.getPubKey().get());
-							JOptionPane.showMessageDialog(frame, pubKey);
-						} catch (IOException e) {
-							e.printStackTrace();
+					if (!rightPanelPage.equals("CallPhones")) {
+						if (selectedConversation.getPubKey().isPresent()) {
+							String pubKey;
+							try {
+								pubKey = PGPainless
+										.asciiArmor(selectedConversation
+												.getPubKey().get());
+								JOptionPane.showMessageDialog(frame, pubKey);
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						} else {
+							JOptionPane.showMessageDialog(frame,
+									selectedConversation);
 						}
-					} else {
-						JOptionPane.showMessageDialog(frame,
-								selectedConversation);
 					}
 				}
 
@@ -2862,10 +2909,12 @@ public class MainForm extends JFrame {
 			iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
 			ImageIcon imageIcon = ImageIO
 					.getResourceAsImageIcon("/1074949811.png");
-			if (selectedConversation instanceof Contact) {
-				if (((Contact) selectedConversation).isFavorite()) {
-					imageIcon = new ImageIcon(new BufferedImage(30, 30,
-							BufferedImage.TYPE_INT_ARGB));
+			if (!rightPanelPage.equals("CallPhones")) {
+				if (selectedConversation instanceof Contact) {
+					if (((Contact) selectedConversation).isFavorite()) {
+						imageIcon = new ImageIcon(new BufferedImage(30, 30,
+								BufferedImage.TYPE_INT_ARGB));
+					}
 				}
 			}
 			JLabel iconLabel = new JLabel(imageIcon);
@@ -2891,12 +2940,15 @@ public class MainForm extends JFrame {
 			iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
 			ImageIcon imageIcon = ImageIO
 					.getCircularStatusIcon(Status.NOT_A_CONTACT);
-			if (selectedConversation instanceof Contact) {
-				imageIcon = ImageIO
-						.getCircularStatusIcon(((Contact) selectedConversation)
-								.getOnlineStatus());
-			} else if (selectedConversation.isGroupChat()) {
-				imageIcon = ImageIO.getResourceAsImageIcon("/212013846.png");
+			if (!rightPanelPage.equals("CallPhones")) {
+				if (selectedConversation instanceof Contact) {
+					imageIcon = ImageIO
+							.getCircularStatusIcon(((Contact) selectedConversation)
+									.getOnlineStatus());
+				} else if (selectedConversation.isGroupChat()) {
+					imageIcon = ImageIO
+							.getResourceAsImageIcon("/212013846.png");
+				}
 			}
 			JLabel iconLabel = new JLabel(imageIcon);
 
@@ -2905,7 +2957,8 @@ public class MainForm extends JFrame {
 			 */
 			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-			if (selectedConversation.isGroupChat()) {
+			if (!rightPanelPage.equals("CallPhones")
+					&& selectedConversation.isGroupChat()) {
 				iconLabelPanel.setBounds(81, 48, 12, 12);
 			} else {
 				iconLabelPanel.setBounds(80, 47, 14, 14);
@@ -2932,50 +2985,114 @@ public class MainForm extends JFrame {
 			 */
 			JLabel statusLabel = new JLabel(
 					" This person isn't in your Contact list.");
-			if (selectedConversation instanceof Contact) {
-				Status onlineStatus = ((Contact) selectedConversation)
-						.getOnlineStatus();
-				statusLabel = new JLabel(WordUtils.capitalize(onlineStatus
-						.name().toLowerCase()));
-			} else if (selectedConversation.isGroupChat()) {
-				JLabel label = new JLabel(selectedConversation
-						.getParticipants().size() + " people");
-				MouseAdapter mouseAdapter = new MouseAdapter() {
+			if (rightPanelPage.equals("CallPhones")) {
+			} else {
+				if (selectedConversation instanceof Contact) {
+					Status onlineStatus = ((Contact) selectedConversation)
+							.getOnlineStatus();
+					statusLabel = new JLabel(WordUtils.capitalize(onlineStatus
+							.name().toLowerCase()));
+				} else if (selectedConversation.isGroupChat()) {
+					JLabel label = new JLabel(selectedConversation
+							.getParticipants().size() + " people");
+					MouseAdapter mouseAdapter = new MouseAdapter() {
 
-					@Override
-					public void mousePressed(MouseEvent evt) {
-						super.mousePressed(evt);
-						if (selectedConversation.getGroupChatAdmins().contains(
-								loggedInUser.getUniqueId())) {
-							List<String> participants = new ArrayList<>();
-							for (UUID participantId : selectedConversation
-									.getParticipants()) {
-								if (participantId.equals(loggedInUser
-										.getUniqueId())) {
-									continue;
+						@Override
+						public void mousePressed(MouseEvent evt) {
+							super.mousePressed(evt);
+							if (selectedConversation.getGroupChatAdmins()
+									.contains(loggedInUser.getUniqueId())) {
+								List<String> participants = new ArrayList<>();
+								for (UUID participantId : selectedConversation
+										.getParticipants()) {
+									if (participantId.equals(loggedInUser
+											.getUniqueId())) {
+										continue;
+									}
+									Optional<Conversation> userLookup = lookupUser(participantId);
+									if (userLookup.isPresent()) {
+										participants.add(userLookup.get()
+												.getSkypeName());
+									}
 								}
-								Optional<Conversation> userLookup = lookupUser(participantId);
-								if (userLookup.isPresent()) {
-									participants.add(userLookup.get()
-											.getSkypeName());
-								}
-							}
-							RemoveParticipantsFromGroupChatForm form = new RemoveParticipantsFromGroupChatForm(
-									participants,
-									new RemoveParticipantsFromGroupChatForm.Runnable() {
+								RemoveParticipantsFromGroupChatForm form = new RemoveParticipantsFromGroupChatForm(
+										participants,
+										new RemoveParticipantsFromGroupChatForm.Runnable() {
 
-										@Override
-										public void run() {
-											Conversation groupChat = selectedConversation;
-											boolean displayNameUpdate = false;
-											{
+											@Override
+											public void run() {
+												Conversation groupChat = selectedConversation;
+												boolean displayNameUpdate = false;
+												{
+													String displayName = "";
+													int x = 0;
+													for (UUID participantId2 : groupChat
+															.getParticipants()) {
+														Optional<Conversation> userLookup = lookupUser(participantId2);
+														if (userLookup
+																.isPresent()) {
+															if (x == groupChat
+																	.getParticipants()
+																	.size() - 2) {
+																displayName += userLookup
+																		.get()
+																		.getDisplayName()
+																		+ ", and ";
+															} else {
+																displayName += userLookup
+																		.get()
+																		.getDisplayName()
+																		+ ", ";
+															}
+														} else {
+															displayName += participantId2
+																	.toString()
+																	+ ", ";
+														}
+														x++;
+													}
+													if (displayName.length() > 0) {
+														displayName = displayName
+																.substring(
+																		0,
+																		displayName
+																				.length() - 2);
+													}
+													System.out.println(displayName
+															+ ":"
+															+ groupChat
+																	.getDisplayName());
+													if (displayName.equals(groupChat
+															.getDisplayName())) {
+														displayNameUpdate = true;
+													}
+												}
+												Optional<UUID> authCode2 = registerUser(
+														groupChat, password);
+												if (!authCode2.isPresent()) {
+													return;
+												}
+												UUID messageId = UUID
+														.randomUUID();
+												long timestamp = System
+														.currentTimeMillis();
+												Message message = new Message(
+														messageId,
+														loggedInUser
+																.getUniqueId(),
+														MessageType.GROUP_MEMBER_REMOVED,
+														"?", timestamp,
+														groupChat);
 												String displayName = "";
 												int x = 0;
-												for (UUID participantId2 : groupChat
+												for (String participantId2 : this
 														.getParticipants()) {
-													Optional<Conversation> userLookup = lookupUser(participantId2);
+													Optional<Conversation> userLookup = lookupUser(Skype
+															.getPlugin()
+															.getUniqueId(
+																	participantId2));
 													if (userLookup.isPresent()) {
-														if (x == groupChat
+														if (x == this
 																.getParticipants()
 																.size() - 2) {
 															displayName += userLookup
@@ -3002,28 +3119,588 @@ public class MainForm extends JFrame {
 																	displayName
 																			.length() - 2);
 												}
-												System.out.println(displayName
-														+ ":"
-														+ groupChat
-																.getDisplayName());
-												if (displayName.equals(groupChat
-														.getDisplayName())) {
-													displayNameUpdate = true;
+												message.setMessage(displayName);
+												if (!conversations
+														.contains(groupChat)) {
+													conversations
+															.add(groupChat);
 												}
+												UUID conversationId = groupChat
+														.getUniqueId();
+												Optional<SocketHandlerContext> ctx = Skype
+														.getPlugin()
+														.createHandle();
+												if (!ctx.isPresent()) {
+													return;
+												}
+												try {
+													ctx.get()
+															.getSocket()
+															.setSoTimeout(10000);
+												} catch (SocketException e) {
+													e.printStackTrace();
+												}
+												List<String> list = participants;
+												for (String participant : this
+														.getParticipants()) {
+													list.remove(participant);
+												}
+												list.add(loggedInUser
+														.getSkypeName());
+												Object payload = GsonBuilder
+														.create().toJson(list);
+												Optional<PacketPlayInReply> replyPacket = ctx
+														.get()
+														.getOutboundHandler()
+														.dispatch(
+																ctx.get(),
+																new PacketPlayOutUpdateGroupChatParticipants(
+																		authCode2
+																				.get(),
+																		payload));
+												if (!replyPacket.isPresent()) {
+													return;
+												}
+												if (replyPacket.get()
+														.getStatusCode() != 200) {
+													return;
+												}
+												replyPacket = ctx
+														.get()
+														.getOutboundHandler()
+														.dispatch(
+																ctx.get(),
+																new PacketPlayOutSendMessage(
+																		authCode,
+																		conversationId,
+																		messageId,
+																		message.toString(),
+																		timestamp));
+												if (!replyPacket.isPresent()) {
+													return;
+												}
+												if (replyPacket.get()
+														.getStatusCode() != 200) {
+													return;
+												}
+												groupChat
+														.setLastModified(new Date(
+																new Date()
+																		.getTime()
+																		+ AppDelegate.TIME_OFFSET));
+												if (displayNameUpdate) {
+													String displayName2 = "";
+													int x2 = 0;
+													for (String participantId2 : list) {
+														if (x2 == list.size() - 2) {
+															displayName2 += participantId2
+																	+ ", and ";
+														} else {
+															displayName2 += participantId2
+																	+ ", ";
+														}
+														x2++;
+													}
+													if (displayName2.length() > 0) {
+														displayName2 = displayName2
+																.substring(
+																		0,
+																		displayName2
+																				.length() - 2);
+													}
+													String res2 = displayName2;
+													groupChat
+															.setDisplayName(res2);
+													registerUser(groupChat,
+															password);
+													if (authCode2.isPresent()) {
+														refreshWindow(SCROLL_TO_BOTTOM);
+													} else {
+														groupChat
+																.setDisplayName(displayName2);
+													}
+												} else {
+													refreshWindow(SCROLL_TO_BOTTOM);
+												}
+												AudioIO.IM_SENT.playSound();
 											}
-											Optional<UUID> authCode2 = registerUser(
-													groupChat, password);
-											if (!authCode2.isPresent()) {
-												return;
+										});
+								form.setLocationRelativeTo(label);
+								int x = form.getLocation().x;
+								int y = form.getLocation().y
+										+ (form.getContentPane().getHeight() / 2)
+										+ (label.getHeight() / 2) + 7;
+								form.setLocation(x, y);
+								form.show();
+							} else {
+								List<String> participants = new ArrayList<>();
+								for (UUID participantId : selectedConversation
+										.getParticipants()) {
+									Optional<Conversation> userLookup = lookupUser(participantId);
+									if (userLookup.isPresent()) {
+										participants.add(userLookup.get()
+												.getSkypeName());
+									}
+								}
+								ViewParticipantsInGroupChatForm form = new ViewParticipantsInGroupChatForm(
+										participants);
+								form.setLocationRelativeTo(label);
+								int x = form.getLocation().x;
+								int y = form.getLocation().y
+										+ (form.getContentPane().getHeight() / 2)
+										+ (label.getHeight() / 2) + 7;
+								form.setLocation(x, y);
+								form.show();
+							}
+						}
+
+					};
+
+					label.addMouseListener(mouseAdapter);
+					label.setCursor(Cursor
+							.getPredefinedCursor(Cursor.HAND_CURSOR));
+					statusLabel = label;
+				}
+			}
+
+			statusLabel.setFont(font);
+
+			int width = statusLabel.getPreferredSize().width;
+			int height = statusLabel.getPreferredSize().height;
+
+			statusLabelPanel.add(statusLabel);
+			statusLabelPanel.setBounds(104, 40, width, height + 10);
+
+			/**
+			 * Panel added to pane with z-index 1, above decoration panel
+			 */
+			rightTopLayeredPane.add(statusLabelPanel, new Integer(1), 0);
+		}
+
+		/**
+		 * Add display name floating in top left panel
+		 */
+		{
+			JPanel displayNameLabelPanel = new JPanel();
+			FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(
+					FontIO.SEGOE_UI_SEMILIGHT
+							.deriveFont(Font.TRUETYPE_FONT, 21));
+			JLabel displayNameLabel = new JLabel(Utils.concatStringEllipses(fm,
+					panelWidth - 320,
+					rightPanelPage.equals("CallPhones") ? number
+							: selectedConversation.getDisplayName()));
+			displayNameLabel.setFont(FontIO.SEGOE_UI_SEMILIGHT.deriveFont(
+					Font.TRUETYPE_FONT, 21));
+
+			/**
+			 * Reserved for future use
+			 */
+			displayNameLabel.setCursor(Cursor
+					.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+			MouseAdapter mouseAdapter = new MouseAdapter() {
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					if (rightPanelPage.equals("CallPhones")) {
+						String res2 = (String) JOptionPane.showInputDialog(
+								frame, "Enter new phone number",
+								frame.getTitle(), JOptionPane.PLAIN_MESSAGE,
+								null, null, number);
+						if (res2 != null) {
+							if (res2.trim().equals("")) {
+								res2 = "";
+							}
+							number = res2;
+							refreshWindow();
+						}
+					} else {
+						if (selectedConversation.getPubKey().isPresent()) {
+							String pubKey;
+							try {
+								pubKey = PGPainless
+										.asciiArmor(selectedConversation
+												.getPubKey().get());
+								JOptionPane.showMessageDialog(frame, pubKey);
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						} else {
+							if (selectedConversation.isGroupChat()
+									&& selectedConversation
+											.getGroupChatAdmins().contains(
+													loggedInUser.getUniqueId())) {
+								Conversation groupChat = selectedConversation;
+								String res2 = (String) JOptionPane
+										.showInputDialog(
+												frame,
+												"Enter new name for group chat",
+												frame.getTitle(),
+												JOptionPane.PLAIN_MESSAGE,
+												null, null,
+												groupChat.getDisplayName());
+								if (res2 != null) {
+									if (res2.trim().equals("")) {
+										String displayName = "";
+										int x = 0;
+										for (UUID participantId2 : groupChat
+												.getParticipants()) {
+											Optional<Conversation> userLookup = lookupUser(participantId2);
+											if (userLookup.isPresent()) {
+												if (x == groupChat
+														.getParticipants()
+														.size() - 2) {
+													displayName += userLookup
+															.get()
+															.getDisplayName()
+															+ ", and ";
+												} else {
+													displayName += userLookup
+															.get()
+															.getDisplayName()
+															+ ", ";
+												}
+											} else {
+												displayName += participantId2
+														.toString() + ", ";
 											}
-											UUID messageId = UUID.randomUUID();
-											long timestamp = System
-													.currentTimeMillis();
-											Message message = new Message(
-													messageId,
-													loggedInUser.getUniqueId(),
-													MessageType.GROUP_MEMBER_REMOVED,
-													"?", timestamp, groupChat);
+											x++;
+										}
+										if (displayName.length() > 0) {
+											displayName = displayName
+													.substring(0, displayName
+															.length() - 2);
+										}
+										res2 = displayName;
+									}
+									String displayName = groupChat
+											.getDisplayName();
+									groupChat.setDisplayName(res2);
+									Optional<UUID> authCode2 = registerUser(
+											groupChat, password);
+									if (authCode2.isPresent()) {
+										refreshWindow(SCROLL_TO_BOTTOM);
+									} else {
+										groupChat.setDisplayName(displayName);
+									}
+								}
+								return;
+							} else {
+								JOptionPane.showMessageDialog(frame,
+										selectedConversation.toString());
+							}
+						}
+					}
+				}
+
+			};
+
+			displayNameLabel.addMouseListener(mouseAdapter);
+
+			displayNameLabelPanel.setOpaque(false);
+			displayNameLabelPanel.add(displayNameLabel);
+			int width = displayNameLabel.getPreferredSize().width;
+			int height = displayNameLabel.getPreferredSize().height;
+			displayNameLabelPanel.setBounds(104, 11, width, height + 10);
+
+			/**
+			 * Panel added to pane with z-index 1, above decoration panel
+			 */
+			rightTopLayeredPane.add(displayNameLabelPanel, new Integer(1), 0);
+		}
+
+		{
+			JPanel iconLabelPanel = new JPanel();
+			iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+			ImageIcon imageIcon = ImageIO
+					.getResourceAsImageIcon("/1154498825.png");
+			JLabel iconLabel = new JLabel(imageIcon);
+
+			/**
+			 * Reserved for future use
+			 */
+			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+			if (!rightPanelPage.equals("CallPhones")
+					&& selectedConversation.isGroupChat()) {
+				if (selectedConversation.getGroupChatAdmins().contains(
+						loggedInUser.getUniqueId())) {
+					iconLabelPanel.setBounds(panelWidth - 166, 20, 40, 40);
+				} else {
+					iconLabelPanel.setBounds(panelWidth - 111, 20, 40, 40);
+				}
+			} else {
+				iconLabelPanel.setBounds(panelWidth - 166, 20, 40, 40);
+			}
+			iconLabelPanel.setOpaque(false);
+			iconLabelPanel.add(iconLabel);
+
+			/**
+			 * Panel added to pane with z-index 0
+			 */
+			rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+		}
+
+		{
+			MouseAdapter iconLabelMouseAdapter = new MouseAdapter() {
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					if (rightPanelPage.equals("CallPhones")
+							|| selectedConversation instanceof VoIPContact) {
+						if (!(selectedConversation instanceof VoIPContact)) {
+							VoIPContact testvoip = new VoIPContact();
+							testvoip.setSkypeName(number);
+							testvoip.setUniqueId(Skype.getPlugin().getUniqueId(
+									testvoip.getSkypeName()));
+							testvoip.setDisplayName(testvoip.getSkypeName());
+							testvoip.setLastModified(new Date(new Date()
+									.getTime() + AppDelegate.TIME_OFFSET));
+							boolean hit = false;
+							for (Conversation conversation : conversations) {
+								if (conversation.getUniqueId().equals(
+										testvoip.getUniqueId())) {
+									hit = true;
+									break;
+								}
+							}
+							if (!hit) {
+								conversations.add(testvoip);
+							}
+							ongoingCall = true;
+							selectedConversation = testvoip;
+							ongoingCallConversation = testvoip;
+						} else {
+							ongoingCall = true;
+							ongoingCallConversation = selectedConversation;
+							number = selectedConversation.getDisplayName();
+						}
+						ongoingCallStartTime = System.currentTimeMillis();
+						rightPanelPage = "OngoingCall";
+						AudioIO.CALL_INIT.playSound();
+						VoIPCall ret = VoIP.getPlugin().API_Call(number,
+								new Runnable() {
+
+									@Override
+									public void run() {
+										if (selectedConversation instanceof VoIPContact) {
+											ongoingCallObj.hangup();
+										}
+										if (selectedConversation.getUniqueId()
+												.equals(echoSoundTestService
+														.getUniqueId())) {
+											if (echo123 == null) {
+											} else {
+												echo123.stop();
+											}
+										}
+										mic.stop();
+										mic.drain();
+										ongoingCall = false;
+										ongoingCallConversation = null;
+										MainForm.get().ongoingCallParticipants
+												.clear();
+										ongoingCallId = null;
+										ongoingCallCipher = null;
+										ongoingCallStartTime = 0L;
+										rightPanelPage = "Conversation";
+										refreshWindow(SCROLL_TO_BOTTOM);
+										try {
+											for (Socket socket : callIncomingAudioSockets) {
+												socket.close();
+											}
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+										try {
+											for (Socket socket : callOutgoingAudioSockets) {
+												socket.close();
+											}
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+										ongoingVideoCall = false;
+										ongoingVideoCallId = null;
+										ongoingVideoCallCipher = null;
+										try {
+											for (Socket socket : videoCallIncomingAudioSockets) {
+												socket.close();
+											}
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+										try {
+											for (Socket socket : videoCallOutgoingAudioSockets) {
+												socket.close();
+											}
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+										videoEnabled = false;
+										microphoneEnabled = true;
+										MainForm.get().videoMode = MainForm
+												.get().WEBCAM_CAPTURE_MODE;
+										MainForm.ongoingVideoCallWidth = 0;
+										MainForm.ongoingVideoCallHeight = 0;
+										try {
+											Class<?> clazz = Class
+													.forName("com.github.sarxos.webcam.Webcam");
+											Method close = clazz.getMethod(
+													"close", null);
+											close.invoke(MainForm.webcam, null);
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+										AudioIO.HANGUP.playSound();
+									}
+
+								});
+						ongoingCallObj = ret;
+						refreshWindow();
+					} else {
+						microphoneEnabled = true;
+						mic.start();
+						if (ongoingCall == false) {
+							Optional<SocketHandlerContext> ctx = Skype
+									.getPlugin().createHandle();
+							if (!ctx.isPresent()) {
+								return;
+							}
+							byte[] cipher;
+							try {
+								cipher = CipherUtilities.randomCipher();
+							} catch (InvalidKeyException
+									| NoSuchPaddingException
+									| NoSuchAlgorithmException
+									| InvalidAlgorithmParameterException
+									| UnsupportedEncodingException e) {
+								e.printStackTrace();
+								return;
+							}
+							String base64 = CipherUtilities
+									.encodeBase64(cipher);
+							String message = PGPUtilities.encryptAndSign(
+									base64, selectedConversation);
+							Optional<PacketPlayInReply> reply = ctx
+									.get()
+									.getOutboundHandler()
+									.dispatch(
+											ctx.get(),
+											new PacketPlayOutSendCallRequest(
+													authCode,
+													selectedConversation
+															.getUniqueId(),
+													message));
+							if (!reply.isPresent()) {
+								return;
+							}
+							if (reply.get().getStatusCode() != 200) {
+								return;
+							}
+							AudioIO.CALL_INIT.playSound();
+							if (selectedConversation.getUniqueId().equals(
+									echoSoundTestService.getUniqueId())) {
+								if (echo123 == null) {
+									echo123 = AudioIO.ECHO123.playSound();
+								} else {
+									echo123.stop();
+									echo123.close();
+									echo123 = AudioIO.ECHO123.playSound();
+								}
+							}
+						}
+						rightPanelPage = "OngoingCall";
+						ongoingCall = true;
+						ongoingCallConversation = selectedConversation;
+						ongoingCallStartTime = new Date(new Date().getTime()
+								+ AppDelegate.TIME_OFFSET).getTime();
+						refreshWindow();
+					}
+				}
+			};
+			JPanel iconLabelPanel = new JPanel();
+			iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+			ImageIcon imageIcon = ImageIO
+					.getResourceAsImageIcon("/1342120668.png");
+			JLabel iconLabel = new JLabel(imageIcon);
+
+			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+			iconLabel.addMouseListener(iconLabelMouseAdapter);
+
+			if (!rightPanelPage.equals("CallPhones")
+					&& selectedConversation.isGroupChat()) {
+				if (selectedConversation.getGroupChatAdmins().contains(
+						loggedInUser.getUniqueId())) {
+					iconLabelPanel.setBounds(panelWidth - 111, 20, 40, 40);
+				} else {
+					iconLabelPanel.setBounds(panelWidth - 56, 20, 40, 40);
+				}
+			} else {
+				iconLabelPanel.setBounds(panelWidth - 111, 20, 40, 40);
+			}
+
+			iconLabelPanel.setOpaque(false);
+			iconLabelPanel.add(iconLabel);
+			iconLabelPanel.addMouseListener(iconLabelMouseAdapter);
+
+			/**
+			 * Panel added to pane with z-index 0
+			 */
+			rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+		}
+
+		{
+			JPanel iconLabelPanel = new JPanel();
+
+			MouseAdapter iconLabelMouseAdapter = new MouseAdapter() {
+
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					if (rightPanelPage.equals("CallPhones")) {
+					} else {
+						List<String> skypeNames = new ArrayList<>();
+						for (Conversation conversation : conversations) {
+							if (conversation instanceof Contact) {
+								if (selectedConversation.isGroupChat()) {
+									if (selectedConversation.getParticipants()
+											.contains(
+													conversation.getUniqueId())) {
+										continue;
+									}
+								}
+								skypeNames.add(conversation.getSkypeName());
+							}
+						}
+						AddParticipantsToGroupChatForm form = new AddParticipantsToGroupChatForm(
+								selectedConversation, skypeNames,
+								new AddParticipantsToGroupChatForm.Runnable() {
+
+									@Override
+									public void run() {
+										Conversation groupChat = selectedConversation;
+										boolean displayNameUpdate = false;
+										if (!selectedConversation.isGroupChat()) {
+											String skypeName;
+											do {
+												skypeName = "guest:"
+														+ UUID.randomUUID()
+																.toString()
+																.replace("-",
+																		"")
+																.substring(0,
+																		16);
+											} while (registry
+													.contains(skypeName));
+											UUID participantId = Skype
+													.getPlugin().getUniqueId(
+															skypeName);
+											groupChat = new Conversation();
+											groupChat
+													.setUniqueId(participantId);
+											groupChat.setGroupChat(true);
 											String displayName = "";
 											int x = 0;
 											for (String participantId2 : this
@@ -3059,667 +3736,230 @@ public class MainForm extends JFrame {
 																displayName
 																		.length() - 2);
 											}
-											message.setMessage(displayName);
-											if (!conversations
-													.contains(groupChat)) {
-												conversations.add(groupChat);
-											}
-											UUID conversationId = groupChat
-													.getUniqueId();
-											Optional<SocketHandlerContext> ctx = Skype
-													.getPlugin().createHandle();
-											if (!ctx.isPresent()) {
-												return;
-											}
-											try {
-												ctx.get().getSocket()
-														.setSoTimeout(10000);
-											} catch (SocketException e) {
-												e.printStackTrace();
-											}
-											List<String> list = participants;
-											for (String participant : this
+											groupChat
+													.setDisplayName(displayName);
+											groupChat.setSkypeName(skypeName);
+										} else {
+											String displayName = "";
+											int x = 0;
+											for (UUID participantId2 : groupChat
 													.getParticipants()) {
-												list.remove(participant);
-											}
-											list.add(loggedInUser
-													.getSkypeName());
-											Object payload = GsonBuilder
-													.create().toJson(list);
-											Optional<PacketPlayInReply> replyPacket = ctx
-													.get()
-													.getOutboundHandler()
-													.dispatch(
-															ctx.get(),
-															new PacketPlayOutUpdateGroupChatParticipants(
-																	authCode2
-																			.get(),
-																	payload));
-											if (!replyPacket.isPresent()) {
-												return;
-											}
-											if (replyPacket.get()
-													.getStatusCode() != 200) {
-												return;
-											}
-											replyPacket = ctx
-													.get()
-													.getOutboundHandler()
-													.dispatch(
-															ctx.get(),
-															new PacketPlayOutSendMessage(
-																	authCode,
-																	conversationId,
-																	messageId,
-																	message.toString(),
-																	timestamp));
-											if (!replyPacket.isPresent()) {
-												return;
-											}
-											if (replyPacket.get()
-													.getStatusCode() != 200) {
-												return;
-											}
-											groupChat.setLastModified(new Date(
-													new Date().getTime()
-															+ AppDelegate.TIME_OFFSET));
-											if (displayNameUpdate) {
-												String displayName2 = "";
-												int x2 = 0;
-												for (String participantId2 : list) {
-													if (x2 == list.size() - 2) {
-														displayName2 += participantId2
+												Optional<Conversation> userLookup = lookupUser(participantId2);
+												if (userLookup.isPresent()) {
+													if (x == groupChat
+															.getParticipants()
+															.size() - 2) {
+														displayName += userLookup
+																.get()
+																.getDisplayName()
 																+ ", and ";
 													} else {
-														displayName2 += participantId2
+														displayName += userLookup
+																.get()
+																.getDisplayName()
 																+ ", ";
 													}
-													x2++;
-												}
-												if (displayName2.length() > 0) {
-													displayName2 = displayName2
-															.substring(
-																	0,
-																	displayName2
-																			.length() - 2);
-												}
-												String res2 = displayName2;
-												groupChat.setDisplayName(res2);
-												registerUser(groupChat,
-														password);
-												if (authCode2.isPresent()) {
-													refreshWindow(SCROLL_TO_BOTTOM);
 												} else {
-													groupChat
-															.setDisplayName(displayName2);
+													displayName += participantId2
+															.toString() + ", ";
 												}
-											} else {
-												refreshWindow(SCROLL_TO_BOTTOM);
+												x++;
 											}
-											AudioIO.IM_SENT.playSound();
-										}
-									});
-							form.setLocationRelativeTo(label);
-							int x = form.getLocation().x;
-							int y = form.getLocation().y
-									+ (form.getContentPane().getHeight() / 2)
-									+ (label.getHeight() / 2) + 7;
-							form.setLocation(x, y);
-							form.show();
-						} else {
-							List<String> participants = new ArrayList<>();
-							for (UUID participantId : selectedConversation
-									.getParticipants()) {
-								Optional<Conversation> userLookup = lookupUser(participantId);
-								if (userLookup.isPresent()) {
-									participants.add(userLookup.get()
-											.getSkypeName());
-								}
-							}
-							ViewParticipantsInGroupChatForm form = new ViewParticipantsInGroupChatForm(
-									participants);
-							form.setLocationRelativeTo(label);
-							int x = form.getLocation().x;
-							int y = form.getLocation().y
-									+ (form.getContentPane().getHeight() / 2)
-									+ (label.getHeight() / 2) + 7;
-							form.setLocation(x, y);
-							form.show();
-						}
-					}
-
-				};
-
-				label.addMouseListener(mouseAdapter);
-				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-				statusLabel = label;
-			}
-
-			statusLabel.setFont(font);
-
-			int width = statusLabel.getPreferredSize().width;
-			int height = statusLabel.getPreferredSize().height;
-
-			statusLabelPanel.add(statusLabel);
-			statusLabelPanel.setBounds(104, 40, width, height + 10);
-
-			/**
-			 * Panel added to pane with z-index 1, above decoration panel
-			 */
-			rightTopLayeredPane.add(statusLabelPanel, new Integer(1), 0);
-		}
-
-		/**
-		 * Add display name floating in top left panel
-		 */
-		{
-			JPanel displayNameLabelPanel = new JPanel();
-			FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(
-					FontIO.SEGOE_UI_SEMILIGHT
-							.deriveFont(Font.TRUETYPE_FONT, 21));
-			JLabel displayNameLabel = new JLabel(Utils.concatStringEllipses(fm,
-					panelWidth - 320, selectedConversation.getDisplayName()));
-			displayNameLabel.setFont(FontIO.SEGOE_UI_SEMILIGHT.deriveFont(
-					Font.TRUETYPE_FONT, 21));
-
-			/**
-			 * Reserved for future use
-			 */
-			displayNameLabel.setCursor(Cursor
-					.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-			MouseAdapter mouseAdapter = new MouseAdapter() {
-
-				@Override
-				public void mousePressed(MouseEvent evt) {
-					super.mousePressed(evt);
-					if (selectedConversation.getPubKey().isPresent()) {
-						String pubKey;
-						try {
-							pubKey = PGPainless.asciiArmor(selectedConversation
-									.getPubKey().get());
-							JOptionPane.showMessageDialog(frame, pubKey);
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					} else {
-						if (selectedConversation.isGroupChat()
-								&& selectedConversation.getGroupChatAdmins()
-										.contains(loggedInUser.getUniqueId())) {
-							Conversation groupChat = selectedConversation;
-							String res2 = (String) JOptionPane.showInputDialog(
-									frame, "Enter new name for group chat",
-									frame.getTitle(),
-									JOptionPane.PLAIN_MESSAGE, null, null,
-									groupChat.getDisplayName());
-							if (res2 != null) {
-								if (res2.trim().equals("")) {
-									String displayName = "";
-									int x = 0;
-									for (UUID participantId2 : groupChat
-											.getParticipants()) {
-										Optional<Conversation> userLookup = lookupUser(participantId2);
-										if (userLookup.isPresent()) {
-											if (x == groupChat
-													.getParticipants().size() - 2) {
-												displayName += userLookup.get()
-														.getDisplayName()
-														+ ", and ";
-											} else {
-												displayName += userLookup.get()
-														.getDisplayName()
-														+ ", ";
+											if (displayName.length() > 0) {
+												displayName = displayName
+														.substring(
+																0,
+																displayName
+																		.length() - 2);
 											}
-										} else {
-											displayName += participantId2
-													.toString() + ", ";
-										}
-										x++;
-									}
-									if (displayName.length() > 0) {
-										displayName = displayName.substring(0,
-												displayName.length() - 2);
-									}
-									res2 = displayName;
-								}
-								String displayName = groupChat.getDisplayName();
-								groupChat.setDisplayName(res2);
-								Optional<UUID> authCode2 = registerUser(
-										groupChat, password);
-								if (authCode2.isPresent()) {
-									refreshWindow(SCROLL_TO_BOTTOM);
-								} else {
-									groupChat.setDisplayName(displayName);
-								}
-							}
-							return;
-						} else {
-							JOptionPane.showMessageDialog(frame,
-									selectedConversation.toString());
-						}
-					}
-				}
-
-			};
-
-			displayNameLabel.addMouseListener(mouseAdapter);
-
-			displayNameLabelPanel.setOpaque(false);
-			displayNameLabelPanel.add(displayNameLabel);
-			int width = displayNameLabel.getPreferredSize().width;
-			int height = displayNameLabel.getPreferredSize().height;
-			displayNameLabelPanel.setBounds(104, 11, width, height + 10);
-
-			/**
-			 * Panel added to pane with z-index 1, above decoration panel
-			 */
-			rightTopLayeredPane.add(displayNameLabelPanel, new Integer(1), 0);
-		}
-
-		{
-			JPanel iconLabelPanel = new JPanel();
-			iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
-			ImageIcon imageIcon = ImageIO
-					.getResourceAsImageIcon("/1154498825.png");
-			JLabel iconLabel = new JLabel(imageIcon);
-
-			/**
-			 * Reserved for future use
-			 */
-			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-			if (selectedConversation.isGroupChat()) {
-				if (selectedConversation.getGroupChatAdmins().contains(
-						loggedInUser.getUniqueId())) {
-					iconLabelPanel.setBounds(panelWidth - 166, 20, 40, 40);
-				} else {
-					iconLabelPanel.setBounds(panelWidth - 111, 20, 40, 40);
-				}
-			} else {
-				iconLabelPanel.setBounds(panelWidth - 166, 20, 40, 40);
-			}
-			iconLabelPanel.setOpaque(false);
-			iconLabelPanel.add(iconLabel);
-
-			/**
-			 * Panel added to pane with z-index 0
-			 */
-			rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
-		}
-
-		{
-			MouseAdapter iconLabelMouseAdapter = new MouseAdapter() {
-
-				@Override
-				public void mousePressed(MouseEvent evt) {
-					super.mousePressed(evt);
-					microphoneEnabled = true;
-					mic.start();
-					if (ongoingCall == false) {
-						Optional<SocketHandlerContext> ctx = Skype.getPlugin()
-								.createHandle();
-						if (!ctx.isPresent()) {
-							return;
-						}
-						byte[] cipher;
-						try {
-							cipher = CipherUtilities.randomCipher();
-						} catch (InvalidKeyException | NoSuchPaddingException
-								| NoSuchAlgorithmException
-								| InvalidAlgorithmParameterException
-								| UnsupportedEncodingException e) {
-							e.printStackTrace();
-							return;
-						}
-						String base64 = CipherUtilities.encodeBase64(cipher);
-						String message = PGPUtilities.encryptAndSign(base64,
-								selectedConversation);
-						Optional<PacketPlayInReply> reply = ctx
-								.get()
-								.getOutboundHandler()
-								.dispatch(
-										ctx.get(),
-										new PacketPlayOutSendCallRequest(
-												authCode, selectedConversation
-														.getUniqueId(), message));
-						if (!reply.isPresent()) {
-							return;
-						}
-						if (reply.get().getStatusCode() != 200) {
-							return;
-						}
-						AudioIO.CALL_INIT.playSound();
-						if (selectedConversation.getUniqueId().equals(
-								echoSoundTestService.getUniqueId())) {
-							if (echo123 == null) {
-								echo123 = AudioIO.ECHO123.playSound();
-							} else {
-								echo123.stop();
-								echo123.close();
-								echo123 = AudioIO.ECHO123.playSound();
-							}
-						}
-					}
-					rightPanelPage = "OngoingCall";
-					ongoingCall = true;
-					ongoingCallConversation = selectedConversation;
-					ongoingCallStartTime = new Date(new Date().getTime()
-							+ AppDelegate.TIME_OFFSET).getTime();
-					refreshWindow();
-				}
-			};
-			JPanel iconLabelPanel = new JPanel();
-			iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
-			ImageIcon imageIcon = ImageIO
-					.getResourceAsImageIcon("/1342120668.png");
-			JLabel iconLabel = new JLabel(imageIcon);
-
-			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-			iconLabel.addMouseListener(iconLabelMouseAdapter);
-
-			if (selectedConversation.isGroupChat()) {
-				if (selectedConversation.getGroupChatAdmins().contains(
-						loggedInUser.getUniqueId())) {
-					iconLabelPanel.setBounds(panelWidth - 111, 20, 40, 40);
-				} else {
-					iconLabelPanel.setBounds(panelWidth - 56, 20, 40, 40);
-				}
-			} else {
-				iconLabelPanel.setBounds(panelWidth - 111, 20, 40, 40);
-			}
-
-			iconLabelPanel.setOpaque(false);
-			iconLabelPanel.add(iconLabel);
-			iconLabelPanel.addMouseListener(iconLabelMouseAdapter);
-
-			/**
-			 * Panel added to pane with z-index 0
-			 */
-			rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
-		}
-
-		{
-			JPanel iconLabelPanel = new JPanel();
-
-			MouseAdapter iconLabelMouseAdapter = new MouseAdapter() {
-
-				@Override
-				public void mousePressed(MouseEvent evt) {
-					super.mousePressed(evt);
-					List<String> skypeNames = new ArrayList<>();
-					for (Conversation conversation : conversations) {
-						if (conversation instanceof Contact) {
-							if (selectedConversation.isGroupChat()) {
-								if (selectedConversation.getParticipants()
-										.contains(conversation.getUniqueId())) {
-									continue;
-								}
-							}
-							skypeNames.add(conversation.getSkypeName());
-						}
-					}
-					AddParticipantsToGroupChatForm form = new AddParticipantsToGroupChatForm(
-							selectedConversation, skypeNames,
-							new AddParticipantsToGroupChatForm.Runnable() {
-
-								@Override
-								public void run() {
-									Conversation groupChat = selectedConversation;
-									boolean displayNameUpdate = false;
-									if (!selectedConversation.isGroupChat()) {
-										String skypeName;
-										do {
-											skypeName = "guest:"
-													+ UUID.randomUUID()
-															.toString()
-															.replace("-", "")
-															.substring(0, 16);
-										} while (registry.contains(skypeName));
-										UUID participantId = Skype.getPlugin()
-												.getUniqueId(skypeName);
-										groupChat = new Conversation();
-										groupChat.setUniqueId(participantId);
-										groupChat.setGroupChat(true);
-										String displayName = "";
-										int x = 0;
-										for (String participantId2 : this
-												.getParticipants()) {
-											Optional<Conversation> userLookup = lookupUser(Skype
-													.getPlugin().getUniqueId(
-															participantId2));
-											if (userLookup.isPresent()) {
-												if (x == this.getParticipants()
-														.size() - 2) {
-													displayName += userLookup
-															.get()
-															.getDisplayName()
-															+ ", and ";
-												} else {
-													displayName += userLookup
-															.get()
-															.getDisplayName()
-															+ ", ";
-												}
-											} else {
-												displayName += participantId2
-														.toString() + ", ";
+											if (displayName.equals(groupChat
+													.getDisplayName())) {
+												displayNameUpdate = true;
 											}
-											x++;
 										}
-										if (displayName.length() > 0) {
-											displayName = displayName
-													.substring(0, displayName
-															.length() - 2);
+										Optional<UUID> authCode2 = registerUser(
+												groupChat, password);
+										if (!authCode2.isPresent()) {
+											return;
 										}
-										groupChat.setDisplayName(displayName);
-										groupChat.setSkypeName(skypeName);
-									} else {
-										String displayName = "";
-										int x = 0;
-										for (UUID participantId2 : groupChat
-												.getParticipants()) {
-											Optional<Conversation> userLookup = lookupUser(participantId2);
-											if (userLookup.isPresent()) {
-												if (x == groupChat
-														.getParticipants()
-														.size() - 2) {
-													displayName += userLookup
-															.get()
-															.getDisplayName()
-															+ ", and ";
-												} else {
-													displayName += userLookup
-															.get()
-															.getDisplayName()
-															+ ", ";
-												}
-											} else {
-												displayName += participantId2
-														.toString() + ", ";
-											}
-											x++;
-										}
-										if (displayName.length() > 0) {
-											displayName = displayName
-													.substring(0, displayName
-															.length() - 2);
-										}
-										if (displayName.equals(groupChat
-												.getDisplayName())) {
-											displayNameUpdate = true;
-										}
-									}
-									Optional<UUID> authCode2 = registerUser(
-											groupChat, password);
-									if (!authCode2.isPresent()) {
-										return;
-									}
-									UUID messageId = UUID.randomUUID();
-									long timestamp = new Date(new Date()
-											.getTime()
-											+ AppDelegate.TIME_OFFSET)
-											.getTime();
-									Message message = new Message(messageId,
-											loggedInUser.getUniqueId(),
-											MessageType.GROUP_MEMBER_ADDED,
-											"?", timestamp, groupChat);
-									if (!selectedConversation.isGroupChat()) {
-										message = new Message(messageId,
-												loggedInUser.getUniqueId(),
-												MessageType.GROUP_CHAT_CREATED,
+										UUID messageId = UUID.randomUUID();
+										long timestamp = new Date(new Date()
+												.getTime()
+												+ AppDelegate.TIME_OFFSET)
+												.getTime();
+										Message message = new Message(
+												messageId, loggedInUser
+														.getUniqueId(),
+												MessageType.GROUP_MEMBER_ADDED,
 												"?", timestamp, groupChat);
-									} else {
-										String displayName = "";
-										int x = 0;
-										List<String> names = new ArrayList<>();
-										for (String name : this
-												.getParticipants()) {
-											if (name.equals(loggedInUser
-													.getSkypeName())) {
-												continue;
-											}
-											names.add(name);
-										}
-										for (String participantId2 : names) {
-											Optional<Conversation> userLookup = lookupUser(Skype
-													.getPlugin().getUniqueId(
-															participantId2));
-											if (userLookup.isPresent()) {
-												if (x == names.size() - 2) {
-													displayName += userLookup
-															.get()
-															.getDisplayName()
-															+ ", and ";
-												} else {
-													displayName += userLookup
-															.get()
-															.getDisplayName()
-															+ ", ";
-												}
-											} else {
-												displayName += participantId2
-														.toString() + ", ";
-											}
-											x++;
-										}
-										if (displayName.length() > 0) {
-											displayName = displayName
-													.substring(0, displayName
-															.length() - 2);
-										}
-										message.setMessage(displayName);
-									}
-									if (!conversations.contains(groupChat)) {
-										conversations.add(groupChat);
-									}
-									UUID conversationId = groupChat
-											.getUniqueId();
-									Optional<SocketHandlerContext> ctx = Skype
-											.getPlugin().createHandle();
-									if (!ctx.isPresent()) {
-										return;
-									}
-									try {
-										ctx.get().getSocket()
-												.setSoTimeout(10000);
-									} catch (SocketException e) {
-										e.printStackTrace();
-									}
-									List<String> list = this.getParticipants();
-									if (selectedConversation.isGroupChat()) {
-										List<String> skypeNames = new ArrayList<>();
-										for (UUID participantId2 : selectedConversation
-												.getParticipants()) {
-											Optional<Conversation> userLookup = lookupUser(participantId2);
-											if (userLookup.isPresent()) {
-												String skypeName = userLookup
-														.get().getSkypeName();
-												if (skypeName.equals(loggedInUser
+										if (!selectedConversation.isGroupChat()) {
+											message = new Message(
+													messageId,
+													loggedInUser.getUniqueId(),
+													MessageType.GROUP_CHAT_CREATED,
+													"?", timestamp, groupChat);
+										} else {
+											String displayName = "";
+											int x = 0;
+											List<String> names = new ArrayList<>();
+											for (String name : this
+													.getParticipants()) {
+												if (name.equals(loggedInUser
 														.getSkypeName())) {
 													continue;
 												}
-												skypeNames.add(skypeName);
+												names.add(name);
 											}
+											for (String participantId2 : names) {
+												Optional<Conversation> userLookup = lookupUser(Skype
+														.getPlugin()
+														.getUniqueId(
+																participantId2));
+												if (userLookup.isPresent()) {
+													if (x == names.size() - 2) {
+														displayName += userLookup
+																.get()
+																.getDisplayName()
+																+ ", and ";
+													} else {
+														displayName += userLookup
+																.get()
+																.getDisplayName()
+																+ ", ";
+													}
+												} else {
+													displayName += participantId2
+															.toString() + ", ";
+												}
+												x++;
+											}
+											if (displayName.length() > 0) {
+												displayName = displayName
+														.substring(
+																0,
+																displayName
+																		.length() - 2);
+											}
+											message.setMessage(displayName);
 										}
-										list.addAll(skypeNames);
-									}
-									Object payload = GsonBuilder.create()
-											.toJson(list);
-									Optional<PacketPlayInReply> replyPacket = ctx
-											.get()
-											.getOutboundHandler()
-											.dispatch(
-													ctx.get(),
-													new PacketPlayOutUpdateGroupChatParticipants(
-															authCode2.get(),
-															payload));
-									if (!replyPacket.isPresent()) {
-										return;
-									}
-									if (replyPacket.get().getStatusCode() != 200) {
-										return;
-									}
-									replyPacket = ctx
-											.get()
-											.getOutboundHandler()
-											.dispatch(
-													ctx.get(),
-													new PacketPlayOutSendMessage(
-															authCode,
-															conversationId,
-															messageId,
-															message.toString(),
-															timestamp));
-									if (!replyPacket.isPresent()) {
-										return;
-									}
-									if (replyPacket.get().getStatusCode() != 200) {
-										return;
-									}
-									groupChat.setLastModified(new Date(
-											new Date().getTime()
-													+ AppDelegate.TIME_OFFSET));
-									if (selectedConversation.isGroupChat()
-											&& displayNameUpdate) {
-										String displayName2 = "";
-										int x2 = 0;
-										for (String participantId2 : list) {
-											if (x2 == list.size() - 2) {
-												displayName2 += participantId2
-														+ ", and ";
+										if (!conversations.contains(groupChat)) {
+											conversations.add(groupChat);
+										}
+										UUID conversationId = groupChat
+												.getUniqueId();
+										Optional<SocketHandlerContext> ctx = Skype
+												.getPlugin().createHandle();
+										if (!ctx.isPresent()) {
+											return;
+										}
+										try {
+											ctx.get().getSocket()
+													.setSoTimeout(10000);
+										} catch (SocketException e) {
+											e.printStackTrace();
+										}
+										List<String> list = this
+												.getParticipants();
+										if (selectedConversation.isGroupChat()) {
+											List<String> skypeNames = new ArrayList<>();
+											for (UUID participantId2 : selectedConversation
+													.getParticipants()) {
+												Optional<Conversation> userLookup = lookupUser(participantId2);
+												if (userLookup.isPresent()) {
+													String skypeName = userLookup
+															.get()
+															.getSkypeName();
+													if (skypeName
+															.equals(loggedInUser
+																	.getSkypeName())) {
+														continue;
+													}
+													skypeNames.add(skypeName);
+												}
+											}
+											list.addAll(skypeNames);
+										}
+										Object payload = GsonBuilder.create()
+												.toJson(list);
+										Optional<PacketPlayInReply> replyPacket = ctx
+												.get()
+												.getOutboundHandler()
+												.dispatch(
+														ctx.get(),
+														new PacketPlayOutUpdateGroupChatParticipants(
+																authCode2.get(),
+																payload));
+										if (!replyPacket.isPresent()) {
+											return;
+										}
+										if (replyPacket.get().getStatusCode() != 200) {
+											return;
+										}
+										replyPacket = ctx
+												.get()
+												.getOutboundHandler()
+												.dispatch(
+														ctx.get(),
+														new PacketPlayOutSendMessage(
+																authCode,
+																conversationId,
+																messageId,
+																message.toString(),
+																timestamp));
+										if (!replyPacket.isPresent()) {
+											return;
+										}
+										if (replyPacket.get().getStatusCode() != 200) {
+											return;
+										}
+										groupChat
+												.setLastModified(new Date(
+														new Date().getTime()
+																+ AppDelegate.TIME_OFFSET));
+										if (selectedConversation.isGroupChat()
+												&& displayNameUpdate) {
+											String displayName2 = "";
+											int x2 = 0;
+											for (String participantId2 : list) {
+												if (x2 == list.size() - 2) {
+													displayName2 += participantId2
+															+ ", and ";
+												} else {
+													displayName2 += participantId2
+															+ ", ";
+												}
+												x2++;
+											}
+											if (displayName2.length() > 0) {
+												displayName2 = displayName2
+														.substring(
+																0,
+																displayName2
+																		.length() - 2);
+											}
+											String res2 = displayName2;
+											groupChat.setDisplayName(res2);
+											registerUser(groupChat, password);
+											if (authCode2.isPresent()) {
+												refreshWindow(SCROLL_TO_BOTTOM);
 											} else {
-												displayName2 += participantId2
-														+ ", ";
+												groupChat
+														.setDisplayName(displayName2);
 											}
-											x2++;
-										}
-										if (displayName2.length() > 0) {
-											displayName2 = displayName2
-													.substring(0, displayName2
-															.length() - 2);
-										}
-										String res2 = displayName2;
-										groupChat.setDisplayName(res2);
-										registerUser(groupChat, password);
-										if (authCode2.isPresent()) {
-											refreshWindow(SCROLL_TO_BOTTOM);
 										} else {
-											groupChat
-													.setDisplayName(displayName2);
+											refreshWindow(SCROLL_TO_BOTTOM);
 										}
-									} else {
-										refreshWindow(SCROLL_TO_BOTTOM);
+										AudioIO.IM_SENT.playSound();
 									}
-									AudioIO.IM_SENT.playSound();
-								}
-							});
-					form.setLocationRelativeTo(iconLabelPanel);
-					int x = form.getLocation().x;
-					int y = form.getLocation().y
-							+ (form.getContentPane().getHeight() / 2)
-							+ (iconLabelPanel.getHeight() / 2) + 7;
-					form.setLocation(x, y);
-					form.show();
+								});
+						form.setLocationRelativeTo(iconLabelPanel);
+						int x = form.getLocation().x;
+						int y = form.getLocation().y
+								+ (form.getContentPane().getHeight() / 2)
+								+ (iconLabelPanel.getHeight() / 2) + 7;
+						form.setLocation(x, y);
+						form.show();
+					}
 				}
 			};
 
@@ -3739,7 +3979,8 @@ public class MainForm extends JFrame {
 			/**
 			 * Panel added to pane with z-index 0
 			 */
-			if (selectedConversation.isGroupChat()) {
+			if (!rightPanelPage.equals("CallPhones")
+					&& selectedConversation.isGroupChat()) {
 				if (selectedConversation.getGroupChatAdmins().contains(
 						loggedInUser.getUniqueId())) {
 					rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
@@ -3756,6 +3997,706 @@ public class MainForm extends JFrame {
 
 	private JPanel createRightBottomTopPanel(int panelWidth, int flag) {
 		JPanel panel = new JPanel();
+
+		if (rightPanelPage.equals("CallPhones")) {
+			if (VoIP.getPlugin().isConnected()) {
+			} else {
+				return panel;
+			}
+			int leftSplitPaneWidth = leftSplitPane.getDividerLocation();
+			if (leftSplitPaneWidth == 0 || leftSplitPaneWidth == -1) {
+				leftSplitPaneWidth = this.defaultLeftPanelWidth;
+			}
+			panelWidth = getContentPane().getSize().width
+					- this.splitPaneDividerSize - leftSplitPaneWidth;
+			int panelHeight = this.getContentPane().getHeight();
+			JLayeredPane layeredPane = new JLayeredPane();
+			layeredPane.setBounds(0, 0, panelWidth, panelHeight);
+			layeredPane
+					.setPreferredSize(new Dimension(panelWidth, panelHeight));
+			layeredPane.setOpaque(true);
+			layeredPane.setBackground(Color.white);
+			{
+				JPanel labelPanel = new JPanel();
+				labelPanel.setOpaque(true);
+				labelPanel.setBounds(79, 75, 304, 305);
+				labelPanel.setBackground(new Color(228, 236, 239));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			// 1
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/168230556.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "1";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(80, 76, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// 2
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/973462361.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "2";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(181, 76, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// 3
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/964333089.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "3";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(282, 76, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// 4
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/965788035.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "4";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(80, 152, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// 5
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/265520345.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "5";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(181, 152, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// 6
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/586774838.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "6";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(282, 152, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// 7
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/394492702.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "7";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(80, 228, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// 8
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/723224497.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "8";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(181, 228, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// 9
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/549250036.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "9";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(282, 228, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// *
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/634854321.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "*";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(80, 304, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// 0
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/473946381.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					long before = 0L;
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						before = System.currentTimeMillis();
+					}
+
+					@Override
+					public void mouseReleased(MouseEvent evt) {
+						super.mouseReleased(evt);
+						long elapsed = System.currentTimeMillis() - before;
+						if (elapsed < 500) {
+							number += "0";
+						} else {
+							number += "+";
+						}
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(181, 304, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			// #
+			{
+				JPanel iconLabelPanel = new JPanel();
+				iconLabelPanel
+						.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+				ImageIcon imageIcon = ImageIO
+						.getResourceAsImageIcon("/470929456.png");
+				JLabel iconLabel = new JLabel(imageIcon);
+
+				/**
+				 * Reserved for future use
+				 */
+				iconLabel.setCursor(Cursor
+						.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				MouseAdapter mouseAdapter = new MouseAdapter() {
+
+					@Override
+					public void mousePressed(MouseEvent evt) {
+						super.mousePressed(evt);
+						number += "#";
+						refreshWindow();
+					}
+
+				};
+
+				iconLabel.addMouseListener(mouseAdapter);
+
+				iconLabelPanel.setBounds(282, 304, 100, 75);
+				iconLabelPanel.setOpaque(false);
+				iconLabelPanel.add(iconLabel);
+
+				/**
+				 * Panel added to pane with z-index 1
+				 */
+				layeredPane.add(iconLabelPanel, new Integer(1), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Your Skype Credit");
+				label.setFont(FontIO.SEGOE_UI_SEMILIGHT.deriveFont(22.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(413 + 1 + 1, 82 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("€ 0,00");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(414 + 1, 110 - 7 + 3, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Add Skype Credit");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(413 + 1, 127 - 7 + 3, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Subscriptions");
+				label.setFont(FontIO.SEGOE_UI_SEMILIGHT.deriveFont(22.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(414 + 1 + 1, 185 - 7, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("You have no subscriptions");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(413 + 1, 213 - 7 + 3, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Get a subscription");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(413 + 1, 230 - 7 + 3, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("See all rates");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(413 + 1, 304 - 7 + 3, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("View my account");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(413 + 1, 267 - 7 + 3, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("A small");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(413 + 1, 323 - 7 + 3, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("connection fee");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				label.setForeground(Color.blue);
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(455 + 1, 323 - 7 + 3, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("applies to Pay");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(537 + 1, 323 - 7 + 3, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("As You Go calls only.");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(413 + 1, 340 - 7 + 3, width, height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			panel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+			panel.add(layeredPane);
+			return panel;
+		}
 
 		if (rightPanelPage.equals("AccountHome")) {
 			int leftSplitPaneWidth = leftSplitPane.getDividerLocation();
@@ -5709,6 +6650,9 @@ public class MainForm extends JFrame {
 							/*
 							 * TODO: End call
 							 */
+							if (selectedConversation instanceof VoIPContact) {
+								ongoingCallObj.hangup();
+							}
 							if (selectedConversation.getUniqueId().equals(
 									echoSoundTestService.getUniqueId())) {
 								if (echo123 == null) {
@@ -5847,6 +6791,8 @@ public class MainForm extends JFrame {
 							|| videoCallIncomingAudioSockets.size() == 0
 							|| ongoingVideoCallWidth == 0
 							|| ongoingVideoCallHeight == 0) {
+						imageIcon = ImageIO.getScaledImageIcon(imageIcon,
+								new Dimension(256, 256));
 						ongoingCallProfilePictureImageLabel.setIcon(imageIcon);
 						ongoingCallProfilePictureImageLabel.repaint();
 						double width = 256;
@@ -8801,7 +9747,9 @@ public class MainForm extends JFrame {
 	}
 
 	public void refreshRightTopPanel() {
-		if (rightPanelPage.equals("Conversation")) {
+		if (rightPanelPage.equals("Conversation")
+				|| (rightPanelPage.equals("CallPhones") && VoIP.getPlugin()
+						.isConnected())) {
 			rightTopPanel.setVisible(true);
 			rightTopPanel.removeAll();
 
@@ -9317,11 +10265,6 @@ public class MainForm extends JFrame {
 				if (conversationTextField.getText().trim().length() == 0) {
 					return;
 				}
-				Optional<SocketHandlerContext> ctx = Skype.getPlugin()
-						.createHandle();
-				if (!ctx.isPresent()) {
-					return;
-				}
 				if (conversationTextField.getText().trim().startsWith("s/")) {
 					String oldtext = conversationTextField
 							.getText()
@@ -9350,6 +10293,46 @@ public class MainForm extends JFrame {
 								.getDecryptedMessage()
 								.replace(oldtext, newtext));
 					}
+				}
+				if (selectedConversation instanceof VoIPContact) {
+					UUID messageId = UUID.randomUUID();
+					long timestamp = new Date(new Date().getTime()
+							+ AppDelegate.TIME_OFFSET).getTime();
+					String txt = conversationTextField.getText().trim();
+					Message message = new Message(messageId, loggedInUser
+							.getUniqueId(), txt, timestamp,
+							selectedConversation);
+					if (!conversations.contains(selectedConversation)) {
+						conversations.add(selectedConversation);
+					}
+					if (selectedMessage != null) {
+						message = selectedMessage;
+						message.setMessage(txt);
+						message.setDecryptedMessage(conversationTextField
+								.getText().trim());
+					}
+					if (!selectedConversation.isGroupChat()) {
+						if (selectedMessage == null) {
+							selectedConversation.getMessages().add(message);
+						}
+						selectedConversation
+								.setLastModified(new Date(new Date().getTime()
+										+ AppDelegate.TIME_OFFSET));
+						refreshWindow();
+					}
+					if (selectedMessage != null) {
+						selectedMessage = null;
+					}
+					conversationTextField.setText("");
+					VoIP.getPlugin().API_SendSMS(
+							selectedConversation.getDisplayName(), txt);
+					AudioIO.IM_SENT.playSound();
+					return;
+				}
+				Optional<SocketHandlerContext> ctx = Skype.getPlugin()
+						.createHandle();
+				if (!ctx.isPresent()) {
+					return;
 				}
 				String txt = PGPUtilities.encryptAndSign(conversationTextField
 						.getText().trim(), selectedConversation);
@@ -9576,6 +10559,7 @@ public class MainForm extends JFrame {
 								File pathToData = fc.getSelectedFile();
 								selectedConversation = null;
 								rightPanelPage = "CallPhones";
+								number = "";
 								SkypeChatImporter skypeChatViewer = new SkypeChatImporter(
 										frame, pathToData, loggedInUser,
 										password, new Runnable() {
@@ -9678,7 +10662,8 @@ public class MainForm extends JFrame {
 					if (selectedConversation == null) {
 						return;
 					}
-					if (!(selectedConversation instanceof Contact)) {
+					if (!(selectedConversation instanceof Contact)
+							&& !(selectedConversation instanceof VoIPContact)) {
 						return;
 					}
 					DialogForm form = new DialogForm(null,
@@ -9689,6 +10674,14 @@ public class MainForm extends JFrame {
 
 								@Override
 								public void run() {
+									if (selectedConversation instanceof VoIPContact) {
+										conversations
+												.remove(selectedConversation);
+										selectedConversation = null;
+										rightPanelPage = "AccountHome";
+										refreshWindow();
+										return;
+									}
 									Optional<SocketHandlerContext> ctx = Skype
 											.getPlugin().createHandle();
 									if (ctx.isPresent()) {
@@ -10475,6 +11468,23 @@ public class MainForm extends JFrame {
 		super.show();
 
 		if (!shown) {
+
+			File file1 = new File("sip1.txt");
+			File file2 = new File("sip2.txt");
+			File file3 = new File("sip3.txt");
+			if (file1.exists() && file2.exists() && file3.exists()) {
+				try {
+					String sipserver = new String(Files.readAllBytes(file1
+							.toPath()));
+					String username = new String(Files.readAllBytes(file2
+							.toPath()));
+					String password = new String(Files.readAllBytes(file3
+							.toPath()));
+					VoIP.getPlugin().API_Start(sipserver, username, password);
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
 
 			/**
 			 * We need to refresh the top right and bottom right panels on
