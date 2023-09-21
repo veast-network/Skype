@@ -3452,6 +3452,9 @@ public class MainForm extends JFrame {
 					if (rightPanelPage.equals("CallPhones")
 							|| selectedConversation instanceof VoIPContact) {
 						if (!(selectedConversation instanceof VoIPContact)) {
+							if (number.equals("")) {
+								return;
+							}
 							VoIPContact testvoip = new VoIPContact();
 							testvoip.setSkypeName(number);
 							testvoip.setUniqueId(Skype.getPlugin().getUniqueId(
@@ -5827,6 +5830,9 @@ public class MainForm extends JFrame {
 					MouseAdapter mouseAdapter = new MouseAdapter() {
 						@Override
 						public void mousePressed(MouseEvent evt) {
+							if (ongoingCallConversation instanceof VoIPContact) {
+								return;
+							}
 							videoEnabled = !videoEnabled;
 							if (videoEnabled) {
 								if (ongoingVideoCall) {
@@ -6296,6 +6302,9 @@ public class MainForm extends JFrame {
 
 										@Override
 										public void run() {
+											if (ongoingCallConversation instanceof VoIPContact) {
+												return;
+											}
 											String input = getInput();
 											if (input
 													.equals("Share screens...")
@@ -6757,11 +6766,15 @@ public class MainForm extends JFrame {
 						@Override
 						public void mousePressed(MouseEvent evt) {
 							microphoneEnabled = !microphoneEnabled;
-							if (microphoneEnabled) {
-								mic.start();
+							if (ongoingCallConversation instanceof VoIPContact) {
+								ongoingCallObj.mute(!microphoneEnabled);
 							} else {
-								mic.stop();
-								mic.drain();
+								if (microphoneEnabled) {
+									mic.start();
+								} else {
+									mic.stop();
+									mic.drain();
+								}
 							}
 							refreshWindow();
 						}
