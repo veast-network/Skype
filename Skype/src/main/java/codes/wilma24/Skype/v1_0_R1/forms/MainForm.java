@@ -3552,7 +3552,9 @@ public class MainForm extends JFrame {
 											return;
 										}
 										if (ongoingCallConversation instanceof VoIPContact) {
-											ongoingCallObj.hangup();
+											VoIP.getPlugin().API_Hangup(
+													VoIP.getPlugin()
+															.API_GetLine());
 										}
 										if (ongoingCallConversation
 												.getUniqueId().equals(
@@ -6759,7 +6761,8 @@ public class MainForm extends JFrame {
 							 * TODO: End call
 							 */
 							if (ongoingCallConversation instanceof VoIPContact) {
-								ongoingCallObj.hangup();
+								VoIP.getPlugin().API_Hangup(
+										VoIP.getPlugin().API_GetLine());
 							}
 							if (ongoingCallConversation.getUniqueId().equals(
 									echoSoundTestService.getUniqueId())) {

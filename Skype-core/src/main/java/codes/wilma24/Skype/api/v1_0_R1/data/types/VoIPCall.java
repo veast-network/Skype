@@ -14,10 +14,4 @@ public class VoIPCall {
 		return webphoneobj.API_Mute(-1, val);
 	}
 
-	public boolean hangup() {
-		boolean ret = webphoneobj.API_Hangup(-2);
-		webphoneobj.API_Stop();
-		return ret;
-	}
-
 }
