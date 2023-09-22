@@ -36,11 +36,19 @@ public class VoIP {
 	}
 
 	public boolean API_Hangup(int line) {
-		return webphoneobj.API_Hangup(line);
+		if (API_HasCallInProgress()) {
+			return webphoneobj.API_Hangup(line);
+		} else {
+			return false;
+		}
 	}
 
 	public int API_GetLine() {
 		return webphoneobj.API_GetLine();
+	}
+
+	public boolean API_HasCallInProgress() {
+		return webphoneobj.API_HasCallInProgress();
 	}
 
 	public boolean API_Start(String sipserver, String username,

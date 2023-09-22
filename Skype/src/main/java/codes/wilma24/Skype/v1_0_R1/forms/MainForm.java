@@ -1355,8 +1355,15 @@ public class MainForm extends JFrame {
 			groups.put("All", new ArrayList<Conversation>());
 
 			for (Conversation conversation : conversations) {
-				if (conversation instanceof Contact) {
-					if (((Contact) conversation).isFavorite()) {
+				if (conversation instanceof Contact
+						|| (conversation instanceof VoIPContact && ((VoIPContact) conversation)
+								.isContact())) {
+					if (((conversation instanceof VoIPContact && ((VoIPContact) conversation)
+							.isContact()) && ((VoIPContact) conversation)
+							.isFavorite())
+							|| (!((conversation instanceof VoIPContact && ((VoIPContact) conversation)
+									.isContact())) && ((Contact) conversation)
+									.isFavorite())) {
 						groups.get("Favorites").add(conversation);
 					} else {
 						groups.get("All").add(conversation);
@@ -1507,6 +1514,9 @@ public class MainForm extends JFrame {
 						if (conversation instanceof Contact) {
 							val = ((Contact) conversation).isFavorite();
 						}
+						if (conversation instanceof VoIPContact) {
+							val = ((VoIPContact) conversation).isFavorite();
+						}
 						if (val) {
 							JMenuItem menuItem = new JMenuItem(
 									"Remove from Favorites");
@@ -1514,20 +1524,26 @@ public class MainForm extends JFrame {
 
 								@Override
 								public void actionPerformed(ActionEvent arg0) {
-									loggedInUser.getFavorites().remove(
-											conversation.getUniqueId()
-													.toString());
-									Optional<SocketHandlerContext> ctx = Skype
-											.getPlugin().createHandle();
-									if (!ctx.isPresent()) {
-										return;
+									if (conversation instanceof VoIPContact) {
+										((VoIPContact) conversation)
+												.setFavorite(false);
+										refreshWindow();
+									} else if (conversation instanceof Contact) {
+										loggedInUser.getFavorites().remove(
+												conversation.getUniqueId()
+														.toString());
+										Optional<SocketHandlerContext> ctx = Skype
+												.getPlugin().createHandle();
+										if (!ctx.isPresent()) {
+											return;
+										}
+										PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+												authCode, loggedInUser
+														.getUniqueId(),
+												loggedInUser);
+										ctx.get().getOutboundHandler()
+												.dispatch(ctx.get(), msg);
 									}
-									PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
-											authCode, loggedInUser
-													.getUniqueId(),
-											loggedInUser);
-									ctx.get().getOutboundHandler()
-											.dispatch(ctx.get(), msg);
 								}
 
 							});
@@ -1539,7 +1555,11 @@ public class MainForm extends JFrame {
 
 								@Override
 								public void actionPerformed(ActionEvent arg0) {
-									if (conversation instanceof Contact) {
+									if (conversation instanceof VoIPContact) {
+										((VoIPContact) conversation)
+												.setFavorite(true);
+										refreshWindow();
+									} else if (conversation instanceof Contact) {
 										loggedInUser.getFavorites().add(
 												conversation.getUniqueId()
 														.toString());
@@ -1583,7 +1603,9 @@ public class MainForm extends JFrame {
 						menuItem.setEnabled(false);
 						popUp.add(menuItem);
 					}
-					if (!(conversation instanceof Contact)) {
+					if (!(conversation instanceof Contact)
+							&& !(conversation instanceof VoIPContact && ((VoIPContact) conversation)
+									.isContact())) {
 						if (conversation.hasOutgoingFriendRequest()) {
 							JMenuItem menuItem = new JMenuItem(
 									"Resend Contact Request");
@@ -2304,6 +2326,9 @@ public class MainForm extends JFrame {
 						if (conversation instanceof Contact) {
 							val = ((Contact) conversation).isFavorite();
 						}
+						if (conversation instanceof VoIPContact) {
+							val = ((VoIPContact) conversation).isFavorite();
+						}
 						if (val) {
 							JMenuItem menuItem = new JMenuItem(
 									"Remove from Favorites");
@@ -2311,20 +2336,26 @@ public class MainForm extends JFrame {
 
 								@Override
 								public void actionPerformed(ActionEvent arg0) {
-									loggedInUser.getFavorites().remove(
-											conversation.getUniqueId()
-													.toString());
-									Optional<SocketHandlerContext> ctx = Skype
-											.getPlugin().createHandle();
-									if (!ctx.isPresent()) {
-										return;
+									if (conversation instanceof VoIPContact) {
+										((VoIPContact) conversation)
+												.setFavorite(false);
+										refreshWindow();
+									} else if (conversation instanceof Contact) {
+										loggedInUser.getFavorites().remove(
+												conversation.getUniqueId()
+														.toString());
+										Optional<SocketHandlerContext> ctx = Skype
+												.getPlugin().createHandle();
+										if (!ctx.isPresent()) {
+											return;
+										}
+										PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
+												authCode, loggedInUser
+														.getUniqueId(),
+												loggedInUser);
+										ctx.get().getOutboundHandler()
+												.dispatch(ctx.get(), msg);
 									}
-									PacketPlayOutUpdateUser msg = new PacketPlayOutUpdateUser(
-											authCode, loggedInUser
-													.getUniqueId(),
-											loggedInUser);
-									ctx.get().getOutboundHandler()
-											.dispatch(ctx.get(), msg);
 								}
 
 							});
@@ -2336,7 +2367,11 @@ public class MainForm extends JFrame {
 
 								@Override
 								public void actionPerformed(ActionEvent arg0) {
-									if (conversation instanceof Contact) {
+									if (conversation instanceof VoIPContact) {
+										((VoIPContact) conversation)
+												.setFavorite(true);
+										refreshWindow();
+									} else if (conversation instanceof Contact) {
 										loggedInUser.getFavorites().add(
 												conversation.getUniqueId()
 														.toString());
@@ -2380,7 +2415,9 @@ public class MainForm extends JFrame {
 						menuItem.setEnabled(false);
 						popUp.add(menuItem);
 					}
-					if (!(conversation instanceof Contact)) {
+					if (!(conversation instanceof Contact)
+							&& !(conversation instanceof VoIPContact && ((VoIPContact) conversation)
+									.isContact())) {
 						if (conversation.hasOutgoingFriendRequest()) {
 							JMenuItem menuItem = new JMenuItem(
 									"Resend Contact Request");
@@ -2494,6 +2531,7 @@ public class MainForm extends JFrame {
 
 						});
 						popUp.add(menuItem);
+						popUp.add(new JSeparator());
 					}
 					{
 						JMenuItem menuItem = new JMenuItem("Hide conversation");
@@ -2946,6 +2984,13 @@ public class MainForm extends JFrame {
 					imageIcon = ImageIO
 							.getCircularStatusIcon(((Contact) selectedConversation)
 									.getOnlineStatus());
+				} else if ((selectedConversation instanceof VoIPContact && ((VoIPContact) selectedConversation)
+						.isContact())) {
+					Status onlineStatus = Status.OFFLINE;
+					if (VoIP.getPlugin().isConnected()) {
+						onlineStatus = Status.ONLINE;
+					}
+					imageIcon = ImageIO.getCircularStatusIcon(onlineStatus);
 				} else if (selectedConversation.isGroupChat()) {
 					imageIcon = ImageIO
 							.getResourceAsImageIcon("/212013846.png");
@@ -2988,7 +3033,15 @@ public class MainForm extends JFrame {
 					" This person isn't in your Contact list.");
 			if (rightPanelPage.equals("CallPhones")) {
 			} else {
-				if (selectedConversation instanceof Contact) {
+				if ((selectedConversation instanceof VoIPContact && ((VoIPContact) selectedConversation)
+						.isContact())) {
+					Status onlineStatus = Status.OFFLINE;
+					if (VoIP.getPlugin().isConnected()) {
+						onlineStatus = Status.ONLINE;
+					}
+					statusLabel = new JLabel(WordUtils.capitalize(onlineStatus
+							.name().toLowerCase()));
+				} else if (selectedConversation instanceof Contact) {
 					Status onlineStatus = ((Contact) selectedConversation)
 							.getOnlineStatus();
 					statusLabel = new JLabel(WordUtils.capitalize(onlineStatus
@@ -7103,7 +7156,9 @@ public class MainForm extends JFrame {
 			}
 
 			if (!(selectedConversation instanceof Contact)
-					&& !selectedConversation.isGroupChat()) {
+					&& !selectedConversation.isGroupChat()
+					&& !(selectedConversation instanceof VoIPContact && ((VoIPContact) selectedConversation)
+							.isContact())) {
 				/**
 				 * System level message
 				 */
@@ -7287,6 +7342,12 @@ public class MainForm extends JFrame {
 
 										@Override
 										public void run() {
+											if (selectedConversation instanceof VoIPContact) {
+												((VoIPContact) selectedConversation)
+														.setContact(true);
+												refreshWindow();
+												return;
+											}
 											String input = this.getInput();
 											Optional<SocketHandlerContext> ctx = Skype
 													.getPlugin().createHandle();
