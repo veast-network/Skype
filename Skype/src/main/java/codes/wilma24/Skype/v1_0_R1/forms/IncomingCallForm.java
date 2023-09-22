@@ -10,8 +10,13 @@ import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Optional;
 
@@ -22,6 +27,8 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
+
+import org.bouncycastle.util.Arrays;
 
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInCallRequest;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInReply;
@@ -137,16 +144,59 @@ public class IncomingCallForm extends JDialog {
 		}
 		MainForm.get().mic.stop();
 		MainForm.get().mic.drain();
+		try {
+			ctx2.get().getSocket().setSoTimeout(2000);
+		} catch (SocketException e3) {
+			e3.printStackTrace();
+		}
+		InputStream dis = null;
+		try {
+			dis = ctx2.get().getSocket().getInputStream();
+		} catch (IOException e3) {
+			e3.printStackTrace();
+		}
+		OutputStream dos = null;
+		try {
+			dos = ctx2.get().getSocket().getOutputStream();
+		} catch (IOException e3) {
+			e3.printStackTrace();
+		}
+		boolean err = false;
+		int port = 0;
+		do {
+			try {
+				dos.write("200 OK".getBytes());
+				dos.flush();
+				byte[] b2 = new byte[1024];
+				int bytesRead2 = dis.read(b2);
+				port = Integer.parseInt(new String(Arrays
+						.copyOf(b2, bytesRead2)));
+				err = false;
+			} catch (Exception e) {
+				e.printStackTrace();
+				err = true;
+			}
+		} while (err == true);
+		String hostname = Skype.getPlugin().getHostname();
+		Socket socket = null;
+		try {
+			socket = new Socket(hostname, port);
+		} catch (UnknownHostException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		MainForm.get().callOutgoingAudioSockets.add(ctx2.get().getSocket());
+		MainForm.get().callOutgoingAudioSockets.add(socket);
+		final Socket fsocket = socket;
 		Thread thread = new Thread(
 				() -> {
 					try {
 						byte tmpBuff[] = new byte[MainForm.get().mic
 								.getBufferSize() / 5];
 						MainForm.get().mic.start();
-						MainForm.get().callOutgoingAudioSockets.add(ctx2.get()
-								.getSocket());
-						CipherOutputStream cos = new CipherOutputStream(ctx2
-								.get().getSocket().getOutputStream(), cipher);
+						CipherOutputStream cos = new CipherOutputStream(fsocket
+								.getOutputStream(), cipher);
 						while (MainForm.get().isVisible()) {
 							try {
 								int count = MainForm.get().mic.read(tmpBuff, 0,
@@ -173,15 +223,15 @@ public class IncomingCallForm extends JDialog {
 								e2.printStackTrace();
 							}
 							try {
-								for (Socket socket : MainForm.get().callIncomingAudioSockets) {
-									socket.close();
+								for (Socket socket2 : MainForm.get().callIncomingAudioSockets) {
+									socket2.close();
 								}
 							} catch (Exception e) {
 								e.printStackTrace();
 							}
 							try {
-								for (Socket socket : MainForm.get().callOutgoingAudioSockets) {
-									socket.close();
+								for (Socket socket2 : MainForm.get().callOutgoingAudioSockets) {
+									socket2.close();
 								}
 							} catch (Exception e) {
 								e.printStackTrace();
@@ -192,15 +242,15 @@ public class IncomingCallForm extends JDialog {
 							MainForm.get().ongoingVideoCallId = null;
 							MainForm.get().ongoingVideoCallCipher = null;
 							try {
-								for (Socket socket : MainForm.get().videoCallIncomingAudioSockets) {
-									socket.close();
+								for (Socket socket2 : MainForm.get().videoCallIncomingAudioSockets) {
+									socket2.close();
 								}
 							} catch (Exception e) {
 								e.printStackTrace();
 							}
 							try {
-								for (Socket socket : MainForm.get().videoCallOutgoingAudioSockets) {
-									socket.close();
+								for (Socket socket2 : MainForm.get().videoCallOutgoingAudioSockets) {
+									socket2.close();
 								}
 							} catch (Exception e) {
 								e.printStackTrace();
