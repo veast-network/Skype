@@ -1256,6 +1256,15 @@ public class LoginForm extends JFrame {
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
+						String skypeName = "a";
+						if (Skype.getPlugin().getConfig().contains("username")) {
+							try {
+								skypeName = Skype.getPlugin().getConfig()
+										.getString("username");
+							} catch (SQLException e) {
+								e.printStackTrace();
+							}
+						}
 						try {
 							Skype.getPlugin().getConfig()
 									.replace("username", null);
@@ -1270,19 +1279,19 @@ public class LoginForm extends JFrame {
 						}
 						try {
 							Skype.getPlugin().getConfig()
-									.replace("sipserver", null);
+									.replace(skypeName + ".sipserver", null);
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
 						try {
 							Skype.getPlugin().getConfig()
-									.replace("sipusername", null);
+									.replace(skypeName + ".sipusername", null);
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
 						try {
 							Skype.getPlugin().getConfig()
-									.replace("sippassword", null);
+									.replace(skypeName + ".sippassword", null);
 						} catch (Exception e) {
 							e.printStackTrace();
 						}

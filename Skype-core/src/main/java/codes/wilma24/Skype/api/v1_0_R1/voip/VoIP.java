@@ -13,7 +13,9 @@ public class VoIP {
 
 	public static VoIP plugin;
 
-	Runnable callback = null;
+	Runnable hangupCallCallback = null;
+
+	Runnable incomingCallCallback = null;
 
 	boolean connected = false;
 
@@ -29,19 +31,35 @@ public class VoIP {
 		return connected;
 	}
 
-	public boolean API_Start(String sipserver, String username, String password) {
+	public boolean API_Reject(int line) {
+		return webphoneobj.API_Reject(line);
+	}
+
+	public boolean API_Hangup(int line) {
+		return webphoneobj.API_Hangup(line);
+	}
+
+	public int API_GetLine() {
+		return webphoneobj.API_GetLine();
+	}
+
+	public boolean API_Start(String sipserver, String username,
+			String password, Runnable incomingCallCallback) {
 		this.sipserver = sipserver;
 		this.username = username;
 		this.password = password;
+		this.incomingCallCallback = incomingCallCallback;
 		System.out.println("init...");
 		webphoneobj = new webphone();
 		MyNotificationListener listener = new MyNotificationListener(this);
 		webphoneobj.API_SetNotificationListener(listener);
-		webphoneobj.API_SetParameter("loglevel", 1);
+		webphoneobj.API_SetParameter("loglevel", 5);
 		webphoneobj.API_SetParameter("logtoconsole", true);
 		webphoneobj.API_SetParameter("serveraddress", sipserver);
 		webphoneobj.API_SetParameter("username", username);
 		webphoneobj.API_SetParameter("password", password);
+		webphoneobj.API_SetParameter("iscommandline", true);
+		webphoneobj.API_SetParameter("hasgui", false);
 		System.out.println("start...");
 		boolean ret = webphoneobj.API_Start();
 		if (ret) {
@@ -65,7 +83,25 @@ public class VoIP {
 		return webphoneobj.API_SendSMS(phoneNumber, message);
 	}
 
-	public VoIPCall API_Call(String phoneNumber, Runnable callback) {
+	public VoIPCall API_Accept(int line, Runnable hangupCallCallback) {
+		try {
+			System.out.println("accepting...");
+			boolean ret = webphoneobj.API_Accept(line);
+			if (ret == false) {
+				return null;
+			}
+			VoIPCall obj = new VoIPCall(webphoneobj);
+			this.hangupCallCallback = hangupCallCallback;
+			return obj;
+		} catch (Exception e) {
+			System.out.println("Exception at Go: " + e.getMessage() + "\r\n"
+					+ e.getStackTrace());
+		}
+		return null;
+	}
+
+	public VoIPCall API_Call(String phoneNumber, boolean hangupAllOtherLines,
+			Runnable hangupCallCallback) {
 		if (phoneNumber.equals("+1911") || phoneNumber.equals("+44999")
 				|| phoneNumber.equals("+44112") || phoneNumber.equals("112")
 				|| phoneNumber.equals("911") || phoneNumber.equals("999")) {
@@ -73,13 +109,15 @@ public class VoIP {
 		}
 		try {
 			System.out.println("calling...");
-			webphoneobj.API_Hangup(-2);
+			if (hangupAllOtherLines) {
+				webphoneobj.API_Hangup(-2);
+			}
 			boolean ret = webphoneobj.API_Call(-1, phoneNumber);
 			if (ret == false) {
 				return null;
 			}
 			VoIPCall obj = new VoIPCall(webphoneobj);
-			this.callback = callback;
+			this.hangupCallCallback = hangupCallCallback;
 			return obj;
 		} catch (Exception e) {
 			System.out.println("Exception at Go: " + e.getMessage() + "\r\n"
@@ -98,7 +136,9 @@ public class VoIP {
 		public void onAll(SIPNotification e) {
 			if (e.toString().contains("CallDisconnect")
 					|| e.toString().contains("Call Finished")) {
-				callback.run();
+				if (hangupCallCallback != null) {
+					hangupCallCallback.run();
+				}
 			}
 			System.out.println("\t\t\t" + e.getNotificationTypeText()
 					+ " notification received: " + e.toString());
@@ -139,7 +179,12 @@ public class VoIP {
 					&& e.getEndpointType() == SIPNotification.Status.DIRECTION_IN) {
 				System.out.println("\tIncoming call from "
 						+ e.getPeerDisplayname());
-				app.webphoneobj.API_Accept(e.getLine());
+				incomingCallCallback.peer = e.getPeer();
+				incomingCallCallback.line = e.getLine();
+				Thread thread = new Thread(() -> {
+					incomingCallCallback.run();
+				});
+				thread.start();
 			} else if (e.getStatus() == SIPNotification.Status.STATUS_CALL_CONNECT
 					&& e.getEndpointType() == SIPNotification.Status.DIRECTION_IN) {
 				System.out.println("\tIncoming call connected");
@@ -156,5 +201,10 @@ public class VoIP {
 			app.webphoneobj.API_SendChat(e.getPeer(), "Received");
 		}
 
+	}
+
+	public static abstract class Runnable implements java.lang.Runnable {
+		public String peer;
+		public int line;
 	}
 }

@@ -12,8 +12,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.lang.reflect.Method;
 import java.net.Socket;
-import java.util.Date;
-import java.util.Optional;
 
 import javax.sound.sampled.Clip;
 import javax.swing.ImageIcon;
@@ -23,33 +21,22 @@ import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 
-import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInCallRequest;
-import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInReply;
-import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptCallRequest;
-import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutDeclineCallRequest;
-import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLogin;
-import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
+import codes.wilma24.Skype.api.v1_0_R1.data.types.VoIPCall;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
 import codes.wilma24.Skype.api.v1_0_R1.voip.VoIP;
-import codes.wilma24.Skype.v1_0_R1.AppDelegate;
 import codes.wilma24.Skype.v1_0_R1.audioio.AudioIO;
 import codes.wilma24.Skype.v1_0_R1.awt.AWTUtilities;
-import codes.wilma24.Skype.v1_0_R1.cipher.CipherOutputStream;
-import codes.wilma24.Skype.v1_0_R1.data.types.Conversation;
 import codes.wilma24.Skype.v1_0_R1.data.types.VoIPContact;
 import codes.wilma24.Skype.v1_0_R1.fontio.FontIO;
 import codes.wilma24.Skype.v1_0_R1.imageio.ImageIO;
-import codes.wilma24.Skype.v1_0_R1.plugin.Skype;
 
-public class IncomingCallForm extends JDialog {
+public class IncomingVoIPCallForm extends JDialog {
 
-	private Conversation conversation;
+	private VoIPContact conversation;
+
+	private int line;
 
 	private Thread thread = null;
-
-	private Optional<SocketHandlerContext> ctx2;
-
-	private PacketPlayInCallRequest packet;
 
 	private final JDialog dialog;
 
@@ -120,130 +107,96 @@ public class IncomingCallForm extends JDialog {
 			}
 			AudioIO.HANGUP.playSound();
 		}
-		UUID callId = packet.getCallId();
-		MainForm.get().ongoingCallCipher = cipher;
-		Optional<PacketPlayInReply> reply = ctx2
-				.get()
-				.getOutboundHandler()
-				.dispatch(ctx2.get(),
-						new PacketPlayOutAcceptCallRequest(authCode, callId));
-		if (!reply.isPresent()) {
-			MainForm.get().ongoingCallCipher = null;
-			return;
-		}
-		if (reply.get().getStatusCode() != 200) {
-			MainForm.get().ongoingCallCipher = null;
-			return;
-		}
 		MainForm.get().mic.stop();
 		MainForm.get().mic.drain();
-		Thread thread = new Thread(
-				() -> {
+		MainForm.get().ongoingCall = true;
+		MainForm.get().ongoingCallConversation = conversation;
+		String number = conversation.getDisplayName();
+		MainForm.get().voipNumber = number;
+		MainForm.get().ongoingCallStartTime = System.currentTimeMillis();
+		MainForm.get().rightPanelPage = "OngoingCall";
+		AudioIO.CALL_INIT.playSound();
+		String peer2 = number;
+		VoIPCall ret = VoIP.getPlugin().API_Accept(line, new VoIP.Runnable() {
+
+			@Override
+			public void run() {
+				if (!peer2.equals(MainForm.get().ongoingCallConversation
+						.getDisplayName())) {
+					return;
+				}
+				if (!MainForm.get().ongoingCall) {
+					return;
+				}
+				MainForm.get().mic.stop();
+				MainForm.get().mic.drain();
+				MainForm.get().ongoingCall = false;
+				MainForm.get().ongoingCallConversation = null;
+				MainForm.get().ongoingCallParticipants.clear();
+				MainForm.get().ongoingCallId = null;
+				MainForm.get().ongoingCallCipher = null;
+				MainForm.get().ongoingCallStartTime = 0L;
+				MainForm.get().rightPanelPage = "Conversation";
+				MainForm.get().refreshWindow(MainForm.get().SCROLL_TO_BOTTOM);
+				try {
+					for (Socket socket : MainForm.get().callIncomingAudioSockets) {
+						socket.close();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					for (Socket socket : MainForm.get().callOutgoingAudioSockets) {
+						socket.close();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				MainForm.get().ongoingVideoCall = false;
+				MainForm.get().ongoingVideoCallId = null;
+				MainForm.get().ongoingVideoCallCipher = null;
+				try {
+					for (Socket socket : MainForm.get().videoCallIncomingAudioSockets) {
+						socket.close();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					for (Socket socket : MainForm.get().videoCallOutgoingAudioSockets) {
+						socket.close();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				MainForm.get().videoEnabled = false;
+				MainForm.get().microphoneEnabled = true;
+				MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
+				MainForm.ongoingVideoCallWidth = 0;
+				MainForm.ongoingVideoCallHeight = 0;
+				if (MainForm.webcam != null) {
 					try {
-						byte tmpBuff[] = new byte[MainForm.get().mic
-								.getBufferSize() / 5];
-						MainForm.get().mic.start();
-						MainForm.get().callOutgoingAudioSockets.add(ctx2.get()
-								.getSocket());
-						CipherOutputStream cos = new CipherOutputStream(ctx2
-								.get().getSocket().getOutputStream(), cipher);
-						while (MainForm.get().isVisible()) {
-							try {
-								int count = MainForm.get().mic.read(tmpBuff, 0,
-										tmpBuff.length);
-								if (count > 0) {
-									cos.write(tmpBuff, 0, count);
-								} else {
-									Thread.sleep(100);
-								}
-							} catch (Exception e) {
-								e.printStackTrace();
-								break;
-							}
-						}
+						Class<?> clazz = Class
+								.forName("com.github.sarxos.webcam.Webcam");
+						Method close = clazz.getMethod("close", null);
+						close.invoke(MainForm.webcam, null);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					if (MainForm.get().ongoingCallId != null)
-						if (callId.equals(MainForm.get().ongoingCallId)) {
-							try {
-								MainForm.get().mic.stop();
-								MainForm.get().mic.drain();
-							} catch (Exception e2) {
-								e2.printStackTrace();
-							}
-							try {
-								for (Socket socket : MainForm.get().callIncomingAudioSockets) {
-									socket.close();
-								}
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-							try {
-								for (Socket socket : MainForm.get().callOutgoingAudioSockets) {
-									socket.close();
-								}
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-							MainForm.get().ongoingCall = false;
-							MainForm.get().rightPanelPage = "Conversation";
-							MainForm.get().ongoingVideoCall = false;
-							MainForm.get().ongoingVideoCallId = null;
-							MainForm.get().ongoingVideoCallCipher = null;
-							try {
-								for (Socket socket : MainForm.get().videoCallIncomingAudioSockets) {
-									socket.close();
-								}
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-							try {
-								for (Socket socket : MainForm.get().videoCallOutgoingAudioSockets) {
-									socket.close();
-								}
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-							MainForm.get().videoEnabled = false;
-							MainForm.get().microphoneEnabled = true;
-							MainForm.get().videoMode = MainForm.get().WEBCAM_CAPTURE_MODE;
-							MainForm.ongoingVideoCallWidth = 0;
-							MainForm.ongoingVideoCallHeight = 0;
-							try {
-								Class<?> clazz = Class
-										.forName("com.github.sarxos.webcam.Webcam");
-								Method close = clazz.getMethod("close", null);
-								close.invoke(MainForm.webcam, null);
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-							MainForm.get().refreshWindow();
-						}
-				});
-		thread.start();
-		MainForm.get().rightPanelPage = "OngoingCall";
-		MainForm.get().ongoingCall = true;
-		MainForm.get().ongoingCallStartTime = new Date(new Date().getTime()
-				+ AppDelegate.TIME_OFFSET).getTime();
-		for (Conversation conversation : MainForm.get().getConversations()) {
-			if (conversation.getUniqueId().equals(
-					this.conversation.getUniqueId())) {
-				MainForm.get().setSelectedConversation(conversation);
-				MainForm.get().ongoingCallConversation = conversation;
-				MainForm.get().ongoingCallId = packet.getCallId();
+				}
+				AudioIO.HANGUP.playSound();
 			}
-		}
+
+		});
+		MainForm.get().ongoingCallObj = ret;
 		MainForm.get().refreshWindow();
 		dialog.dispatchEvent(new WindowEvent(dialog, WindowEvent.WINDOW_CLOSING));
 	}
 
-	public IncomingCallForm(PacketPlayInCallRequest packet,
-			Conversation conversation, boolean playSound, byte[] cipher) {
+	public IncomingVoIPCallForm(VoIPContact conversation, boolean playSound,
+			int line) {
 		this.conversation = conversation;
-		this.ctx2 = Skype.getPlugin().createHandle();
-		this.packet = packet;
-		this.cipher = cipher;
+		this.line = line;
 
 		setTitle("Incoming Call");
 
@@ -283,10 +236,6 @@ public class IncomingCallForm extends JDialog {
 		setContentPane(layeredPane);
 
 		dialog = this;
-
-		Optional<PacketPlayInReply> reply = ctx2.get().getOutboundHandler()
-				.dispatch(ctx2.get(), new PacketPlayOutLogin(authCode));
-		authCode = UUID.fromString(reply.get().getText());
 
 		try {
 			AWTUtilities.setWindowOpacity(this, 0.0f);
@@ -423,14 +372,7 @@ public class IncomingCallForm extends JDialog {
 
 					@Override
 					public void mousePressed(MouseEvent evt) {
-						UUID authCode = MainForm.get().getAuthCode();
-						UUID callId = packet.getCallId();
-						ctx2.get()
-								.getOutboundHandler()
-								.dispatch(
-										ctx2.get(),
-										new PacketPlayOutDeclineCallRequest(
-												authCode, callId));
+						VoIP.getPlugin().API_Reject(line);
 						dialog.dispatchEvent(new WindowEvent(dialog,
 								WindowEvent.WINDOW_CLOSING));
 					}
@@ -478,14 +420,7 @@ public class IncomingCallForm extends JDialog {
 
 					@Override
 					public void mousePressed(MouseEvent evt) {
-						UUID authCode = MainForm.get().getAuthCode();
-						UUID callId = packet.getCallId();
-						ctx2.get()
-								.getOutboundHandler()
-								.dispatch(
-										ctx2.get(),
-										new PacketPlayOutDeclineCallRequest(
-												authCode, callId));
+						VoIP.getPlugin().API_Reject(line);
 						dialog.dispatchEvent(new WindowEvent(dialog,
 								WindowEvent.WINDOW_CLOSING));
 					}

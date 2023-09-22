@@ -12,6 +12,7 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.util.Date;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -31,7 +32,11 @@ import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.Imaging;
 
 import codes.wilma24.Skype.api.v1_0_R1.voip.VoIP;
+import codes.wilma24.Skype.v1_0_R1.AppDelegate;
+import codes.wilma24.Skype.v1_0_R1.data.types.Conversation;
+import codes.wilma24.Skype.v1_0_R1.data.types.VoIPContact;
 import codes.wilma24.Skype.v1_0_R1.imageio.ImageIO;
+import codes.wilma24.Skype.v1_0_R1.plugin.Skype;
 
 public class VoIPRegisterForm extends JDialog {
 
@@ -40,10 +45,10 @@ public class VoIPRegisterForm extends JDialog {
 	private JTextField fullNameTextField = new JTextField();
 
 	private JTextField createSkypeNameTextField = new JTextField(
-			"6-32 characters needed");
+			"2-40 characters needed");
 
 	private JPasswordField passwordTextField = new JPasswordField(
-			"6-20 characters needed");
+			"2-40 characters needed");
 
 	private JLabel passwordOkLabel = new JLabel("Password OK");
 
@@ -289,7 +294,7 @@ public class VoIPRegisterForm extends JDialog {
 				@Override
 				public void focusGained(FocusEvent arg0) {
 					if (createSkypeNameTextField.getText().equals(
-							"6-32 characters needed")) {
+							"2-40 characters needed")) {
 						createSkypeNameTextField.setText("");
 					}
 					createSkypeNameTextField.selectAll();
@@ -299,7 +304,7 @@ public class VoIPRegisterForm extends JDialog {
 				public void focusLost(FocusEvent arg0) {
 					if (createSkypeNameTextField.getText().equals("")) {
 						createSkypeNameTextField
-								.setText("6-32 characters needed");
+								.setText("2-40 characters needed");
 					}
 				}
 
@@ -391,7 +396,7 @@ public class VoIPRegisterForm extends JDialog {
 
 						public void valueChanged() {
 							int len = passwordTextField.getText().length();
-							if (len < 6 || len > 20) {
+							if (len < 2 || len > 40) {
 								passwordOkLabel.setVisible(false);
 							} else {
 								passwordOkLabel.setVisible(true);
@@ -412,7 +417,7 @@ public class VoIPRegisterForm extends JDialog {
 				@Override
 				public void focusGained(FocusEvent arg0) {
 					if (passwordTextField.getText().equals(
-							"6-20 characters needed")) {
+							"2-40 characters needed")) {
 						passwordTextField.setText("");
 						passwordTextField.setEchoChar(echo);
 					}
@@ -422,7 +427,7 @@ public class VoIPRegisterForm extends JDialog {
 				@Override
 				public void focusLost(FocusEvent arg0) {
 					if (passwordTextField.getText().equals("")) {
-						passwordTextField.setText("6-20 characters needed");
+						passwordTextField.setText("2-40 characters needed");
 						passwordTextField.setEchoChar((char) 0);
 					}
 				}
@@ -883,13 +888,13 @@ public class VoIPRegisterForm extends JDialog {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				if (createSkypeNameTextField.getText().equals(
-						"6-32 characters needed")) {
+						"2-40 characters needed")) {
 					createSkypeNameTextField.grabFocus();
 					Toolkit.getDefaultToolkit().beep();
 					return;
 				} else {
 					int len = createSkypeNameTextField.getText().length();
-					if (len < 6 || len > 32) {
+					if (len < 2 || len > 40) {
 						createSkypeNameTextField.grabFocus();
 						Toolkit.getDefaultToolkit().beep();
 						return;
@@ -904,7 +909,7 @@ public class VoIPRegisterForm extends JDialog {
 					return;
 				}
 				if (passwordTextField.getText()
-						.equals("6-20 characters needed")) {
+						.equals("2-40 characters needed")) {
 					passwordTextField.grabFocus();
 					Toolkit.getDefaultToolkit().beep();
 					return;
@@ -912,7 +917,7 @@ public class VoIPRegisterForm extends JDialog {
 				if (passwordTextField.getText().equals(
 						repeatPasswordTextField.getText())) {
 					int len = passwordTextField.getText().length();
-					if (len < 6 || len > 20) {
+					if (len < 2 || len > 40) {
 						passwordTextField.grabFocus();
 						Toolkit.getDefaultToolkit().beep();
 						return;
@@ -936,7 +941,37 @@ public class VoIPRegisterForm extends JDialog {
 				callback.username = createSkypeNameTextField.getText();
 				callback.password = passwordTextField.getText();
 				if (VoIP.getPlugin().API_Start(callback.sipserver,
-						callback.username, callback.password)) {
+						callback.username, callback.password,
+						new VoIP.Runnable() {
+
+							@Override
+							public void run() {
+								String peer = this.peer;
+								int line = this.line;
+								VoIPContact testvoip = new VoIPContact();
+								testvoip.setSkypeName(peer);
+								testvoip.setUniqueId(Skype.getPlugin()
+										.getUniqueId(testvoip.getSkypeName()));
+								testvoip.setDisplayName(testvoip.getSkypeName());
+								testvoip.setLastModified(new Date(new Date()
+										.getTime() + AppDelegate.TIME_OFFSET));
+								boolean hit = false;
+								for (Conversation conversation : MainForm.get().conversations) {
+									if (conversation.getUniqueId().equals(
+											testvoip.getUniqueId())) {
+										testvoip = (VoIPContact) conversation;
+										hit = true;
+										break;
+									}
+								}
+								if (!hit) {
+									MainForm.get().conversations.add(testvoip);
+								}
+								IncomingVoIPCallForm form = new IncomingVoIPCallForm(
+										testvoip, true, line);
+								form.show();
+							}
+						})) {
 					dialog.dispatchEvent(new WindowEvent(dialog,
 							WindowEvent.WINDOW_CLOSING));
 					callback.run();

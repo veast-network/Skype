@@ -223,7 +223,7 @@ public class MainForm extends JFrame {
 
 	private final Contact loggedInUser;
 
-	private static List<Conversation> conversations = new ArrayList<Conversation>();
+	public static List<Conversation> conversations = new ArrayList<Conversation>();
 
 	private Conversation selectedConversation;
 
@@ -367,7 +367,7 @@ public class MainForm extends JFrame {
 	/*
 	 * Voip
 	 */
-	private String number = "";
+	public String voipNumber = "";
 
 	public Optional<Conversation> lookupUser(UUID participantId) {
 		for (Conversation conversation : conversations) {
@@ -1123,7 +1123,7 @@ public class MainForm extends JFrame {
 					homeButtonBackgroundPanel
 							.setBackground(leftTopPaneBackgroundColor);
 					rightPanelPage = "CallPhones";
-					number = "";
+					voipNumber = "";
 					selectedConversation = null;
 					refreshWindow();
 				} else {
@@ -3288,7 +3288,7 @@ public class MainForm extends JFrame {
 							.deriveFont(Font.TRUETYPE_FONT, 21));
 			JLabel displayNameLabel = new JLabel(Utils.concatStringEllipses(fm,
 					panelWidth - 320,
-					rightPanelPage.equals("CallPhones") ? number
+					rightPanelPage.equals("CallPhones") ? voipNumber
 							: selectedConversation.getDisplayName()));
 			displayNameLabel.setFont(FontIO.SEGOE_UI_SEMILIGHT.deriveFont(
 					Font.TRUETYPE_FONT, 21));
@@ -3308,12 +3308,12 @@ public class MainForm extends JFrame {
 						String res2 = (String) JOptionPane.showInputDialog(
 								frame, "Enter new phone number",
 								frame.getTitle(), JOptionPane.PLAIN_MESSAGE,
-								null, null, number);
+								null, null, voipNumber);
 						if (res2 != null) {
 							if (res2.trim().equals("")) {
 								res2 = "";
 							}
-							number = res2;
+							voipNumber = res2;
 							refreshWindow();
 						}
 					} else {
@@ -3452,11 +3452,11 @@ public class MainForm extends JFrame {
 					if (rightPanelPage.equals("CallPhones")
 							|| selectedConversation instanceof VoIPContact) {
 						if (!(selectedConversation instanceof VoIPContact)) {
-							if (number.equals("")) {
+							if (voipNumber.equals("")) {
 								return;
 							}
 							VoIPContact testvoip = new VoIPContact();
-							testvoip.setSkypeName(number);
+							testvoip.setSkypeName(voipNumber);
 							testvoip.setUniqueId(Skype.getPlugin().getUniqueId(
 									testvoip.getSkypeName()));
 							testvoip.setDisplayName(testvoip.getSkypeName());
@@ -3479,22 +3479,32 @@ public class MainForm extends JFrame {
 						} else {
 							ongoingCall = true;
 							ongoingCallConversation = selectedConversation;
-							number = selectedConversation.getDisplayName();
+							voipNumber = selectedConversation.getDisplayName();
 						}
 						ongoingCallStartTime = System.currentTimeMillis();
 						rightPanelPage = "OngoingCall";
 						AudioIO.CALL_INIT.playSound();
-						VoIPCall ret = VoIP.getPlugin().API_Call(number,
-								new Runnable() {
+						String peer2 = ongoingCallConversation.getDisplayName();
+						VoIPCall ret = VoIP.getPlugin().API_Call(voipNumber,
+								true, new VoIP.Runnable() {
 
 									@Override
 									public void run() {
-										if (selectedConversation instanceof VoIPContact) {
+										if (!ongoingCall) {
+											return;
+										}
+										if (!peer2
+												.equals(ongoingCallConversation
+														.getDisplayName())) {
+											return;
+										}
+										if (ongoingCallConversation instanceof VoIPContact) {
 											ongoingCallObj.hangup();
 										}
-										if (selectedConversation.getUniqueId()
-												.equals(echoSoundTestService
-														.getUniqueId())) {
+										if (ongoingCallConversation
+												.getUniqueId().equals(
+														echoSoundTestService
+																.getUniqueId())) {
 											if (echo123 == null) {
 											} else {
 												echo123.stop();
@@ -4051,7 +4061,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "1";
+						voipNumber += "1";
 						refreshWindow();
 					}
 
@@ -4088,7 +4098,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "2";
+						voipNumber += "2";
 						refreshWindow();
 					}
 
@@ -4125,7 +4135,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "3";
+						voipNumber += "3";
 						refreshWindow();
 					}
 
@@ -4162,7 +4172,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "4";
+						voipNumber += "4";
 						refreshWindow();
 					}
 
@@ -4199,7 +4209,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "5";
+						voipNumber += "5";
 						refreshWindow();
 					}
 
@@ -4236,7 +4246,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "6";
+						voipNumber += "6";
 						refreshWindow();
 					}
 
@@ -4273,7 +4283,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "7";
+						voipNumber += "7";
 						refreshWindow();
 					}
 
@@ -4310,7 +4320,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "8";
+						voipNumber += "8";
 						refreshWindow();
 					}
 
@@ -4347,7 +4357,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "9";
+						voipNumber += "9";
 						refreshWindow();
 					}
 
@@ -4384,7 +4394,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "*";
+						voipNumber += "*";
 						refreshWindow();
 					}
 
@@ -4431,9 +4441,9 @@ public class MainForm extends JFrame {
 						super.mouseReleased(evt);
 						long elapsed = System.currentTimeMillis() - before;
 						if (elapsed < 500) {
-							number += "0";
+							voipNumber += "0";
 						} else {
-							number += "+";
+							voipNumber += "+";
 						}
 						refreshWindow();
 					}
@@ -4471,7 +4481,7 @@ public class MainForm extends JFrame {
 					@Override
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
-						number += "#";
+						voipNumber += "#";
 						refreshWindow();
 					}
 
@@ -6660,10 +6670,10 @@ public class MainForm extends JFrame {
 							/*
 							 * TODO: End call
 							 */
-							if (selectedConversation instanceof VoIPContact) {
+							if (ongoingCallConversation instanceof VoIPContact) {
 								ongoingCallObj.hangup();
 							}
-							if (selectedConversation.getUniqueId().equals(
+							if (ongoingCallConversation.getUniqueId().equals(
 									echoSoundTestService.getUniqueId())) {
 								if (echo123 == null) {
 								} else {
@@ -10573,7 +10583,7 @@ public class MainForm extends JFrame {
 								File pathToData = fc.getSelectedFile();
 								selectedConversation = null;
 								rightPanelPage = "CallPhones";
-								number = "";
+								voipNumber = "";
 								SkypeChatImporter skypeChatViewer = new SkypeChatImporter(
 										frame, pathToData, loggedInUser,
 										password, new Runnable() {
@@ -10651,17 +10661,29 @@ public class MainForm extends JFrame {
 					e1.printStackTrace();
 				}
 				try {
-					Skype.getPlugin().getConfig().replace("sipserver", null);
+					Skype.getPlugin()
+							.getConfig()
+							.replace(
+									loggedInUser.getSkypeName() + ".sipserver",
+									null);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 				try {
-					Skype.getPlugin().getConfig().replace("sipusername", null);
+					Skype.getPlugin()
+							.getConfig()
+							.replace(
+									loggedInUser.getSkypeName()
+											+ ".sipusername", null);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 				try {
-					Skype.getPlugin().getConfig().replace("sippassword", null);
+					Skype.getPlugin()
+							.getConfig()
+							.replace(
+									loggedInUser.getSkypeName()
+											+ ".sippassword", null);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -11500,15 +11522,60 @@ public class MainForm extends JFrame {
 		super.show();
 
 		if (!shown) {
-			if (Skype.getPlugin().getConfig().contains("sipserver")) {
+			if (Skype.getPlugin().getConfig()
+					.contains(loggedInUser.getSkypeName() + ".sipserver")) {
 				try {
-					String sipserver = Skype.getPlugin().getConfig()
-							.getString("sipserver");
-					String username = Skype.getPlugin().getConfig()
-							.getString("sipusername");
-					String password = Skype.getPlugin().getConfig()
-							.getString("sippassword");
-					VoIP.getPlugin().API_Start(sipserver, username, password);
+					String sipserver = Skype
+							.getPlugin()
+							.getConfig()
+							.getString(
+									loggedInUser.getSkypeName() + ".sipserver");
+					String username = Skype
+							.getPlugin()
+							.getConfig()
+							.getString(
+									loggedInUser.getSkypeName()
+											+ ".sipusername");
+					String password = Skype
+							.getPlugin()
+							.getConfig()
+							.getString(
+									loggedInUser.getSkypeName()
+											+ ".sippassword");
+					VoIP.getPlugin().API_Start(sipserver, username, password,
+							new VoIP.Runnable() {
+
+								@Override
+								public void run() {
+									String peer = this.peer;
+									int line = this.line;
+									VoIPContact testvoip = new VoIPContact();
+									testvoip.setSkypeName(peer);
+									testvoip.setUniqueId(Skype.getPlugin()
+											.getUniqueId(
+													testvoip.getSkypeName()));
+									testvoip.setDisplayName(testvoip
+											.getSkypeName());
+									testvoip.setLastModified(new Date(
+											new Date().getTime()
+													+ AppDelegate.TIME_OFFSET));
+									boolean hit = false;
+									for (Conversation conversation : conversations) {
+										if (conversation.getUniqueId().equals(
+												testvoip.getUniqueId())) {
+											testvoip = (VoIPContact) conversation;
+											hit = true;
+											break;
+										}
+									}
+									if (!hit) {
+										conversations.add(testvoip);
+									}
+									IncomingVoIPCallForm form = new IncomingVoIPCallForm(
+											testvoip, true, line);
+									form.show();
+								}
+							});
 				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
@@ -11522,20 +11589,32 @@ public class MainForm extends JFrame {
 								String username = getUsername();
 								String password = getPassword();
 								try {
-									Skype.getPlugin().getConfig()
-											.replace("sipserver", sipserver);
+									Skype.getPlugin()
+											.getConfig()
+											.replace(
+													loggedInUser.getSkypeName()
+															+ ".sipserver",
+													sipserver);
 								} catch (Exception e) {
 									e.printStackTrace();
 								}
 								try {
-									Skype.getPlugin().getConfig()
-											.replace("sipusername", username);
+									Skype.getPlugin()
+											.getConfig()
+											.replace(
+													loggedInUser.getSkypeName()
+															+ ".sipusername",
+													username);
 								} catch (Exception e) {
 									e.printStackTrace();
 								}
 								try {
-									Skype.getPlugin().getConfig()
-											.replace("sippassword", password);
+									Skype.getPlugin()
+											.getConfig()
+											.replace(
+													loggedInUser.getSkypeName()
+															+ ".sippassword",
+													password);
 								} catch (Exception e) {
 									e.printStackTrace();
 								}

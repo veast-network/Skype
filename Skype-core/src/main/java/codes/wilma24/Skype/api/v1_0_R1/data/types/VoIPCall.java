@@ -15,7 +15,7 @@ public class VoIPCall {
 	}
 
 	public boolean hangup() {
-		boolean ret = webphoneobj.API_Hangup(-1);
+		boolean ret = webphoneobj.API_Hangup(-2);
 		webphoneobj.API_Stop();
 		return ret;
 	}
