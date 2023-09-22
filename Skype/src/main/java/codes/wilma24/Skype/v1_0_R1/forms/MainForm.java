@@ -4115,6 +4115,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "1";
+						AudioIO.DTMF_1.playSound();
 						refreshWindow();
 					}
 
@@ -4152,6 +4153,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "2";
+						AudioIO.DTMF_2.playSound();
 						refreshWindow();
 					}
 
@@ -4189,6 +4191,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "3";
+						AudioIO.DTMF_3.playSound();
 						refreshWindow();
 					}
 
@@ -4226,6 +4229,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "4";
+						AudioIO.DTMF_4.playSound();
 						refreshWindow();
 					}
 
@@ -4263,6 +4267,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "5";
+						AudioIO.DTMF_5.playSound();
 						refreshWindow();
 					}
 
@@ -4300,6 +4305,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "6";
+						AudioIO.DTMF_6.playSound();
 						refreshWindow();
 					}
 
@@ -4337,6 +4343,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "7";
+						AudioIO.DTMF_7.playSound();
 						refreshWindow();
 					}
 
@@ -4374,6 +4381,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "8";
+						AudioIO.DTMF_8.playSound();
 						refreshWindow();
 					}
 
@@ -4411,6 +4419,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "9";
+						AudioIO.DTMF_9.playSound();
 						refreshWindow();
 					}
 
@@ -4448,6 +4457,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "*";
+						AudioIO.DTMF_STAR.playSound();
 						refreshWindow();
 					}
 
@@ -4487,6 +4497,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						before = System.currentTimeMillis();
+						AudioIO.DTMF_0.playSound();
 					}
 
 					@Override
@@ -4535,6 +4546,7 @@ public class MainForm extends JFrame {
 					public void mousePressed(MouseEvent evt) {
 						super.mousePressed(evt);
 						voipNumber += "#";
+						AudioIO.DTMF_POUND.playSound();
 						refreshWindow();
 					}
 
@@ -6365,13 +6377,37 @@ public class MainForm extends JFrame {
 
 										@Override
 										public void run() {
-											if (ongoingCallConversation instanceof VoIPContact) {
-												return;
-											}
 											String input = getInput();
-											if (input
+											if (input.equals("Show dial pad")) {
+												DialPadMenuForm form3 = new DialPadMenuForm(
+														frame,
+														new DialPadMenuForm.Runnable() {
+
+															@Override
+															public void run() {
+																VoIP.getPlugin()
+																		.API_Dtmf(
+																				-1,
+																				this.getInput()
+																						+ "");
+															}
+														});
+												form3.setLocationRelativeTo(iconLabelPanel);
+												int x = form3.getLocation().x;
+												int y = form3.getLocation().y
+														- (form3.getContentPane()
+																.getHeight() / 2)
+														- (iconLabelPanel
+																.getHeight() / 2)
+														- 7;
+												form3.setLocation(x, y);
+												form3.show();
+											} else if (input
 													.equals("Share screens...")
 													|| input.equals("Stop sharing")) {
+												if (ongoingCallConversation instanceof VoIPContact) {
+													return;
+												}
 												if (videoEnabled) {
 													if (videoMode == WEBCAM_CAPTURE_MODE) {
 														videoMode = SCREEN_CAPTURE_MODE;
@@ -6685,7 +6721,6 @@ public class MainForm extends JFrame {
 									- (iconLabelPanel.getHeight() / 2) - 7;
 							form2.setLocation(x, y);
 							form2.show();
-							refreshWindow();
 						}
 					};
 

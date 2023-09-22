@@ -97,7 +97,31 @@ public class AudioIO {
 	public static AudioIO USER_LEFT_ORG = new AudioIO("/USER_LEFT_ORG.wav");
 
 	public static AudioIO VC_BEEP_1 = new AudioIO("/VC_BEEP_1.wav");
-	
+
+	public static AudioIO DTMF_1 = new AudioIO("/dtmf-1.wav");
+
+	public static AudioIO DTMF_2 = new AudioIO("/dtmf-2.wav");
+
+	public static AudioIO DTMF_3 = new AudioIO("/dtmf-3.wav");
+
+	public static AudioIO DTMF_4 = new AudioIO("/dtmf-4.wav");
+
+	public static AudioIO DTMF_5 = new AudioIO("/dtmf-5.wav");
+
+	public static AudioIO DTMF_6 = new AudioIO("/dtmf-6.wav");
+
+	public static AudioIO DTMF_7 = new AudioIO("/dtmf-7.wav");
+
+	public static AudioIO DTMF_8 = new AudioIO("/dtmf-8.wav");
+
+	public static AudioIO DTMF_9 = new AudioIO("/dtmf-9.wav");
+
+	public static AudioIO DTMF_0 = new AudioIO("/dtmf-9.wav");
+
+	public static AudioIO DTMF_POUND = new AudioIO("/dtmf-pound.wav");
+
+	public static AudioIO DTMF_STAR = new AudioIO("/dtmf-star.wav");
+
 	public static AudioIO ECHO123 = new AudioIO("/ECHO123.wav");
 
 	private String resource;

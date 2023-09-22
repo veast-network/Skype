@@ -31,6 +31,10 @@ public class VoIP {
 		return connected;
 	}
 
+	public boolean API_Dtmf(int line, String dtmf) {
+		return webphoneobj.API_Dtmf(line, dtmf);
+	}
+
 	public boolean API_Reject(int line) {
 		return webphoneobj.API_Reject(line);
 	}
