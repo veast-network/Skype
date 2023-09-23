@@ -17,6 +17,12 @@ public class VoIP {
 
 	Runnable incomingCallCallback = null;
 
+	Runnable incomingMessageCallback = null;
+
+	Runnable authenticateSuccessCallback = null;
+
+	Runnable authenticateFailedCallback = null;
+
 	boolean connected = false;
 
 	static {
@@ -56,11 +62,17 @@ public class VoIP {
 	}
 
 	public boolean API_Start(String sipserver, String username,
-			String password, Runnable incomingCallCallback) {
+			String password, Runnable incomingCallCallback,
+			Runnable incomingMessageCallback,
+			Runnable authenticateSuccessCallback,
+			Runnable authenticateFailedCallback) {
 		this.sipserver = sipserver;
 		this.username = username;
 		this.password = password;
 		this.incomingCallCallback = incomingCallCallback;
+		this.incomingMessageCallback = incomingMessageCallback;
+		this.authenticateSuccessCallback = authenticateSuccessCallback;
+		this.authenticateFailedCallback = authenticateFailedCallback;
 		System.out.println("init...");
 		webphoneobj = new webphone();
 		MyNotificationListener listener = new MyNotificationListener(this);
@@ -82,17 +94,16 @@ public class VoIP {
 			}
 			webphoneobj.API_Hangup(-2);
 		}
-		connected = ret;
 		return ret;
 	}
 
-	public boolean API_SendSMS(String phoneNumber, String message) {
+	public boolean API_SendChat(String phoneNumber, String message) {
 		if (phoneNumber.equals("+1911") || phoneNumber.equals("+44999")
 				|| phoneNumber.equals("+44112") || phoneNumber.equals("112")
 				|| phoneNumber.equals("911") || phoneNumber.equals("999")) {
 			return false;
 		}
-		return webphoneobj.API_SendSMS(phoneNumber, message);
+		return webphoneobj.API_SendChat(phoneNumber, message);
 	}
 
 	public VoIPCall API_Accept(int line, Runnable hangupCallCallback) {
@@ -205,18 +216,29 @@ public class VoIP {
 
 		public void onEvent(SIPNotification.Event e) {
 			System.out.println("\tImportant event: " + e.getText());
+			if (e.getText().equals(
+					"Authentication failed / Wrong username/password")) {
+				connected = false;
+				authenticateFailedCallback.run();
+			} else if (e.getText().equals("Authenticated successfully.")) {
+				connected = true;
+				authenticateSuccessCallback.run();
+			}
 		}
 
 		public void onChat(SIPNotification.Chat e) {
 			System.out.println("\tMessage from " + e.getPeer() + ": "
 					+ e.getMsg());
-			app.webphoneobj.API_SendChat(e.getPeer(), "Received");
+			incomingMessageCallback.peer = e.getPeer();
+			incomingMessageCallback.msg = e.getMsg();
+			incomingMessageCallback.run();
 		}
 
 	}
 
 	public static abstract class Runnable implements java.lang.Runnable {
 		public String peer;
+		public String msg;
 		public int line;
 	}
 }

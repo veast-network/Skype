@@ -31,9 +31,12 @@ import javax.swing.event.DocumentListener;
 import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.Imaging;
 
+import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
 import codes.wilma24.Skype.api.v1_0_R1.voip.VoIP;
 import codes.wilma24.Skype.v1_0_R1.AppDelegate;
+import codes.wilma24.Skype.v1_0_R1.audioio.AudioIO;
 import codes.wilma24.Skype.v1_0_R1.data.types.Conversation;
+import codes.wilma24.Skype.v1_0_R1.data.types.Message;
 import codes.wilma24.Skype.v1_0_R1.data.types.VoIPContact;
 import codes.wilma24.Skype.v1_0_R1.imageio.ImageIO;
 import codes.wilma24.Skype.v1_0_R1.plugin.Skype;
@@ -940,44 +943,102 @@ public class VoIPRegisterForm extends JDialog {
 				callback.sipserver = fullNameTextField.getText();
 				callback.username = createSkypeNameTextField.getText();
 				callback.password = passwordTextField.getText();
+				primaryButton.setEnabled(false);
+				VoIP.Runnable incomingCallCallback = new VoIP.Runnable() {
+
+					@Override
+					public void run() {
+						String peer = this.peer;
+						int line = this.line;
+						VoIPContact testvoip = new VoIPContact();
+						testvoip.setSkypeName(peer);
+						testvoip.setUniqueId(Skype.getPlugin().getUniqueId(
+								testvoip.getSkypeName()));
+						testvoip.setDisplayName(testvoip.getSkypeName());
+						testvoip.setLastModified(new Date(new Date().getTime()
+								+ AppDelegate.TIME_OFFSET));
+						boolean hit = false;
+						for (Conversation conversation : MainForm.get().conversations) {
+							if (conversation.getUniqueId().equals(
+									testvoip.getUniqueId())) {
+								testvoip = (VoIPContact) conversation;
+								hit = true;
+								break;
+							}
+						}
+						if (!hit) {
+							MainForm.get().conversations.add(testvoip);
+							MainForm.get().saveVoipContactList();
+						}
+						IncomingVoIPCallForm form = new IncomingVoIPCallForm(
+								testvoip, true, line);
+						form.show();
+					}
+				};
+				VoIP.Runnable incomingMessageCallback = new VoIP.Runnable() {
+
+					@Override
+					public void run() {
+						String peer = this.peer;
+						String msg = this.msg;
+						VoIPContact testvoip = new VoIPContact();
+						testvoip.setSkypeName(peer);
+						testvoip.setUniqueId(Skype.getPlugin().getUniqueId(
+								testvoip.getSkypeName()));
+						testvoip.setDisplayName(testvoip.getSkypeName());
+						testvoip.setLastModified(new Date(new Date().getTime()
+								+ AppDelegate.TIME_OFFSET));
+						boolean hit = false;
+						for (Conversation conversation : MainForm.get().conversations) {
+							if (conversation.getUniqueId().equals(
+									testvoip.getUniqueId())) {
+								testvoip = (VoIPContact) conversation;
+								hit = true;
+								break;
+							}
+						}
+						if (!hit) {
+							MainForm.get().conversations.add(testvoip);
+							MainForm.get().saveVoipContactList();
+						}
+						UUID messageId = UUID.randomUUID();
+						testvoip.setNotificationCount(testvoip
+								.getNotificationCount() + 1);
+						Message message = new Message(messageId, testvoip
+								.getUniqueId(), msg,
+								System.currentTimeMillis(), testvoip);
+						testvoip.getMessages().add(message);
+						NotificationForm notif = new NotificationForm(testvoip,
+								message, true);
+						notif.show();
+						MainForm.get().refreshWindow();
+					}
+				};
 				if (VoIP.getPlugin().API_Start(callback.sipserver,
 						callback.username, callback.password,
+						incomingCallCallback, incomingMessageCallback,
 						new VoIP.Runnable() {
 
 							@Override
 							public void run() {
-								String peer = this.peer;
-								int line = this.line;
-								VoIPContact testvoip = new VoIPContact();
-								testvoip.setSkypeName(peer);
-								testvoip.setUniqueId(Skype.getPlugin()
-										.getUniqueId(testvoip.getSkypeName()));
-								testvoip.setDisplayName(testvoip.getSkypeName());
-								testvoip.setLastModified(new Date(new Date()
-										.getTime() + AppDelegate.TIME_OFFSET));
-								boolean hit = false;
-								for (Conversation conversation : MainForm.get().conversations) {
-									if (conversation.getUniqueId().equals(
-											testvoip.getUniqueId())) {
-										testvoip = (VoIPContact) conversation;
-										hit = true;
-										break;
-									}
-								}
-								if (!hit) {
-									MainForm.get().conversations.add(testvoip);
-									MainForm.get().saveVoipContactList();
-								}
-								IncomingVoIPCallForm form = new IncomingVoIPCallForm(
-										testvoip, true, line);
-								form.show();
+								// TODO Auto-generated method stub
+								dialog.dispatchEvent(new WindowEvent(dialog,
+										WindowEvent.WINDOW_CLOSING));
+								callback.run();
+							}
+						}, new VoIP.Runnable() {
+
+							@Override
+							public void run() {
+								// TODO Auto-generated method stub
+								Toolkit.getDefaultToolkit().beep();
+								primaryButton.setEnabled(true);
 							}
 						})) {
-					dialog.dispatchEvent(new WindowEvent(dialog,
-							WindowEvent.WINDOW_CLOSING));
-					callback.run();
+
 				} else {
 					Toolkit.getDefaultToolkit().beep();
+					primaryButton.setEnabled(true);
 				}
 			}
 

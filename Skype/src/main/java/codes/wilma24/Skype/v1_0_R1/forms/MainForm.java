@@ -10733,7 +10733,7 @@ public class MainForm extends JFrame {
 						selectedMessage = null;
 					}
 					conversationTextField.setText("");
-					VoIP.getPlugin().API_SendSMS(
+					VoIP.getPlugin().API_SendChat(
 							selectedConversation.getDisplayName(), txt);
 					AudioIO.IM_SENT.playSound();
 					return;
@@ -11928,6 +11928,45 @@ public class MainForm extends JFrame {
 							.getString(
 									loggedInUser.getSkypeName()
 											+ ".sippassword");
+					VoIP.Runnable incomingMessageCallback = new VoIP.Runnable() {
+
+						@Override
+						public void run() {
+							String peer = this.peer;
+							String msg = this.msg;
+							VoIPContact testvoip = new VoIPContact();
+							testvoip.setSkypeName(peer);
+							testvoip.setUniqueId(Skype.getPlugin().getUniqueId(
+									testvoip.getSkypeName()));
+							testvoip.setDisplayName(testvoip.getSkypeName());
+							testvoip.setLastModified(new Date(new Date()
+									.getTime() + AppDelegate.TIME_OFFSET));
+							boolean hit = false;
+							for (Conversation conversation : MainForm.get().conversations) {
+								if (conversation.getUniqueId().equals(
+										testvoip.getUniqueId())) {
+									testvoip = (VoIPContact) conversation;
+									hit = true;
+									break;
+								}
+							}
+							if (!hit) {
+								MainForm.get().conversations.add(testvoip);
+								MainForm.get().saveVoipContactList();
+							}
+							UUID messageId = UUID.randomUUID();
+							testvoip.setNotificationCount(testvoip
+									.getNotificationCount() + 1);
+							Message message = new Message(messageId,
+									testvoip.getUniqueId(), msg,
+									System.currentTimeMillis(), testvoip);
+							testvoip.getMessages().add(message);
+							NotificationForm notif = new NotificationForm(
+									testvoip, message, true);
+							notif.show();
+							MainForm.get().refreshWindow();
+						}
+					};
 					VoIP.getPlugin().API_Start(sipserver, username, password,
 							new VoIP.Runnable() {
 
@@ -11961,6 +12000,32 @@ public class MainForm extends JFrame {
 									IncomingVoIPCallForm form = new IncomingVoIPCallForm(
 											testvoip, true, line);
 									form.show();
+								}
+							}, incomingMessageCallback, new VoIP.Runnable() {
+
+								@Override
+								public void run() {
+									for (Conversation conversation : conversations) {
+										if (conversation instanceof VoIPContact) {
+											((VoIPContact) conversation)
+													.setContact((((VoIPContact) conversation)
+															.isContact()));
+										}
+									}
+									refreshWindow();
+								}
+							}, new VoIP.Runnable() {
+
+								@Override
+								public void run() {
+									for (Conversation conversation : conversations) {
+										if (conversation instanceof VoIPContact) {
+											((VoIPContact) conversation)
+													.setContact((((VoIPContact) conversation)
+															.isContact()));
+										}
+									}
+									refreshWindow();
 								}
 							});
 				} catch (Exception e1) {
@@ -12005,6 +12070,14 @@ public class MainForm extends JFrame {
 								} catch (Exception e) {
 									e.printStackTrace();
 								}
+								for (Conversation conversation : conversations) {
+									if (conversation instanceof VoIPContact) {
+										((VoIPContact) conversation)
+												.setContact((((VoIPContact) conversation)
+														.isContact()));
+									}
+								}
+								refreshWindow();
 							}
 						});
 				form.show();
