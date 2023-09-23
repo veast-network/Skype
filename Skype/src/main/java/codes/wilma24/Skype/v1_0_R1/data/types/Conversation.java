@@ -51,7 +51,7 @@ public class Conversation {
 
 	private volatile transient boolean bot = false;
 
-	public volatile transient long lastModified;
+	public volatile long lastModified;
 
 	public volatile transient int notificationCount;
 

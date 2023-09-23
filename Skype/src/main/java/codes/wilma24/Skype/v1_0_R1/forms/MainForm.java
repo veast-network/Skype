@@ -126,6 +126,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupMessageHistory;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupOnlineStatus;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUserRegistry;
+import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupVoipContacts;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutMarkConversationAsRead;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutPubKeyExchange;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutRefreshToken;
@@ -138,6 +139,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutSendMessage;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutSendVideoCallRequest;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateGroupChatParticipants;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateUser;
+import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutUpdateVoipContacts;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutVideoCallResolutionChanged;
 import codes.wilma24.Skype.api.v1_0_R1.socket.SocketHandlerContext;
 import codes.wilma24.Skype.api.v1_0_R1.uuid.UUID;
@@ -154,6 +156,7 @@ import codes.wilma24.Skype.v1_0_R1.data.types.Message;
 import codes.wilma24.Skype.v1_0_R1.data.types.MessageType;
 import codes.wilma24.Skype.v1_0_R1.data.types.Status;
 import codes.wilma24.Skype.v1_0_R1.data.types.VoIPContact;
+import codes.wilma24.Skype.v1_0_R1.data.types.VoIPContactList;
 import codes.wilma24.Skype.v1_0_R1.fontio.FontIO;
 import codes.wilma24.Skype.v1_0_R1.imageio.ImageIO;
 import codes.wilma24.Skype.v1_0_R1.imgur.ImgurUploader;
@@ -1533,6 +1536,7 @@ public class MainForm extends JFrame {
 									if (conversation instanceof VoIPContact) {
 										((VoIPContact) conversation)
 												.setFavorite(false);
+										saveVoipContactList();
 										refreshWindow();
 									} else if (conversation instanceof Contact) {
 										loggedInUser.getFavorites().remove(
@@ -1564,6 +1568,7 @@ public class MainForm extends JFrame {
 									if (conversation instanceof VoIPContact) {
 										((VoIPContact) conversation)
 												.setFavorite(true);
+										saveVoipContactList();
 										refreshWindow();
 									} else if (conversation instanceof Contact) {
 										loggedInUser.getFavorites().add(
@@ -1663,6 +1668,7 @@ public class MainForm extends JFrame {
 														selectedConversation = null;
 														rightPanelPage = "AccountHome";
 													}
+													saveVoipContactList();
 													refreshWindow();
 													return;
 												}
@@ -2345,6 +2351,7 @@ public class MainForm extends JFrame {
 									if (conversation instanceof VoIPContact) {
 										((VoIPContact) conversation)
 												.setFavorite(false);
+										saveVoipContactList();
 										refreshWindow();
 									} else if (conversation instanceof Contact) {
 										loggedInUser.getFavorites().remove(
@@ -2376,6 +2383,7 @@ public class MainForm extends JFrame {
 									if (conversation instanceof VoIPContact) {
 										((VoIPContact) conversation)
 												.setFavorite(true);
+										saveVoipContactList();
 										refreshWindow();
 									} else if (conversation instanceof Contact) {
 										loggedInUser.getFavorites().add(
@@ -2475,6 +2483,7 @@ public class MainForm extends JFrame {
 														selectedConversation = null;
 														rightPanelPage = "AccountHome";
 													}
+													saveVoipContactList();
 													refreshWindow();
 													return;
 												}
@@ -3620,6 +3629,7 @@ public class MainForm extends JFrame {
 							}
 							if (!hit) {
 								conversations.add(testvoip);
+								saveVoipContactList();
 							}
 							ongoingCall = true;
 							selectedConversation = testvoip;
@@ -3845,6 +3855,7 @@ public class MainForm extends JFrame {
 						}
 						if (!hit) {
 							conversations.add(testvoip);
+							saveVoipContactList();
 						}
 						selectedConversation = testvoip;
 						rightPanelPage = "Conversation";
@@ -7539,6 +7550,7 @@ public class MainForm extends JFrame {
 											if (selectedConversation instanceof VoIPContact) {
 												((VoIPContact) selectedConversation)
 														.setContact(true);
+												saveVoipContactList();
 												refreshWindow();
 												return;
 											}
@@ -10116,6 +10128,52 @@ public class MainForm extends JFrame {
 
 	Bot echoSoundTestService = new Bot();
 
+	public boolean saveVoipContactList() {
+		try {
+			SocketHandlerContext ctx = Skype.getPlugin().createHandle().get();
+			VoIPContactList contactList = new VoIPContactList();
+			for (Conversation conversation : conversations) {
+				if (conversation instanceof VoIPContact) {
+					contactList.getContacts().add((VoIPContact) conversation);
+				}
+			}
+			String json = contactList.toString();
+			System.out.println(json);
+			UUID authCode = null;
+			PGPPublicKeyRing pubKey = null;
+			{
+				Optional<PacketPlayInReply> replyPacket = ctx
+						.getOutboundHandler().dispatch(
+								ctx,
+								new PacketPlayOutPubKeyExchange(Skype
+										.getPlugin().getPubKey()));
+				System.out.println(replyPacket);
+				if (replyPacket.isPresent()) {
+					if (replyPacket.get().getStatusCode() == 200) {
+						pubKey = PGPainless.readKeyRing().publicKeyRing(
+								replyPacket.get().getText());
+					}
+				}
+			}
+			json = PGPUtilities.encryptAndSign(json, Skype.getPlugin()
+					.getPrivKey(), pubKey);
+			Optional<PacketPlayInReply> replyPacket = ctx.getOutboundHandler()
+					.dispatch(
+							ctx,
+							new PacketPlayOutUpdateVoipContacts(this.authCode,
+									json));
+			System.out.println(replyPacket);
+			if (replyPacket.isPresent()) {
+				if (replyPacket.get().getStatusCode() == 200) {
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
 	public void readFromMemory() {
 		markAsReadTimer = new Timer(1000, new ActionListener() {
 
@@ -10190,6 +10248,41 @@ public class MainForm extends JFrame {
 		}
 		String json = replyPacket.get().getText();
 		registry = gson.fromJson(json, List.class);
+		PacketPlayOutLookupVoipContacts voipContactsLookup = new PacketPlayOutLookupVoipContacts(
+				authCode);
+		replyPacket = ctx.getOutboundHandler()
+				.dispatch(ctx, voipContactsLookup);
+		if (replyPacket.isPresent() && replyPacket.get().getStatusCode() == 200) {
+			json = replyPacket.get().getText();
+			PGPPublicKeyRing pubKey = null;
+			{
+				replyPacket = ctx.getOutboundHandler().dispatch(
+						ctx,
+						new PacketPlayOutPubKeyExchange(Skype.getPlugin()
+								.getPubKey()));
+				System.out.println(replyPacket);
+				if (replyPacket.isPresent()) {
+					if (replyPacket.get().getStatusCode() == 200) {
+						try {
+							pubKey = PGPainless.readKeyRing().publicKeyRing(
+									replyPacket.get().getText());
+							json = PGPUtilities.decryptAndVerify(json,
+									Skype.getPlugin().getPrivKey(), pubKey)
+									.getMessage();
+							VoIPContactList contactList = new VoIPContactList(
+									json);
+							for (VoIPContact contact : contactList
+									.getContacts()) {
+								contact.setContact(contact.isContact());
+								conversations.add(contact);
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		}
 		PacketPlayOutLookupContacts contactsLookup = new PacketPlayOutLookupContacts(
 				authCode);
 		replyPacket = ctx.getOutboundHandler().dispatch(ctx, contactsLookup);
@@ -11025,6 +11118,7 @@ public class MainForm extends JFrame {
 												.remove(selectedConversation);
 										selectedConversation = null;
 										rightPanelPage = "AccountHome";
+										saveVoipContactList();
 										refreshWindow();
 										return;
 									}
@@ -11862,6 +11956,7 @@ public class MainForm extends JFrame {
 									}
 									if (!hit) {
 										conversations.add(testvoip);
+										saveVoipContactList();
 									}
 									IncomingVoIPCallForm form = new IncomingVoIPCallForm(
 											testvoip, true, line);

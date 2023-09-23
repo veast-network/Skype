@@ -310,9 +310,38 @@ public class ConversationManager {
 		return Optional.empty();
 	}
 
+	public Optional<Object> lookupVoipContacts(UUID conversationId) {
+		ConfigurationSection config = this.config
+				.getConfigurationSection("voipContacts."
+						+ conversationId.toString());
+		try {
+			String payload = config.getString("payload");
+			if (payload == null) {
+				return Optional.empty();
+			}
+			return Optional.of(payload);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return Optional.empty();
+	}
+
 	public boolean updateConversation(UUID conversationId, Object payload) {
 		ConfigurationSection config = this.config
 				.getConfigurationSection("conversation."
+						+ conversationId.toString());
+		try {
+			config.replace("payload", payload.toString());
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	public boolean updateVoipContacts(UUID conversationId, Object payload) {
+		ConfigurationSection config = this.config
+				.getConfigurationSection("voipContacts."
 						+ conversationId.toString());
 		try {
 			config.replace("payload", payload.toString());

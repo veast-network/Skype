@@ -52,6 +52,7 @@ import codes.wilma24.Skype.server.v1_0_R1.command.LookupMessageHistoryCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupOnlineStatusCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupUserCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.LookupUserRegistryCmd;
+import codes.wilma24.Skype.server.v1_0_R1.command.LookupVoipContactsCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.MarkConversationAsReadCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.PubKeyExchangeCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.RefreshTokenCmd;
@@ -64,6 +65,7 @@ import codes.wilma24.Skype.server.v1_0_R1.command.SendMessageCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.SendVideoCallRequestCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.UpdateGroupChatParticipantsCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.UpdateUserCmd;
+import codes.wilma24.Skype.server.v1_0_R1.command.UpdateVoipContactsCmd;
 import codes.wilma24.Skype.server.v1_0_R1.command.VideoCallResolutionChangedCmd;
 import codes.wilma24.Skype.server.v1_0_R1.data.types.Connection;
 import codes.wilma24.Skype.server.v1_0_R1.manager.ConversationManager;
@@ -364,6 +366,10 @@ public class Skype {
 				new VideoCallResolutionChangedCmd());
 		CommandMap.register(PacketType.PUB_KEY_EXCHANGE,
 				new PubKeyExchangeCmd());
+		CommandMap.register(PacketType.UPDATE_VOIP_CONTACTS,
+				new UpdateVoipContactsCmd());
+		CommandMap.register(PacketType.LOOKUP_VOIP_CONTACTS,
+				new LookupVoipContactsCmd());
 		serverSocket = new ServerSocket(28109);
 		outerLoop: while (true) {
 			try {

@@ -966,6 +966,7 @@ public class VoIPRegisterForm extends JDialog {
 								}
 								if (!hit) {
 									MainForm.get().conversations.add(testvoip);
+									MainForm.get().saveVoipContactList();
 								}
 								IncomingVoIPCallForm form = new IncomingVoIPCallForm(
 										testvoip, true, line);

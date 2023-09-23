@@ -17,9 +17,12 @@ public class VoIPContact extends Conversation {
 
 	public void setContact(boolean val) {
 		this.contact = val;
-		Status onlineStatus = Status.OFFLINE;
-		if (VoIP.getPlugin().isConnected()) {
-			onlineStatus = Status.ONLINE;
+		Status onlineStatus = Status.NOT_A_CONTACT;
+		if (contact) {
+			onlineStatus = Status.OFFLINE;
+			if (VoIP.getPlugin().isConnected()) {
+				onlineStatus = Status.ONLINE;
+			}
 		}
 		Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
 				this.getImageIcon(), onlineStatus);
