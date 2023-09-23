@@ -106,11 +106,14 @@ import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.lang3.text.WordUtils;
 import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.util.io.Streams;
 import org.pgpainless.PGPainless;
 
 import codes.wilma24.Skype.api.v1_0_R1.data.types.VoIPCall;
 import codes.wilma24.Skype.api.v1_0_R1.gson.GsonBuilder;
+import codes.wilma24.Skype.api.v1_0_R1.packet.Packet;
+import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInLogin;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayInReply;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutAcceptContactRequest;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutDeclineContactRequest;
@@ -124,6 +127,7 @@ import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupOnlineStatus;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUser;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutLookupUserRegistry;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutMarkConversationAsRead;
+import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutPubKeyExchange;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutRefreshToken;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutRegister;
 import codes.wilma24.Skype.api.v1_0_R1.packet.PacketPlayOutRemoveMessage;
@@ -163,6 +167,8 @@ import codes.wilma24.Skype.v1_0_R1.uicommon.JVerticalLayout;
 import codes.wilma24.SkypeChatViewer.v1_0_R1.plugin.SkypeChatImporter;
 
 import com.google.gson.Gson;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 import com.ibm.icu.util.Calendar;
 
 public class MainForm extends JFrame {
@@ -2940,7 +2946,9 @@ public class MainForm extends JFrame {
 			/**
 			 * Panel added to pane with z-index 0
 			 */
-			rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+			if (!rightPanelPage.equals("CallPhones")) {
+				rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+			}
 		}
 
 		{
@@ -2971,7 +2979,9 @@ public class MainForm extends JFrame {
 			/**
 			 * Panel added to pane with z-index 0
 			 */
-			rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+			if (!rightPanelPage.equals("CallPhones")) {
+				rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+			}
 		}
 
 		{
@@ -3015,7 +3025,9 @@ public class MainForm extends JFrame {
 			/**
 			 * Panel added to pane with z-index 0
 			 */
-			rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+			if (!rightPanelPage.equals("CallPhones")) {
+				rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+			}
 		}
 
 		/**
@@ -3328,7 +3340,9 @@ public class MainForm extends JFrame {
 			/**
 			 * Panel added to pane with z-index 1, above decoration panel
 			 */
-			rightTopLayeredPane.add(statusLabelPanel, new Integer(1), 0);
+			if (!rightPanelPage.equals("CallPhones")) {
+				rightTopLayeredPane.add(statusLabelPanel, new Integer(1), 0);
+			}
 		}
 
 		/**
@@ -3337,14 +3351,13 @@ public class MainForm extends JFrame {
 		{
 			JPanel displayNameLabelPanel = new JPanel();
 			FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(
-					FontIO.SEGOE_UI_SEMILIGHT
-							.deriveFont(Font.TRUETYPE_FONT, 21));
+					FontIO.SEGOE_UI_LIGHT.deriveFont(Font.TRUETYPE_FONT, 22));
 			JLabel displayNameLabel = new JLabel(Utils.concatStringEllipses(fm,
 					panelWidth - 320,
 					rightPanelPage.equals("CallPhones") ? voipNumber
 							: selectedConversation.getDisplayName()));
-			displayNameLabel.setFont(FontIO.SEGOE_UI_SEMILIGHT.deriveFont(
-					Font.TRUETYPE_FONT, 21));
+			displayNameLabel.setFont(FontIO.SEGOE_UI_LIGHT.deriveFont(
+					Font.TRUETYPE_FONT, 22));
 
 			/**
 			 * Reserved for future use
@@ -3456,12 +3469,91 @@ public class MainForm extends JFrame {
 			displayNameLabelPanel.add(displayNameLabel);
 			int width = displayNameLabel.getPreferredSize().width;
 			int height = displayNameLabel.getPreferredSize().height;
-			displayNameLabelPanel.setBounds(104, 11, width, height + 10);
+			if (rightPanelPage.equals("CallPhones")) {
+				displayNameLabelPanel
+						.setBounds(104 - 84, 9, width, height + 10);
+			} else {
+				displayNameLabelPanel.setBounds(104, 11, width, height + 10);
+			}
 
 			/**
 			 * Panel added to pane with z-index 1, above decoration panel
 			 */
 			rightTopLayeredPane.add(displayNameLabelPanel, new Integer(1), 0);
+		}
+
+		/**
+		 * Add country code and name floating in top left panel
+		 */
+		{
+			JPanel countryCodeAndNamePanel = new JPanel();
+			JLabel countryCodeAndNameLabel = new JLabel("San Marino (+378)");
+			if (voipNumber.startsWith("+") && voipNumber.length() >= 2) {
+				PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
+				try {
+					PhoneNumber number = phoneUtil.parse(voipNumber, "gb");
+					countryCodeAndNameLabel.setText(new Locale("", phoneUtil
+							.getRegionCodeForNumber(number))
+							.getDisplayCountry()
+							+ " (+" + number.getCountryCode() + ")");
+				} catch (Exception e) {
+				}
+			}
+			countryCodeAndNameLabel.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+			countryCodeAndNameLabel.setForeground(new Color(0, 149, 204));
+
+			/**
+			 * Reserved for future use
+			 */
+			countryCodeAndNameLabel.setCursor(Cursor
+					.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+			countryCodeAndNamePanel.setOpaque(false);
+			countryCodeAndNamePanel.add(countryCodeAndNameLabel);
+			int width = countryCodeAndNameLabel.getPreferredSize().width;
+			int height = countryCodeAndNameLabel.getPreferredSize().height;
+			if (rightPanelPage.equals("CallPhones")) {
+				countryCodeAndNamePanel.setBounds(104 - 84, 40, width,
+						height + 10);
+				rightTopLayeredPane.add(countryCodeAndNamePanel,
+						new Integer(1), 0);
+			}
+		}
+
+		{
+			JPanel iconLabelPanel = new JPanel();
+			iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+			ImageIcon imageIcon = ImageIO
+					.getResourceAsImageIcon("/62844439.png");
+			JLabel iconLabel = new JLabel(imageIcon);
+
+			/**
+			 * Reserved for future use
+			 */
+			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+			iconLabel.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mousePressed(MouseEvent evt) {
+					super.mousePressed(evt);
+					voipNumber = "";
+					refreshWindow();
+				}
+			});
+
+			iconLabelPanel.setBounds(panelWidth - 111 - 15 - 10 - 27, 31, 18,
+					18);
+			iconLabelPanel.setOpaque(false);
+			iconLabelPanel.add(iconLabel);
+
+			/**
+			 * Panel added to pane with z-index 0
+			 */
+			if (rightPanelPage.equals("CallPhones")) {
+				if (voipNumber != null && !voipNumber.equals("")) {
+					rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+				}
+			}
 		}
 
 		{
@@ -3493,7 +3585,9 @@ public class MainForm extends JFrame {
 			/**
 			 * Panel added to pane with z-index 0
 			 */
-			rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+			if (!rightPanelPage.equals("CallPhones")) {
+				rightTopLayeredPane.add(iconLabelPanel, new Integer(0), 0);
+			}
 		}
 
 		{
@@ -3519,6 +3613,7 @@ public class MainForm extends JFrame {
 							for (Conversation conversation : conversations) {
 								if (conversation.getUniqueId().equals(
 										testvoip.getUniqueId())) {
+									testvoip = (VoIPContact) conversation;
 									hit = true;
 									break;
 								}
@@ -3729,6 +3824,31 @@ public class MainForm extends JFrame {
 				public void mousePressed(MouseEvent evt) {
 					super.mousePressed(evt);
 					if (rightPanelPage.equals("CallPhones")) {
+						if (voipNumber.equals("")) {
+							return;
+						}
+						VoIPContact testvoip = new VoIPContact();
+						testvoip.setSkypeName(voipNumber);
+						testvoip.setUniqueId(Skype.getPlugin().getUniqueId(
+								testvoip.getSkypeName()));
+						testvoip.setDisplayName(testvoip.getSkypeName());
+						testvoip.setLastModified(new Date(new Date().getTime()
+								+ AppDelegate.TIME_OFFSET));
+						boolean hit = false;
+						for (Conversation conversation : conversations) {
+							if (conversation.getUniqueId().equals(
+									testvoip.getUniqueId())) {
+								testvoip = (VoIPContact) conversation;
+								hit = true;
+								break;
+							}
+						}
+						if (!hit) {
+							conversations.add(testvoip);
+						}
+						selectedConversation = testvoip;
+						rightPanelPage = "Conversation";
+						refreshWindow();
 					} else {
 						List<String> skypeNames = new ArrayList<>();
 						for (Conversation conversation : conversations) {
@@ -4035,6 +4155,9 @@ public class MainForm extends JFrame {
 			iconLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
 			ImageIcon imageIcon = ImageIO
 					.getResourceAsImageIcon("/653174002.png");
+			if (rightPanelPage.equals("CallPhones")) {
+				imageIcon = ImageIO.getResourceAsImageIcon("/67276506.png");
+			}
 			JLabel iconLabel = new JLabel(imageIcon);
 
 			iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -4062,12 +4185,12 @@ public class MainForm extends JFrame {
 		return rightTopLayeredPane;
 	}
 
-	private Thread webPageThread = null;
-
 	private JPanel createRightBottomTopPanel(int panelWidth, int flag) {
 		JPanel panel = new JPanel();
 
 		if (rightPanelPage.equals("CallPhones")) {
+			int defaultRightTopPanelHeight = this.defaultRightTopPanelHeight
+					+ this.splitPaneDividerSize;
 			if (VoIP.getPlugin().isConnected()) {
 			} else {
 				return panel;
@@ -4078,7 +4201,8 @@ public class MainForm extends JFrame {
 			}
 			panelWidth = getContentPane().getSize().width
 					- this.splitPaneDividerSize - leftSplitPaneWidth;
-			int panelHeight = this.getContentPane().getHeight();
+			int panelHeight = this.getContentPane().getHeight()
+					- defaultRightTopPanelHeight;
 			JLayeredPane layeredPane = new JLayeredPane();
 			layeredPane.setBounds(0, 0, panelWidth, panelHeight);
 			layeredPane
@@ -4565,15 +4689,18 @@ public class MainForm extends JFrame {
 				 */
 				layeredPane.add(iconLabelPanel, new Integer(1), 0);
 			}
+			int x = -1;
+			int y = -5;
 			{
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("Your Skype Credit");
-				label.setFont(FontIO.SEGOE_UI_SEMILIGHT.deriveFont(22.0f));
+				label.setFont(FontIO.SEGOE_UI_LIGHT.deriveFont(22.0f));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(413 + 1 + 1, 82 - 7, width, height + 10);
+				labelPanel.setBounds(413 + 1 - 1 + 1 + x, 82 - 7 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4590,7 +4717,26 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(414 + 1, 110 - 7 + 3, width, height + 10);
+				labelPanel.setBounds(414 + 1 + x, 110 - 7 + 3 + y, width,
+						height + 10);
+
+				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+			{
+				JPanel labelPanel = new JPanel();
+				JLabel label = new JLabel("Call San Marino from 4¢/min");
+				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
+				labelPanel.setOpaque(false);
+				labelPanel.add(label);
+				int width = label.getPreferredSize().width;
+				int height = label.getPreferredSize().height;
+				labelPanel.setBounds(413 + 1 + x, 127 - 7 + 3 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4603,12 +4749,13 @@ public class MainForm extends JFrame {
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("Add Skype Credit");
 				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
-				label.setForeground(Color.blue);
+				label.setForeground(new Color(0, 149, 204));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(413 + 1, 127 - 7 + 3, width, height + 10);
+				labelPanel.setBounds(413 + 1 + x, 144 - 7 + 3 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4620,12 +4767,13 @@ public class MainForm extends JFrame {
 			{
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("Subscriptions");
-				label.setFont(FontIO.SEGOE_UI_SEMILIGHT.deriveFont(22.0f));
+				label.setFont(FontIO.SEGOE_UI_LIGHT.deriveFont(22.0f));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(414 + 1 + 1, 185 - 7, width, height + 10);
+				labelPanel.setBounds(414 + 1 - 1 + x, 185 - 7 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4642,7 +4790,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(413 + 1, 213 - 7 + 3, width, height + 10);
+				labelPanel.setBounds(413 + 1 + x, 213 - 7 + 3 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4655,12 +4804,13 @@ public class MainForm extends JFrame {
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("Get a subscription");
 				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
-				label.setForeground(Color.blue);
+				label.setForeground(new Color(0, 149, 204));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(413 + 1, 230 - 7 + 3, width, height + 10);
+				labelPanel.setBounds(413 + 1 + x, 230 - 7 + 3 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4673,12 +4823,13 @@ public class MainForm extends JFrame {
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("See all rates");
 				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
-				label.setForeground(Color.blue);
+				label.setForeground(new Color(0, 149, 204));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(413 + 1, 304 - 7 + 3, width, height + 10);
+				labelPanel.setBounds(413 + 1 + x, 304 - 7 + 3 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4691,12 +4842,13 @@ public class MainForm extends JFrame {
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("View my account");
 				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
-				label.setForeground(Color.blue);
+				label.setForeground(new Color(0, 149, 204));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(413 + 1, 267 - 7 + 3, width, height + 10);
+				labelPanel.setBounds(413 + 1 + x, 267 - 7 + 3 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4713,7 +4865,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(413 + 1, 323 - 7 + 3, width, height + 10);
+				labelPanel.setBounds(413 + 1 + x, 323 - 7 + 3 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4726,12 +4879,13 @@ public class MainForm extends JFrame {
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("connection fee");
 				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
-				label.setForeground(Color.blue);
+				label.setForeground(new Color(0, 149, 204));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(455 + 1, 323 - 7 + 3, width, height + 10);
+				labelPanel.setBounds(455 + 1 + x, 323 - 7 + 3 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4748,7 +4902,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(537 + 1, 323 - 7 + 3, width, height + 10);
+				labelPanel.setBounds(537 + 1 + x, 323 - 7 + 3 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4765,7 +4920,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(413 + 1, 340 - 7 + 3, width, height + 10);
+				labelPanel.setBounds(413 + 1 + x, 340 - 7 + 3 + y, width,
+						height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -4892,12 +5048,12 @@ public class MainForm extends JFrame {
 			{
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel(loggedInUser.getDisplayName());
-				label.setFont(FontIO.SANS_SERIF.deriveFont(Font.BOLD, 18.0f));
+				label.setFont(FontIO.SEGOE_UI.deriveFont(18.f));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(350 - 1, 26 - 9, width, height + 10);
+				labelPanel.setBounds(350, 26 - 9, width, height + 10);
 
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 
@@ -4995,7 +5151,7 @@ public class MainForm extends JFrame {
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("Manage");
 				// label.setFont(font);
-				label.setForeground(Color.blue);
+				label.setForeground(new Color(0, 149, 204));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
@@ -5032,7 +5188,7 @@ public class MainForm extends JFrame {
 				if (loggedInUser.getMood() == null
 						|| loggedInUser.getMood().equals("")) {
 					label = new JLabel("Enter mood message");
-					label.setForeground(Color.blue);
+					label.setForeground(new Color(0, 149, 204));
 				} else {
 					label = new JLabel(loggedInUser.getMood());
 				}
@@ -5106,7 +5262,7 @@ public class MainForm extends JFrame {
 				if (loggedInUser.getMobilePhone() == null
 						|| loggedInUser.getMobilePhone().equals("")) {
 					label = new JLabel("Add number");
-					label.setForeground(Color.blue);
+					label.setForeground(new Color(0, 149, 204));
 				} else {
 					label = new JLabel(loggedInUser.getMobilePhone());
 				}
@@ -5197,7 +5353,7 @@ public class MainForm extends JFrame {
 				if (loggedInUser.getHomePhone() == null
 						|| loggedInUser.getHomePhone().equals("")) {
 					label = new JLabel("Add number");
-					label.setForeground(Color.blue);
+					label.setForeground(new Color(0, 149, 204));
 				} else {
 					label = new JLabel(loggedInUser.getHomePhone());
 				}
@@ -5288,7 +5444,7 @@ public class MainForm extends JFrame {
 				if (loggedInUser.getOfficePhone() == null
 						|| loggedInUser.getOfficePhone().equals("")) {
 					label = new JLabel("Add number");
-					label.setForeground(Color.blue);
+					label.setForeground(new Color(0, 149, 204));
 				} else {
 					label = new JLabel(loggedInUser.getOfficePhone());
 				}
@@ -5420,7 +5576,7 @@ public class MainForm extends JFrame {
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("Change picture");
 				// label.setFont(font);
-				label.setForeground(Color.blue);
+				label.setForeground(new Color(0, 149, 204));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
@@ -5684,7 +5840,7 @@ public class MainForm extends JFrame {
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("Get a subscription");
 				// label.setFont(font);
-				label.setForeground(Color.blue);
+				label.setForeground(new Color(0, 149, 204));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
@@ -5809,7 +5965,7 @@ public class MainForm extends JFrame {
 				JPanel labelPanel = new JPanel();
 				JLabel label = new JLabel("Add Skype Credit");
 				// label.setFont(font);
-				label.setForeground(Color.blue);
+				label.setForeground(new Color(0, 149, 204));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
@@ -10253,9 +10409,33 @@ public class MainForm extends JFrame {
 		if (!ctx.isPresent()) {
 			return Optional.empty();
 		}
+		PGPPublicKeyRing pubKey = null;
+		String fpassword = null;
+		try {
+			{
+				Optional<PacketPlayInReply> replyPacket = ctx
+						.get()
+						.getOutboundHandler()
+						.dispatch(
+								ctx.get(),
+								new PacketPlayOutPubKeyExchange(Skype
+										.getPlugin().getPubKey()));
+				System.out.println(replyPacket);
+				if (replyPacket.isPresent()) {
+					if (replyPacket.get().getStatusCode() == 200) {
+						pubKey = PGPainless.readKeyRing().publicKeyRing(
+								replyPacket.get().getText());
+					}
+				}
+			}
+			fpassword = PGPUtilities.encryptAndSign(password, Skype.getPlugin()
+					.getPrivKey(), pubKey);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		PacketPlayOutRegister registerPacket = new PacketPlayOutRegister(
 				conversation.getDisplayName(), conversation.getSkypeName(),
-				password);
+				fpassword);
 		registerPacket.setSilent(true);
 		if (conversation.isGroupChat()) {
 			registerPacket.setGroupChatAdmin(loggedInUser.getUniqueId());
@@ -10277,13 +10457,26 @@ public class MainForm extends JFrame {
 							new PacketPlayOutLogin(this.authCode, conversation
 									.getSkypeName())).get().getText());
 		} else {
-			authCode = UUID.fromString(ctx
-					.get()
-					.getOutboundHandler()
-					.dispatch(
-							ctx.get(),
-							new PacketPlayOutLogin(conversation.getSkypeName(),
-									password)).get().getText());
+			replyPacket = Optional.of(
+					ctx.get()
+							.getOutboundHandler()
+							.dispatch(
+									ctx.get(),
+									new PacketPlayOutLogin(conversation
+											.getSkypeName(), fpassword))).get();
+			String text = null;
+			try {
+				text = PGPUtilities.decryptAndVerify(
+						replyPacket.get().getText(),
+						Skype.getPlugin().getPrivKey(), pubKey).getMessage();
+			} catch (PGPException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			PacketPlayInLogin loginPacket = Packet.fromJson(text,
+					PacketPlayInLogin.class);
+			authCode = UUID.fromString(loginPacket.getAuthCode());
 		}
 		UUID participantId = Skype.getPlugin().getUniqueId(
 				conversation.getSkypeName());

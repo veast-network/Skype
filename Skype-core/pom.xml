@@ -100,5 +100,10 @@
 			<artifactId>webphone</artifactId>
 			<version>1.0</version>
 		</dependency>
+		<dependency>
+			<groupId>com.googlecode.libphonenumber</groupId>
+			<artifactId>libphonenumber</artifactId>
+			<version>8.13.21</version>
+		</dependency>
     </dependencies>
 </project>

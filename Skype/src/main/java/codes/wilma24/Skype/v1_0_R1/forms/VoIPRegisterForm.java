@@ -151,7 +151,7 @@ public class VoIPRegisterForm extends JDialog {
 			labelPanel.setOpaque(false);
 
 			JLabel label = new JLabel("Sign in");
-			label.setForeground(Color.blue);
+			label.setForeground(new Color(0, 149, 204));
 
 			/**
 			 * Reserved for future use
@@ -663,7 +663,7 @@ public class VoIPRegisterForm extends JDialog {
 			labelPanel.setOpaque(false);
 
 			JLabel label = new JLabel("Skype End User License Agreement");
-			label.setForeground(Color.blue);
+			label.setForeground(new Color(0, 149, 204));
 
 			/**
 			 * Reserved for future use
@@ -709,7 +709,7 @@ public class VoIPRegisterForm extends JDialog {
 			labelPanel.setOpaque(false);
 
 			JLabel label = new JLabel("Skype Terms of Service");
-			label.setForeground(Color.blue);
+			label.setForeground(new Color(0, 149, 204));
 
 			/**
 			 * Reserved for future use
@@ -755,7 +755,7 @@ public class VoIPRegisterForm extends JDialog {
 			labelPanel.setOpaque(false);
 
 			JLabel label = new JLabel("Skype Privacy Statement");
-			label.setForeground(Color.blue);
+			label.setForeground(new Color(0, 149, 204));
 
 			/**
 			 * Reserved for future use
@@ -840,7 +840,7 @@ public class VoIPRegisterForm extends JDialog {
 			labelPanel.setOpaque(false);
 
 			JLabel label = new JLabel("Get help");
-			label.setForeground(Color.blue);
+			label.setForeground(new Color(0, 149, 204));
 
 			/**
 			 * Reserved for future use
