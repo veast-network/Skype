@@ -235,6 +235,18 @@ public class Conversation {
 
 	public void setGroupChat(boolean groupChat) {
 		this.groupChat = groupChat;
+		if (this instanceof Contact || this instanceof Bot) {
+			Contact contact = (Contact) this;
+			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
+					this.getImageIcon(), contact.getOnlineStatus());
+			onlineStatusPanel = entry.getKey();
+			onlineStatusLabel = entry.getValue();
+		} else {
+			Map.Entry<JPanel, JLabel> entry = ImageIO.getConversationIconPanel(
+					this.getImageIcon(), Status.NOT_A_CONTACT);
+			onlineStatusPanel = entry.getKey();
+			onlineStatusLabel = entry.getValue();
+		}
 	}
 
 	public String getImageIconUrl() {

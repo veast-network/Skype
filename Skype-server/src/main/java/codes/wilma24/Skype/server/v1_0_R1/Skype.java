@@ -170,7 +170,7 @@ public class Skype {
 		if (prev + 1 > 10) {
 			bannedIpList.add(ip);
 		}
-		if (prev + 1 > 3) {
+		if (prev + 1 > 5) {
 			return true;
 		}
 		if (System.currentTimeMillis() - timestamp < 10000L) {

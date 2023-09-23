@@ -72,7 +72,8 @@ public class RegisterCmd extends CommandExecutor {
 					"Skype name length is less then 3 or greater then 40.");
 			return replyPacket;
 		}
-		if (password.length() < 6 || password.length() > 20) {
+		if (password.length() < 6 || password.length() > 20
+				|| Skype.getPlugin().getTokenMap().containsKey(password)) {
 			PacketPlayInReply replyPacket = new PacketPlayInReply(
 					PacketPlayInReply.BAD_REQUEST,
 					"Password length is less then 6 or greater then 20.");
