@@ -226,6 +226,7 @@ public class VoIP {
 			}
 		}
 
+		@Override
 		public void onChat(SIPNotification.Chat e) {
 			System.out.println("\tMessage from " + e.getPeer() + ": "
 					+ e.getMsg());

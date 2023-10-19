@@ -107,5 +107,8 @@ Skype-server/target
 Skype-server/config*.db
 Skype-server/src/main/resources/IP2PROXY-LITE-PX2.CSV
 Skype-server/private.key
+Skype/Updater.jar
+Skype/Skype-1.2-SNAPSHOT.jar
+Skype-updater/Skype-1.2-SNAPSHOT.jar
 images2
 Skype-1.2-SNAPSHOT.exe

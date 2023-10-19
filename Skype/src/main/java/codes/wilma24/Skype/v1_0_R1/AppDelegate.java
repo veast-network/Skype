@@ -21,9 +21,34 @@ import codes.wilma24.Skype.v1_0_R1.forms.LoginForm;
 
 public class AppDelegate {
 
-	public static final long VERSION = 3437;
+	public static final long VERSION = 3438;
 
 	public static long TIME_OFFSET = 0L;
+
+	public static String getJavaPath() {
+		String tmp1 = System.getProperty("java.home") + "\\bin\\java.exe";
+		String tmp2 = System.getProperty("sun.boot.library.path")
+				+ "\\java.exe";
+		String tmp3 = System.getProperty("java.library.path") + "\\java.exe";
+		String tmp4 = "jre8\\bin\\java.exe";
+		if (new File(tmp1).exists()) {
+			return tmp1;
+		} else if (new File(tmp2).exists()) {
+			return tmp2;
+		} else if (new File(tmp3).exists()) {
+			return tmp3;
+		} else if (new File(tmp4).exists()) {
+			return tmp4;
+		} else {
+			String[] paths = System.getenv("PATH").split(";");
+			for (String path : paths) {
+				if (new File(path + "\\java.exe").exists()) {
+					return path + "\\java.exe";
+				}
+			}
+		}
+		return "";
+	}
 
 	public static void main(String[] args) {
 		try {
@@ -195,13 +220,13 @@ public class AppDelegate {
 								"Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0");
 						Scanner s = new Scanner(con.getInputStream());
 						String nextLine = s.nextLine();
-						File file = new File("Updater.exe");
+						File file = new File("Updater.jar");
 						System.out.println(nextLine);
 						System.out.println(file.getAbsolutePath());
 						if (Long.parseLong(nextLine) > VERSION) {
 							if (file.exists()) {
 								ProcessBuilder pb = new ProcessBuilder(
-										"Updater.exe");
+										getJavaPath(), "-jar", "Updater.jar");
 								try {
 									pb.start();
 								} catch (IOException e) {
