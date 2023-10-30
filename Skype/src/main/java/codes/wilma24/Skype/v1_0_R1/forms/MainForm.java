@@ -5029,7 +5029,7 @@ public class MainForm extends JFrame {
 				/**
 				 * Panel added to pane with z-index 0
 				 */
-				//layeredPane.add(labelPanel, new Integer(0), 0);
+				// layeredPane.add(labelPanel, new Integer(0), 0);
 			}
 
 			{
@@ -5203,7 +5203,7 @@ public class MainForm extends JFrame {
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
 				labelPanel.setBounds(panelWidth - 70 - 10 - width,
-						58 - 8 + adj + 1, width, height + 10);
+						58 - 8 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5280,8 +5280,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(351 + 1 - 2, 126 - 7 + adj, width,
-						height + 10);
+				labelPanel
+						.setBounds(351 + 1, 126 - 7 + adj, width, height + 10);
 
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 
