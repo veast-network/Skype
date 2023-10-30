@@ -192,6 +192,8 @@ public class MainForm extends JFrame {
 
 	public static Object webcam = null;
 
+	private boolean isVoIPSetUp = false;
+
 	private WindowAdapter windowAdapter = new WindowAdapter() {
 		@Override
 		public void windowClosing(WindowEvent e) {
@@ -1127,6 +1129,61 @@ public class MainForm extends JFrame {
 					 * 
 					 * We will now make it selected
 					 */
+					if (!isVoIPSetUp) {
+						VoIPRegisterForm form = new VoIPRegisterForm(frame,
+								new VoIPRegisterForm.Runnable() {
+
+									@Override
+									public void run() {
+										String sipserver = getSIPServer();
+										String username = getUsername();
+										String password = getPassword();
+										try {
+											Skype.getPlugin()
+													.getConfig()
+													.replace(
+															loggedInUser
+																	.getSkypeName()
+																	+ ".sipserver",
+															sipserver);
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+										try {
+											Skype.getPlugin()
+													.getConfig()
+													.replace(
+															loggedInUser
+																	.getSkypeName()
+																	+ ".sipusername",
+															username);
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+										try {
+											Skype.getPlugin()
+													.getConfig()
+													.replace(
+															loggedInUser
+																	.getSkypeName()
+																	+ ".sippassword",
+															password);
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+										for (Conversation conversation : conversations) {
+											if (conversation instanceof VoIPContact) {
+												((VoIPContact) conversation)
+														.setContact((((VoIPContact) conversation)
+																.isContact()));
+											}
+										}
+										isVoIPSetUp = true;
+										refreshWindow();
+									}
+								});
+						form.show();
+					}
 					callPhonesButtonBackgroundPanel.setBackground(new Color(
 							199, 237, 252));
 					homeButtonBackgroundPanel
@@ -4947,6 +5004,7 @@ public class MainForm extends JFrame {
 		}
 
 		if (rightPanelPage.equals("AccountHome")) {
+			int adj = -15;
 			int leftSplitPaneWidth = leftSplitPane.getDividerLocation();
 			if (leftSplitPaneWidth == 0 || leftSplitPaneWidth == -1) {
 				leftSplitPaneWidth = this.defaultLeftPanelWidth;
@@ -4964,7 +5022,20 @@ public class MainForm extends JFrame {
 			{
 				JPanel labelPanel = new JPanel();
 				labelPanel.setOpaque(false);
-				labelPanel.setBounds(260, 103, panelWidth - 331, 1);
+				labelPanel.setBounds(260, 19, panelWidth - 331, 1);
+				labelPanel.setBorder(BorderFactory
+						.createDashedBorder(new Color(147, 153, 157)));
+
+				/**
+				 * Panel added to pane with z-index 0
+				 */
+				//layeredPane.add(labelPanel, new Integer(0), 0);
+			}
+
+			{
+				JPanel labelPanel = new JPanel();
+				labelPanel.setOpaque(false);
+				labelPanel.setBounds(260, 103 + adj, panelWidth - 331, 1);
 				labelPanel.setBorder(BorderFactory
 						.createDashedBorder(new Color(147, 153, 157)));
 
@@ -4976,7 +5047,7 @@ public class MainForm extends JFrame {
 			{
 				JPanel labelPanel = new JPanel();
 				labelPanel.setOpaque(false);
-				labelPanel.setBounds(260, 160, panelWidth - 331, 1);
+				labelPanel.setBounds(260, 160 + adj, panelWidth - 331, 1);
 				labelPanel.setBorder(BorderFactory
 						.createDashedBorder(new Color(147, 153, 157)));
 
@@ -5064,7 +5135,7 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(350, 26 - 9, width, height + 10);
+				labelPanel.setBounds(350, 26 - 9 + adj, width, height + 10);
 
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 
@@ -5104,7 +5175,7 @@ public class MainForm extends JFrame {
 				/**
 				 * Panel added to pane with z-index 0
 				 */
-				layeredPane.add(labelPanel, new Integer(0), 0);
+				// layeredPane.add(labelPanel, new Integer(0), 0);
 			}
 			{
 				JPanel labelPanel = new JPanel();
@@ -5114,7 +5185,7 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(291 + 1, 58 - 8, width, height + 10);
+				labelPanel.setBounds(291 + 1, 58 - 8 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5131,8 +5202,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(panelWidth - 70 - 10 - width, 58 - 8,
-						width, height + 10);
+				labelPanel.setBounds(panelWidth - 70 - 10 - width,
+						58 - 8 + adj + 1, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5149,7 +5220,7 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(349 + 1, 58 - 8, width, height + 10);
+				labelPanel.setBounds(349 + 1, 58 - 8 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5167,7 +5238,7 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(349 + 1, 75 - 8, width, height + 10);
+				labelPanel.setBounds(349 + 1, 75 - 8 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5184,7 +5255,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(309 + 1, 126 - 7, width, height + 10);
+				labelPanel
+						.setBounds(309 + 1, 126 - 7 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5208,7 +5280,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(351 + 1, 126 - 7, width, height + 10);
+				labelPanel.setBounds(351 + 1 - 2, 126 - 7 + adj, width,
+						height + 10);
 
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 
@@ -5258,7 +5331,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(272 + 1, 177 - 7, width, height + 10);
+				labelPanel
+						.setBounds(272 + 1, 177 - 7 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5282,7 +5356,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(349 + 1, 177 - 7, width, height + 10);
+				labelPanel
+						.setBounds(349 + 1, 177 - 7 + adj, width, height + 10);
 
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 
@@ -5331,8 +5406,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(panelWidth - 70 - 10 - width, 177 - 7,
-						width, height + 10);
+				labelPanel.setBounds(panelWidth - 70 - 10 - width,
+						177 - 7 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5349,7 +5424,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(275 + 1, 211 - 7, width, height + 10);
+				labelPanel
+						.setBounds(275 + 1, 211 - 7 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5373,7 +5449,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(349 + 1, 211 - 7, width, height + 10);
+				labelPanel
+						.setBounds(349 + 1, 211 - 7 + adj, width, height + 10);
 
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 
@@ -5422,8 +5499,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(panelWidth - 70 - 10 - width, 211 - 7,
-						width, height + 10);
+				labelPanel.setBounds(panelWidth - 70 - 10 - width,
+						211 - 7 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5440,7 +5517,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(273 + 1, 245 - 7, width, height + 10);
+				labelPanel
+						.setBounds(273 + 1, 245 - 7 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -5464,7 +5542,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(349 + 1, 245 - 7, width, height + 10);
+				labelPanel
+						.setBounds(349 + 1, 245 - 7 + adj, width, height + 10);
 
 				MouseAdapter mouseAdapter = new MouseAdapter() {
 
@@ -5513,8 +5592,8 @@ public class MainForm extends JFrame {
 				labelPanel.add(label);
 				int width = label.getPreferredSize().width;
 				int height = label.getPreferredSize().height;
-				labelPanel.setBounds(panelWidth - 70 - 10 - width, 245 - 7,
-						width, height + 10);
+				labelPanel.setBounds(panelWidth - 70 - 10 - width,
+						245 - 7 + adj, width, height + 10);
 
 				label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -12025,62 +12104,13 @@ public class MainForm extends JFrame {
 															.isContact()));
 										}
 									}
+									isVoIPSetUp = true;
 									refreshWindow();
 								}
 							});
 				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
-			} else {
-				VoIPRegisterForm form = new VoIPRegisterForm(this,
-						new VoIPRegisterForm.Runnable() {
-
-							@Override
-							public void run() {
-								String sipserver = getSIPServer();
-								String username = getUsername();
-								String password = getPassword();
-								try {
-									Skype.getPlugin()
-											.getConfig()
-											.replace(
-													loggedInUser.getSkypeName()
-															+ ".sipserver",
-													sipserver);
-								} catch (Exception e) {
-									e.printStackTrace();
-								}
-								try {
-									Skype.getPlugin()
-											.getConfig()
-											.replace(
-													loggedInUser.getSkypeName()
-															+ ".sipusername",
-													username);
-								} catch (Exception e) {
-									e.printStackTrace();
-								}
-								try {
-									Skype.getPlugin()
-											.getConfig()
-											.replace(
-													loggedInUser.getSkypeName()
-															+ ".sippassword",
-													password);
-								} catch (Exception e) {
-									e.printStackTrace();
-								}
-								for (Conversation conversation : conversations) {
-									if (conversation instanceof VoIPContact) {
-										((VoIPContact) conversation)
-												.setContact((((VoIPContact) conversation)
-														.isContact()));
-									}
-								}
-								refreshWindow();
-							}
-						});
-				form.show();
 			}
 
 			/**

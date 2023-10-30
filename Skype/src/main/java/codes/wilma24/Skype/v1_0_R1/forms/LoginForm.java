@@ -1079,6 +1079,20 @@ public class LoginForm extends JFrame {
 				if (handle.isPresent()) {
 					Skype.getPlugin().setHandle(handle.get());
 				} else {
+					if (!Skype.getPlugin().getHostname().equals("localhost")) {
+						Skype.getPlugin().setHostname("localhost");
+						new Timer()
+								.schedule(
+										new TimerTask() {
+											@Override
+											public void run() {
+												navigateHomePage();
+											}
+										},
+										simulatePageLoadingDelay ? pageLoadingDelayInMs
+												: 1L);
+						return;
+					}
 					new Timer().schedule(new TimerTask() {
 						@Override
 						public void run() {
@@ -1323,7 +1337,9 @@ public class LoginForm extends JFrame {
 						.getString("username");
 				String password = Skype.getPlugin().getConfig()
 						.getString("token");
-				navigateSignIn(skypeName, password);
+				if (Skype.getPlugin().createHandle().isPresent()) {
+					navigateSignIn(skypeName, password);
+				}
 				super.show();
 				return;
 			} catch (Exception e) {
