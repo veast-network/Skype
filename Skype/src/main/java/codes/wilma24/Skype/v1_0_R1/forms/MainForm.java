@@ -606,7 +606,7 @@ public class MainForm extends JFrame {
 					hit = true;
 				}
 			}
-			DialogForm form = new DialogForm(null, "Skype™ - Send file?",
+			DialogForm form = new DialogForm(null, "Skype"+"\u2122"+" - Send file?",
 					header, text, hit == false ? "Send" : null, new Runnable() {
 
 						@Override
@@ -1706,7 +1706,7 @@ public class MainForm extends JFrame {
 									return;
 								}
 								DialogForm form = new DialogForm(null,
-										"Skype™ - Remove contact?",
+										"Skype"+"\u2122"+" - Remove contact?",
 										"Remove contact?", "Remove "
 												+ conversation.getDisplayName()
 												+ " from Contacts?", "Remove",
@@ -1805,7 +1805,7 @@ public class MainForm extends JFrame {
 							public void actionPerformed(ActionEvent arg0) {
 								DialogForm form = new DialogForm(
 										null,
-										"Skype™ - Clear chat?",
+										"Skype"+"\u2122"+" - Clear chat?",
 										"Clear chat?",
 										"Are you sure you want to clear this chat?",
 										"Remove", new Runnable() {
@@ -2521,7 +2521,7 @@ public class MainForm extends JFrame {
 									return;
 								}
 								DialogForm form = new DialogForm(null,
-										"Skype™ - Remove contact?",
+										"Skype"+"\u2122"+" - Remove contact?",
 										"Remove contact?", "Remove "
 												+ conversation.getDisplayName()
 												+ " from Contacts?", "Remove",
@@ -2620,7 +2620,7 @@ public class MainForm extends JFrame {
 							public void actionPerformed(ActionEvent arg0) {
 								DialogForm form = new DialogForm(
 										null,
-										"Skype™ - Clear chat?",
+										"Skype"+"\u2122"+" - Clear chat?",
 										"Clear chat?",
 										"Are you sure you want to clear this chat?",
 										"Remove", new Runnable() {
@@ -5769,7 +5769,7 @@ public class MainForm extends JFrame {
 						} else {
 							DialogForm form = new DialogForm(
 									null,
-									"Skype™ - Remove profile picture?",
+									"Skype"+"\u2122"+" - Remove profile picture?",
 									"Remove profile picture?",
 									"Are you sure you want to remove this profile picture?",
 									"Remove", new Runnable() {
@@ -6228,7 +6228,7 @@ public class MainForm extends JFrame {
 												if (err) {
 													DialogForm form = new DialogForm(
 															frame,
-															"Skype™ - "
+															"Skype"+"\u2122"+" - "
 																	+ loggedInUser
 																			.getSkypeName(),
 															"Webcam sharing failed",
@@ -6476,7 +6476,7 @@ public class MainForm extends JFrame {
 									if (err) {
 										DialogForm form = new DialogForm(
 												MainForm.get(),
-												"Skype™ - "
+												"Skype"+"\u2122"+" - "
 														+ loggedInUser
 																.getSkypeName(),
 												"Webcam sharing failed",
@@ -7900,7 +7900,7 @@ public class MainForm extends JFrame {
 									public void actionPerformed(ActionEvent arg0) {
 										DialogForm form = new DialogForm(
 												null,
-												"Skype™ - Remove message?",
+												"Skype"+"\u2122"+" - Remove message?",
 												"Remove message?",
 												"Are you sure you want to remove this message?",
 												"Remove", new Runnable() {
@@ -8535,7 +8535,7 @@ public class MainForm extends JFrame {
 													ActionEvent arg0) {
 												DialogForm form = new DialogForm(
 														null,
-														"Skype™ - Remove message?",
+														"Skype"+"\u2122"+" - Remove message?",
 														"Remove message?",
 														"Are you sure you want to remove this message?",
 														"Remove",
@@ -9133,7 +9133,7 @@ public class MainForm extends JFrame {
 												ActionEvent arg0) {
 											DialogForm form = new DialogForm(
 													null,
-													"Skype™ - Remove message?",
+													"Skype"+"\u2122"+" - Remove message?",
 													"Remove message?",
 													"Are you sure you want to remove this message?",
 													"Remove", new Runnable() {
@@ -9428,7 +9428,7 @@ public class MainForm extends JFrame {
 													ActionEvent arg0) {
 												DialogForm form = new DialogForm(
 														null,
-														"Skype™ - Remove message?",
+														"Skype"+"\u2122"+" - Remove message?",
 														"Remove message?",
 														"Are you sure you want to remove this message?",
 														"Remove",
@@ -9685,7 +9685,7 @@ public class MainForm extends JFrame {
 								|| ext.equals("bmp")) {
 							DialogForm form = new DialogForm(
 									null,
-									"Skype™ - Encrypt image?",
+									"Skype"+"\u2122"+" - Encrypt image?",
 									"Encrypt image?",
 									"Do you want to encrypt and send this image as a file?"
 											+ '\n'
@@ -9718,7 +9718,7 @@ public class MainForm extends JFrame {
 													WindowEvent.WINDOW_CLOSING));
 											DialogForm form = new DialogForm(
 													frame,
-													"Skype™ - Upload image?",
+													"Skype"+"\u2122"+" - Upload image?",
 													"Upload image?",
 													"Are you sure you want to upload this image? The"
 															+ '\r'
@@ -10893,7 +10893,7 @@ public class MainForm extends JFrame {
 										"jpg", baos);
 								DialogForm form = new DialogForm(
 										frame,
-										"Skype™ - Upload image?",
+										"Skype"+"\u2122"+" - Upload image?",
 										"Upload image?",
 										"Are you sure you want to upload this image? The"
 												+ '\r'
@@ -11185,7 +11185,7 @@ public class MainForm extends JFrame {
 						return;
 					}
 					DialogForm form = new DialogForm(null,
-							"Skype™ - Remove contact?", "Remove contact?",
+							"Skype"+"\u2122"+" - Remove contact?", "Remove contact?",
 							"Remove " + selectedConversation.getDisplayName()
 									+ " from Contacts?", "Remove",
 							new Runnable() {

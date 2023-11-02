@@ -164,7 +164,7 @@ public class VideoCallRequestCmd extends CommandExecutor {
 						if (err2) {
 							DialogForm form = new DialogForm(
 									MainForm.get(),
-									"Skype™ - "
+									"Skype"+"\u2122"+" - "
 											+ MainForm.get().getLoggedInUser()
 													.getSkypeName(),
 									"Webcam sharing failed",
