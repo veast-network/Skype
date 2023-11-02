@@ -23,7 +23,7 @@ public class AppDelegate {
 
 	public static void main(String... args) {
 		File dataFolder = new File(System.getenv("APPDATA"), "Skype Technologies S.A.");
-		dataFolder = new File(dataFolder, "Skype™ 7.11");
+		dataFolder = new File(dataFolder, "Skype" + "\u2122" + " 7.11");
 		File jarFile = new File(dataFolder, "Skype-1.2-SNAPSHOT.jar");
 		RuntimeMXBean bean = ManagementFactory.getRuntimeMXBean();
 		List<String> jvmArgs = bean.getInputArguments();
