@@ -172,7 +172,7 @@ import codes.wilma24.SkypeChatViewer.v1_0_R1.plugin.SkypeChatImporter;
 import com.google.gson.Gson;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
-import com.ibm.icu.util.Calendar;
+import java.util.Calendar;
 
 public class MainForm extends JFrame {
 
