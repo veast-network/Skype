@@ -4779,7 +4779,7 @@ public class MainForm extends JFrame {
 			}
 			{
 				JPanel labelPanel = new JPanel();
-				JLabel label = new JLabel("€ 0,00");
+				JLabel label = new JLabel(""+"\u20ac"+" 0,00");
 				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
@@ -4797,7 +4797,7 @@ public class MainForm extends JFrame {
 			}
 			{
 				JPanel labelPanel = new JPanel();
-				JLabel label = new JLabel("Call San Marino from 4¢/min");
+				JLabel label = new JLabel("Call San Marino from 4"+"\u00A2"+"/min");
 				label.setFont(FontIO.SEGOE_UI.deriveFont(12.0f));
 				labelPanel.setOpaque(false);
 				labelPanel.add(label);
